@@ -26,6 +26,8 @@ class Print : public AbstractReadOnlyOperator {
   std::vector<uint16_t> _column_string_widths(uint16_t min, uint16_t max, std::shared_ptr<const Table> t) const;
   std::string _truncate_cell(const AllTypeVariant& cell, uint16_t max_width) const;
   std::shared_ptr<const Table> _on_execute() override;
+  uint16_t _min_cell_width = 8;
+  uint16_t _max_cell_width = 20;
 
   // stream to print the result
   std::ostream& _out;
