@@ -1,7 +1,7 @@
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
-#include <algorithm>
 
 #include "../base_test.hpp"
 #include "gtest/gtest.h"
@@ -51,9 +51,7 @@ class PrintWrapper : public Print {
     return _truncate_cell(cell, max_width);
   }
 
-  uint16_t get_max_cell_length() {
-    return _max_cell_width;
-  }
+  uint16_t get_max_cell_length() { return _max_cell_width; }
 };
 
 TEST_F(OperatorsPrintTest, EmptyTable) {
