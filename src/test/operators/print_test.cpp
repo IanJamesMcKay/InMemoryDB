@@ -2,6 +2,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 #include "../base_test.hpp"
 #include "gtest/gtest.h"
