@@ -1,4 +1,4 @@
-#include "column_statistics.hpp"
+#include "column_statistics_old.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -13,7 +13,7 @@
 #include "operators/aggregate.hpp"
 #include "operators/table_wrapper.hpp"
 #include "storage/table.hpp"
-#include "table_statistics.hpp"
+#include "table_statistics_old.hpp"
 #include "type_cast.hpp"
 #include "types.hpp"
 

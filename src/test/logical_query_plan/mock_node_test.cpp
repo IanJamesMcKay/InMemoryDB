@@ -6,7 +6,7 @@
 #include "base_test.hpp"
 
 #include "logical_query_plan/mock_node.hpp"
-#include "optimizer/table_statistics.hpp"
+#include "optimizer/table_statistics_old.hpp"
 
 namespace opossum {
 

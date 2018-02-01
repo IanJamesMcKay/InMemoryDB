@@ -142,10 +142,10 @@ set(
     operators/update.hpp
     operators/validate.cpp
     operators/validate.hpp
-    optimizer/base_column_statistics.cpp
-    optimizer/base_column_statistics.hpp
-    optimizer/column_statistics.cpp
-    optimizer/column_statistics.hpp
+    optimizer/base_column_statistics_old.cpp
+    optimizer/base_column_statistics_old.hpp
+    optimizer/column_statistics_old.cpp
+    optimizer/column_statistics_old.hpp
     abstract_expression.cpp
     abstract_expression.hpp
     operators/pqp_expression.cpp
@@ -162,8 +162,8 @@ set(
     optimizer/strategy/predicate_reordering_rule.hpp
     optimizer/strategy/rule_batch.cpp
     optimizer/strategy/rule_batch.hpp
-    optimizer/table_statistics.cpp
-    optimizer/table_statistics.hpp
+    optimizer/table_statistics_old.cpp
+    optimizer/table_statistics_old.hpp
     planviz/abstract_visualizer.hpp
     planviz/lqp_visualizer.cpp
     planviz/lqp_visualizer.hpp
@@ -208,6 +208,12 @@ set(
     sql/sql_result_operator.hpp
     sql/sql_translator.cpp
     sql/sql_translator.hpp
+    statistics/abstract_column_statistics.cpp
+    statistics/abstract_column_statistics.hpp
+    statistics/column_statistics.cpp
+    statistics/column_statistics.hpp
+    statistics/table_statistics.cpp
+    statistics/table_statistics.hpp
     storage/base_attribute_vector.hpp
     storage/base_column.hpp
     storage/base_dictionary_column.hpp

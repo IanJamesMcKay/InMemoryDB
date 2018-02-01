@@ -1,4 +1,4 @@
-#include "table_statistics.hpp"
+#include "table_statistics_old.hpp"
 
 #include <algorithm>
 #include <iostream>
@@ -9,8 +9,8 @@
 #include <vector>
 
 #include "all_parameter_variant.hpp"
-#include "optimizer/base_column_statistics.hpp"
-#include "optimizer/column_statistics.hpp"
+#include "optimizer/base_column_statistics_old.hpp"
+#include "optimizer/column_statistics_old.hpp"
 #include "resolve_type.hpp"
 #include "storage/table.hpp"
 

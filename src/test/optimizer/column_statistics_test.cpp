@@ -8,7 +8,7 @@
 #include "gtest/gtest.h"
 #include "operators/table_scan.hpp"
 #include "operators/table_wrapper.hpp"
-#include "optimizer/column_statistics.hpp"
+#include "optimizer/column_statistics_old.hpp"
 
 namespace opossum {
 

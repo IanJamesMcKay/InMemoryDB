@@ -12,7 +12,7 @@
 #include "operators/table_scan.hpp"
 #include "operators/update.hpp"
 #include "operators/validate.hpp"
-#include "optimizer/table_statistics.hpp"
+#include "optimizer/table_statistics_old.hpp"
 #include "storage/storage_manager.hpp"
 #include "storage/table.hpp"
 

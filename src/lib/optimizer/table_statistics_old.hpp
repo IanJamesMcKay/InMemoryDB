@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "all_parameter_variant.hpp"
-#include "optimizer/base_column_statistics.hpp"
+#include "optimizer/base_column_statistics_old.hpp"
 
 namespace opossum {
 

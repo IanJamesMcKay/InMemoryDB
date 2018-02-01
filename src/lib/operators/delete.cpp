@@ -4,7 +4,7 @@
 #include <string>
 
 #include "concurrency/transaction_context.hpp"
-#include "optimizer/table_statistics.hpp"
+#include "optimizer/table_statistics_old.hpp"
 #include "storage/reference_column.hpp"
 #include "storage/storage_manager.hpp"
 #include "utils/assert.hpp"

@@ -1,4 +1,4 @@
-#include "base_column_statistics.hpp"
+#include "base_column_statistics_old.hpp"
 
 namespace opossum {
 

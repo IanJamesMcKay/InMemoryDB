@@ -6,7 +6,7 @@
 #include <string>
 
 #include "constant_mappings.hpp"
-#include "optimizer/table_statistics.hpp"
+#include "optimizer/table_statistics_old.hpp"
 #include "types.hpp"
 #include "utils/assert.hpp"
 
