@@ -60,7 +60,7 @@ class AbstractColumnStatistics : public std::enable_shared_from_this<AbstractCol
    */
   virtual SingleColumnEstimation estimate_predicate(
   const PredicateCondition predicate_condition, const AllTypeVariant& value,
-  const std::optional<AllTypeVariant>& value2) const = 0;
+  const std::optional<AllTypeVariant>& value2 = std::nullopt) const = 0;
 
   /**
    * Estimate selectivity for predicate with prepared statements.
@@ -69,7 +69,7 @@ class AbstractColumnStatistics : public std::enable_shared_from_this<AbstractCol
    */
   virtual SingleColumnEstimation estimate_predicate(
   const PredicateCondition predicate_condition, const ValuePlaceholder& value,
-  const std::optional<AllTypeVariant>& value2) const = 0;
+  const std::optional<AllTypeVariant>& value2 = std::nullopt) const = 0;
 
   /**
    * Estimate selectivity for predicate on columns.
@@ -81,7 +81,7 @@ class AbstractColumnStatistics : public std::enable_shared_from_this<AbstractCol
   virtual TwoColumnEstimation estimate_predicate(
   const PredicateCondition predicate_condition,
   const std::shared_ptr<AbstractColumnStatistics>& right_abstract_column_statistics,
-  const std::optional<AllTypeVariant>& value2) const = 0;
+  const std::optional<AllTypeVariant>& value2 = std::nullopt) const = 0;
   /**
    * @}
    */

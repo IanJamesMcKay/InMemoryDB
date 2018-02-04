@@ -13,7 +13,7 @@ class AbstractColumnStatistics;
 
 class TableStatistics : public std::enable_shared_from_this<TableStatistics> {
  public:
-  TableStatistics(const float row_count, const std::vector<std::shared_ptr<const AbstractColumnStatistics>>& column_statistics);
+  TableStatistics(const float row_count, std::vector<std::shared_ptr<const AbstractColumnStatistics>> column_statistics);
 
   /**
    * @defgroup Member access
@@ -21,8 +21,7 @@ class TableStatistics : public std::enable_shared_from_this<TableStatistics> {
    */
   float row_count() const;
   size_t invalid_row_count() const;
-
-  void set_invalid_row_count(const size_t invalid_row_count);
+  const std::vector<std::shared_ptr<const AbstractColumnStatistics>>& column_statistics() const;
   /**
    * @}
    */
@@ -32,24 +31,24 @@ class TableStatistics : public std::enable_shared_from_this<TableStatistics> {
    */
   std::shared_ptr<TableStatistics> estimate_predicate(
   const ColumnID column_id, const PredicateCondition predicate_condition, const AllParameterVariant& value,
-  const std::optional<AllTypeVariant>& value2 = std::nullopt);
+  const std::optional<AllTypeVariant>& value2 = std::nullopt) const;
 
   /**
    * Generate table statistics for a cross join.
    */
   std::shared_ptr<TableStatistics> estimate_cross_join(
-  const std::shared_ptr<const TableStatistics>& right_table_statistics);
+  const std::shared_ptr<const TableStatistics>& right_table_statistics) const;
 
   /**
    * Generate table statistics for predicated joins.
    */
-  std::shared_ptr<TableStatistics> estimate_predicate_join(
+  std::shared_ptr<TableStatistics> estimate_predicated_join(
   const std::shared_ptr<const TableStatistics>& right_table_statistics, const JoinMode mode, const ColumnIDPair column_ids,
-  const PredicateCondition predicate_condition);
+  const PredicateCondition predicate_condition) const;
 
  private:
   const float _row_count;
-  const size_t _invalid_row_count{0u};
+  size_t _invalid_row_count{0u};
   const std::vector<std::shared_ptr<const AbstractColumnStatistics>> _column_statistics;
 };
 

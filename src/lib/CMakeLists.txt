@@ -214,6 +214,8 @@ set(
     statistics/column_statistics.hpp
     statistics/table_statistics.cpp
     statistics/table_statistics.hpp
+    statistics/table_statistics_generator.cpp
+    statistics/table_statistics_generator.hpp
     storage/base_attribute_vector.hpp
     storage/base_column.hpp
     storage/base_dictionary_column.hpp

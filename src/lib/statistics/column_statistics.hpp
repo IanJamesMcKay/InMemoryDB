@@ -29,7 +29,6 @@ class ColumnStatistics : public AbstractColumnStatistics {
  private:
   const T _min;
   const T _max;
-}
-
+};
 
 }  // namespace opossum
