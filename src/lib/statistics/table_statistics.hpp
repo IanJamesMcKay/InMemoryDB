@@ -13,7 +13,7 @@ class AbstractColumnStatistics;
 
 class TableStatistics : public std::enable_shared_from_this<TableStatistics> {
  public:
-  TableStatistics(const float row_count, std::vector<std::shared_ptr<const AbstractColumnStatistics>> column_statistics);
+  TableStatistics(const float row_count, std::vector<std::shared_ptr<const AbstractColumnStatistics>> column_statistics, const size_t invalid_row_count = 0);
 
   /**
    * @defgroup Member access
@@ -48,7 +48,7 @@ class TableStatistics : public std::enable_shared_from_this<TableStatistics> {
 
  private:
   const float _row_count;
-  size_t _invalid_row_count{0u};
+  size_t _invalid_row_count;
   const std::vector<std::shared_ptr<const AbstractColumnStatistics>> _column_statistics;
 };
 

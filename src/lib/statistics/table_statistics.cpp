@@ -16,8 +16,8 @@ constexpr float DEFAULT_BETWEEN_SELECTIVITY = 0.25f;
 
 namespace opossum {
 
-TableStatistics::TableStatistics(const float row_count, std::vector<std::shared_ptr<const AbstractColumnStatistics>> column_statistics):
-  _row_count(row_count), _column_statistics(std::move(column_statistics))
+TableStatistics::TableStatistics(const float row_count, std::vector<std::shared_ptr<const AbstractColumnStatistics>> column_statistics, const size_t invalid_row_count):
+  _row_count(row_count), _invalid_row_count(invalid_row_count), _column_statistics(std::move(column_statistics))
 {}
 
 float TableStatistics::row_count() const {
@@ -152,70 +152,108 @@ const PredicateCondition predicate_condition) const {
     * This results in a join result row count of 1 + 2 = 3.
     */
 
-  // For self joins right_table_statistics should be this.
-  if (mode == JoinMode::Self) {
-    DebugAssert(shared_from_this() == right_table_statistics,
-                "Self joins should pass the same table as right_table_statistics again.");
+  DebugAssert(mode != JoinMode::Self || this == right_table_statistics.get(), "Self Joins should have the same left and right argument.");
+
+  const auto cross_join_statistics = estimate_cross_join(right_table_statistics);
+  const auto predicate_statistics = cross_join_statistics->estimate_predicate(column_ids.first, predicate_condition, column_ids.second);
+
+  if (mode == JoinMode::Self || mode == JoinMode::Inner) {
+    return predicate_statistics;
   }
 
-  // copy column statistics and calculate cross join row count
-  auto join_table_stats = estimate_cross_join(right_table_statistics);
+  auto row_count = predicate_statistics->row_count();
 
-  // retrieve the two column statistics which are used by the join predicate
-  auto& left_col_stats = _column_statistics[column_ids.first];
-  auto& right_col_stats = right_table_statistics->_column_statistics[column_ids.second];
+  auto left_null_value_no = _calculate_added_null_values_for_outer_join(
+  right_table_statistics->row_count(), right_column_statistics, stats_container.second_column_statistics->distinct_count());
+  // calculate how many null values need to be added to columns from the right table for left/outer joins
+  auto right_null_value_no = _calculate_added_null_values_for_outer_join(
+  row_count(), left_column_statistics, stats_container.column_statistics->distinct_count());
 
-  auto stats_container = left_col_stats->estimate_predicate(predicate_condition, right_col_stats);
+  if (mode == JoinMode::Left || mode == JoinMode::Outer) {
+    row_count += right_null_value_count;
+  }
+  if (mode == JoinMode::Right || mode == JoinMode::Outer) row_count += left_null_value_count;
 
-  // apply predicate selectivity to cross join
-  join_table_stats->_row_count *= stats_container.selectivity;
+  switch (mode) {
+    case JoinMode::Left: {
+      cross_join_statistics->_column_statistics[new_right_column_id] = stats_container.second_column_statistics;
+      row_count += right_null_value_no;
+      apply_left_outer_join();
+      break;
+    }
+    case JoinMode::Right: {
+      cross_join_statistics->_column_statistics[column_ids.first] = stats_container.column_statistics;
+      cross_join_statistics->_row_count += left_null_value_no;
+      apply_right_outer_join();
+      break;
+    }
+    case JoinMode::Outer: {
+      cross_join_statistics->_row_count += right_null_value_no;
+      cross_join_statistics->_row_count += left_null_value_no;
+      apply_left_outer_join();
+      apply_right_outer_join();
+      break;
+    }
+  }
 
-  ColumnID new_right_column_id{static_cast<ColumnID::base_type>(_column_statistics.size() + column_ids.second)};
+//
+//  // retrieve the two column statistics which are used by the join predicate
+//  const auto& left_column_statistics = _column_statistics[column_ids.first];
+//  const auto& right_column_statistics = right_table_statistics->_column_statistics[column_ids.second];
+//
+//  const auto predicate_estimation = left_column_statistics->estimate_predicate(predicate_condition, right_column_statistics);
+//
+//  // apply predicate selectivity to cross join
+//  auto joined_row_count = cross_join_statistics->row_count() * predicate_estimation.selectivity;
+//
+//  auto joined_column_statistics = predicate_estimation->column_statistics();
+//
+//  ColumnID new_right_column_id{static_cast<ColumnID::base_type>(_column_statistics.size() + column_ids.second)};
 
   // calculate how many null values need to be added to columns from the left table for right/outer joins
   auto left_null_value_no = _calculate_added_null_values_for_outer_join(
-  right_table_statistics->row_count(), right_col_stats, stats_container.second_column_statistics->distinct_count());
+  right_table_statistics->row_count(), right_column_statistics, stats_container.second_column_statistics->distinct_count());
   // calculate how many null values need to be added to columns from the right table for left/outer joins
   auto right_null_value_no = _calculate_added_null_values_for_outer_join(
-  row_count(), left_col_stats, stats_container.column_statistics->distinct_count());
+  row_count(), left_column_statistics, stats_container.column_statistics->distinct_count());
 
   // prepare two _adjust_null_value_ratio_for_outer_join calls, executed in the switch statement below
 
   // a) add null values to columns from the right table for left outer join
   auto apply_left_outer_join = [&]() {
-    _adjust_null_value_ratio_for_outer_join(join_table_stats->_column_statistics.begin() + _column_statistics.size(),
-                                            join_table_stats->_column_statistics.end(), right_table_statistics->row_count(),
-                                            right_null_value_no, join_table_stats->row_count());
+    _adjust_null_value_ratio_for_outer_join(cross_join_statistics->_column_statistics.begin() + _column_statistics.size(),
+                                            cross_join_statistics->_column_statistics.end(), right_table_statistics->row_count(),
+                                            right_null_value_no, cross_join_statistics->row_count());
   };
   // b) add null values to columns from the left table for right outer
   auto apply_right_outer_join = [&]() {
-    _adjust_null_value_ratio_for_outer_join(join_table_stats->_column_statistics.begin(),
-                                            join_table_stats->_column_statistics.begin() + _column_statistics.size(),
-                                            row_count(), left_null_value_no, join_table_stats->row_count());
+    _adjust_null_value_ratio_for_outer_join(cross_join_statistics->_column_statistics.begin(),
+                                            cross_join_statistics->_column_statistics.begin() + _column_statistics.size(),
+                                            row_count(), left_null_value_no, cross_join_statistics->row_count());
   };
 
   switch (mode) {
     case JoinMode::Self:
     case JoinMode::Inner: {
-      join_table_stats->_column_statistics[column_ids.first] = stats_container.column_statistics;
-      join_table_stats->_column_statistics[new_right_column_id] = stats_container.second_column_statistics;
+      cross_join_statistics->_column_statistics[column_ids.first] = stats_container.column_statistics;
+      cross_join_statistics->_column_statistics[new_right_column_id] = stats_container.second_column_statistics;
       break;
     }
     case JoinMode::Left: {
-      join_table_stats->_column_statistics[new_right_column_id] = stats_container.second_column_statistics;
-      join_table_stats->_row_count += right_null_value_no;
+      cross_join_statistics->_column_statistics[new_right_column_id] = stats_container.second_column_statistics;
+      cross_join_statistics->_row_count += right_null_value_no;
       apply_left_outer_join();
       break;
     }
     case JoinMode::Right: {
-      join_table_stats->_column_statistics[column_ids.first] = stats_container.column_statistics;
-      join_table_stats->_row_count += left_null_value_no;
+      cross_join_statistics->_column_statistics[column_ids.first] = stats_container.column_statistics;
+      cross_join_statistics->_row_count += left_null_value_no;
       apply_right_outer_join();
       break;
     }
     case JoinMode::Outer: {
-      join_table_stats->_row_count += right_null_value_no;
-      join_table_stats->_row_count += left_null_value_no;
+      cross_join_statistics->_row_count += right_null_value_no;
+      cross_join_statistics->_row_count += left_null_value_no;
       apply_left_outer_join();
       apply_right_outer_join();
       break;
@@ -223,7 +261,7 @@ const PredicateCondition predicate_condition) const {
     default: { Fail("Join mode not implemented."); }
   }
 
-  return join_table_stats;
+  return std::make_shared
 }
 
 
