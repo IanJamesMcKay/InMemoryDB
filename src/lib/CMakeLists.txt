@@ -373,6 +373,7 @@ if (NOT DISABLE_JIT_SUPPORT)
     set(JIT_EMBEDDED_SOURCES
         # Files listed here will be embedded into the binary as LLVM-IR
         operators/jit_operator/jit_operations.hpp
+        operators/jit_operator/jit_operations.cpp
         operators/jit_operator/jit_types.cpp
         operators/jit_operator/jit_types.hpp
         operators/jit_operator/operators/jit_abstract_operator.hpp
@@ -389,6 +390,8 @@ if (NOT DISABLE_JIT_SUPPORT)
     embed_llvm(LLVM_BUNDLE_FILE ${JIT_EMBEDDED_SOURCES})
     set(
         SOURCES
+        operators/jit_operator/operators/jit_aggregate.cpp
+        operators/jit_operator/operators/jit_aggregate.hpp
         operators/jit_operator/specialization/utils/my_llvm.cpp
         operators/jit_operator/specialization/utils/my_llvm.hpp
         logical_query_plan/jit_aware_lqp_translator.cpp
