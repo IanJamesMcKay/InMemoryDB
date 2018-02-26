@@ -131,6 +131,8 @@ ColumnSelectivityResult ColumnStatistics<ColumnType>::_create_column_stats_for_r
 
 template <typename ColumnType>
 float ColumnStatistics<ColumnType>::estimate_selectivity_for_range(ColumnType minimum, ColumnType maximum) {
+  DebugAssert(minimum <= maximum, "Invalid range");
+
   // minimum must be smaller or equal than maximum
   // distinction between integers and decimals
   // for integers the number of possible integers is used within the inclusive ranges
@@ -379,6 +381,15 @@ TwoColumnSelectivityResult ColumnStatistics<ColumnType>::estimate_selectivity_fo
   auto overlapping_range_min = std::max(_get_or_calculate_min(), right_stats->_get_or_calculate_min());
   auto overlapping_range_max = std::min(_get_or_calculate_max(), right_stats->_get_or_calculate_max());
 
+  // No overlapping range - thus no tuples in joined table
+  if (overlapping_range_max <= overlapping_range_min) {
+    const auto min = std::numeric_limits<ColumnType>::max();
+    const auto max = std::numeric_limits<ColumnType>::max();
+
+    return {0.0f, std::make_shared<ColumnStatistics<ColumnType>>(_column_id, 0.0f, min, max),
+            std::make_shared<ColumnStatistics<ColumnType>>(right_stats->_column_id, 0.0f, min, max)};
+  }
+
   // calculate ratio of values before, in and above the common value range
   float left_overlapping_ratio = estimate_selectivity_for_range(overlapping_range_min, overlapping_range_max);
   float right_overlapping_ratio =
@@ -426,7 +437,7 @@ TwoColumnSelectivityResult ColumnStatistics<ColumnType>::estimate_selectivity_fo
 
   float combined_non_null_ratio = _non_null_value_ratio * right_stats->_non_null_value_ratio;
 
-  // used for <, <=, > and >= predicate_conditions
+  // used for <, <=, > and >= scan_types
   auto estimate_selectivity_for_open_ended_operators = [&](float values_below_ratio, float values_above_ratio,
                                                            ColumnType new_min, ColumnType new_max,
                                                            bool add_equal_values) -> TwoColumnSelectivityResult {
@@ -450,14 +461,14 @@ TwoColumnSelectivityResult ColumnStatistics<ColumnType>::estimate_selectivity_fo
     return {combined_non_null_ratio * selectivity, new_left_column_stats, new_right_column_stats};
   };
 
-  // Currently the distinct count, min and max calculation is incorrect if predicate condition is OpLessThan or
-  // OpGreaterThan and right column min = left column min or right column max = left column max.
+  // Currently the distinct count, min and max calculation is incorrect if predicate condition is OpLessThan or OpGreaterThan and
+  // right column min = left column min or right column max = left column max.
   //
   // E.g. Two integer columns have 3 distinct values and same min and max value of 1 and 3.
   //
   // Both new left and right column statistics will have the same min and max values of 1 and 3.
-  // However, for predicate condition OpLessThan, the left column max is actually 2 as there is no possibility
-  // for 3 < 3. Additionally, the right column min is actually 2, as there is no possibility for 1 < 1.
+  // However, for predicate condition OpLessThan, the left column max is actually 2 as there is no possibility for 3 < 3.
+  // Additionally, the right column min is actually 2, as there is no possibility for 1 < 1.
   // The same also applies for predicate condition OpGreaterThan vice versa.
   // The smaller range between min and max values of a column will also lead to a smaller distinct count.
   //
@@ -525,8 +536,29 @@ TwoColumnSelectivityResult ColumnStatistics<std::string>::estimate_selectivity_f
     return {0.f, _this_without_null_values(), right_stats->_this_without_null_values()};
   }
 
-  return {_non_null_value_ratio * right_stats->_non_null_value_ratio, _this_without_null_values(),
-          right_stats->_this_without_null_values()};
+  const auto selectivity = _non_null_value_ratio * right_stats->_non_null_value_ratio;
+  const auto column_a_statistics = _this_without_null_values();
+  const auto column_b_statistics = right_stats->_this_without_null_values();
+
+  return {selectivity, column_a_statistics, column_b_statistics};
+}
+
+template <typename ColumnType>
+std::shared_ptr<BaseColumnStatistics> ColumnStatistics<ColumnType>::estimate_disjunction(
+    const std::shared_ptr<BaseColumnStatistics>& right_base_column_statistics) {
+  auto right_stats = std::dynamic_pointer_cast<ColumnStatistics<ColumnType>>(right_base_column_statistics);
+  DebugAssert(right_stats != nullptr, "Cannot compare columns of different type");
+
+  /**
+   * Placeholder dummy algorithm which basically assumes both columns to be disjunct
+   */
+
+  const auto distinct_count = this->distinct_count() + right_stats->distinct_count();
+  const auto min = std::min(_get_or_calculate_min(), right_stats->_get_or_calculate_min());
+  const auto max = std::max(_get_or_calculate_max(), right_stats->_get_or_calculate_max());
+  const auto non_null_value_ratio = (_non_null_value_ratio + right_stats->_non_null_value_ratio) * 0.5f;
+
+  return std::make_shared<ColumnStatistics<ColumnType>>(_column_id, distinct_count, min, max, non_null_value_ratio);
 }
 
 template <typename ColumnType>

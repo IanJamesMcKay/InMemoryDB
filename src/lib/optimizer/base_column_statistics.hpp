@@ -73,6 +73,9 @@ class BaseColumnStatistics : public std::enable_shared_from_this<BaseColumnStati
       const std::shared_ptr<BaseColumnStatistics>& right_base_column_statistics,
       const std::optional<AllTypeVariant>& value2 = std::nullopt) = 0;
 
+  virtual std::shared_ptr<BaseColumnStatistics> estimate_disjunction(
+      const std::shared_ptr<BaseColumnStatistics>& right_base_column_statistics) = 0;
+
   /**
    * Gets distinct count of column.
    * See _distinct_count declaration in column_statistics.hpp for explanation of float type.
@@ -113,7 +116,13 @@ class BaseColumnStatistics : public std::enable_shared_from_this<BaseColumnStati
  * Return type of selectivity functions for operations on one column.
  */
 struct ColumnSelectivityResult {
-  float selectivity;
+  ColumnSelectivityResult() = default;
+  ColumnSelectivityResult(const float selectivity, const std::shared_ptr<BaseColumnStatistics>& column_statistics)
+      : selectivity(selectivity), column_statistics(column_statistics) {
+    DebugAssert(selectivity >= 0.0f && selectivity <= 1.0f, "Invalid selectivity");
+  }
+
+  float selectivity{0.0f};
   std::shared_ptr<BaseColumnStatistics> column_statistics;
 };
 

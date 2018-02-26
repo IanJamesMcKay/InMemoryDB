@@ -68,6 +68,7 @@ class TableStatistics : public std::enable_shared_from_this<TableStatistics> {
    * See _distinct_count declaration below or explanation of float type.
    */
   float row_count() const;
+  void set_row_count(const float row_count);
 
   // Returns the number of valid rows (using approximate count of deleted rows)
   uint64_t approx_valid_row_count() const;
@@ -93,6 +94,12 @@ class TableStatistics : public std::enable_shared_from_this<TableStatistics> {
   virtual std::shared_ptr<TableStatistics> generate_predicated_join_statistics(
       const std::shared_ptr<TableStatistics>& right_table_stats, const JoinMode mode, const ColumnIDPair column_ids,
       const PredicateCondition predicate_condition);
+
+  /**
+   * Generate the statistics of the disjunction of two tables
+   */
+  std::shared_ptr<TableStatistics> generate_disjunction_statistics(
+      const std::shared_ptr<TableStatistics>& right_table_stats);
 
   // Increases the (approximate) count of invalid rows in the table (caused by deletes).
   void increment_invalid_row_count(uint64_t count);

@@ -1,7 +1,7 @@
 #include "join_ordering_rule.hpp"
 
 #include "optimizer/join_ordering/dp_ccp.hpp"
-#include "optimizer/join_ordering/join_graph_converter.hpp"
+#include "optimizer/join_ordering/join_graph_builder.hpp"
 #include "optimizer/join_ordering/abstract_join_plan_node.hpp"
 
 namespace opossum {
@@ -15,16 +15,20 @@ bool JoinOrderingRule::apply_to(const std::shared_ptr<AbstractLQPNode>& root) {
     return _apply_to_children(root);
   }
 
-  const auto join_graph = JoinGraphConverter{}(root);
+  const auto join_graph = JoinGraphBuilder{}(root);  // NOLINT
 
-  const auto join_plan = DpCcp{std::make_shared<JoinGraph>(join_graph)}();
+  for (const auto& vertex : join_graph->vertices) {
+    vertex->clear_parents();
+  }
+
+  const auto join_plan = DpCcp{join_graph}();
   const auto lqp = join_plan->to_lqp();
 
-  for (const auto& parent_relation : join_graph.parent_relations) {
+  for (const auto& parent_relation : join_graph->parent_relations) {
     parent_relation.parent->set_child(parent_relation.child_side, lqp);
   }
 
-  for (const auto& vertex : join_graph.vertices) {
+  for (const auto& vertex : join_graph->vertices) {
     _apply_to_children(vertex);
   }
 

@@ -6,7 +6,7 @@
 #include "storage/storage_manager.hpp"
 #include "sql/sql_pipeline.hpp"
 #include "scheduler/current_scheduler.hpp"
-#include "optimizer/join_ordering/join_graph_converter.hpp"
+#include "optimizer/join_ordering/join_graph_builder.hpp"
 #include "optimizer/join_ordering/dp_ccp.hpp"
 #include "optimizer/join_ordering/dp_ccp_top_k.hpp"
 #include "optimizer/strategy/join_ordering_rule.hpp"
@@ -27,16 +27,16 @@ using namespace opossum;  // NOLINT
 int main() {
   opossum::TpchDbGenerator(0.001f, Chunk::MAX_SIZE).generate_and_store();
 
-  SQLPipeline sql_pipeline{tpch_queries[6], false};
+  SQLPipeline sql_pipeline{tpch_queries[6], UseMvcc::No};
 
   const auto unoptimized_lqps = sql_pipeline.get_unoptimized_logical_plans();
 
-  const auto join_graph = JoinGraphConverter{}(unoptimized_lqps.at(0));
+  const auto join_graph = JoinGraphBuilder{}(unoptimized_lqps.at(0));
 
-  DpCcpTopK dp_ccp_top_k{std::make_shared<JoinGraph>(join_graph), 10};
+  DpCcpTopK dp_ccp_top_k{join_graph, 10};
   dp_ccp_top_k();
 
-  boost::dynamic_bitset<> vertex_set(join_graph.vertices.size());
+  boost::dynamic_bitset<> vertex_set(join_graph->vertices.size());
   vertex_set.flip();
 
   const auto join_plans = dp_ccp_top_k.subplan_cache()->get_best_plans(vertex_set);
@@ -45,20 +45,19 @@ int main() {
     std::cout << "Executing plan; Cost: " << join_plan->plan_cost() << std::endl;
 
     auto lqp = join_plan->to_lqp();
-//    lqp->print();
-//
-//    auto pqp = LQPTranslator{}.translate_node(lqp);
-//
-//    SQLQueryPlan query_plan;
-//    query_plan.add_tree_by_root(pqp);
-//
-//    const auto begin = std::chrono::high_resolution_clock::now();
-//    CurrentScheduler::schedule_and_wait_for_tasks(query_plan.create_tasks());
-//    const auto end = std::chrono::high_resolution_clock::now();
-//    const auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
-//
-//    std::cout << "Cost: " << join_plan->plan_cost() << "; Time: " << microseconds << "; Ratio: " << (microseconds / join_plan->plan_cost()) << std::endl;
-//    std::cout << std::endl;
+
+    auto pqp = LQPTranslator{}.translate_node(lqp);
+
+    SQLQueryPlan query_plan;
+    query_plan.add_tree_by_root(pqp);
+
+    const auto begin = std::chrono::high_resolution_clock::now();
+    CurrentScheduler::schedule_and_wait_for_tasks(query_plan.create_tasks());
+    const auto end = std::chrono::high_resolution_clock::now();
+    const auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+
+    std::cout << "Cost: " << join_plan->plan_cost() << "; Time: " << microseconds << "; Ratio: " << (microseconds / join_plan->plan_cost()) << std::endl;
+    std::cout << std::endl;
 
 
   }

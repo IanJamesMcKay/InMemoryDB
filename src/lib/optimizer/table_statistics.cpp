@@ -21,9 +21,16 @@ TableStatistics::TableStatistics(const std::shared_ptr<Table> table)
 
 TableStatistics::TableStatistics(float row_count,
                                  const std::vector<std::shared_ptr<BaseColumnStatistics>>& column_statistics)
-    : _row_count(row_count), _column_statistics(column_statistics) {}
+    : _row_count(row_count), _column_statistics(column_statistics) {
+  Assert(row_count >= 0.0, "Invalid row count");
+}
 
 float TableStatistics::row_count() const { return _row_count; }
+
+void TableStatistics::set_row_count(const float row_count) {
+  Assert(row_count >= 0.0, "Invalid row count");
+  _row_count = row_count;
+}
 
 uint64_t TableStatistics::approx_valid_row_count() const { return row_count() - _approx_invalid_row_count; }
 
@@ -37,8 +44,8 @@ std::shared_ptr<TableStatistics> TableStatistics::predicate_statistics(const Col
                                                                        const PredicateCondition predicate_condition,
                                                                        const AllParameterVariant& value,
                                                                        const std::optional<AllTypeVariant>& value2) {
-  auto _row_count = row_count();
-  if (_row_count == 0) {
+  auto row_count = this->row_count();
+  if (row_count == 0) {
     return shared_from_this();
   }
 
@@ -47,7 +54,7 @@ std::shared_ptr<TableStatistics> TableStatistics::predicate_statistics(const Col
     auto clone = std::make_shared<TableStatistics>(*this);
     auto selectivity = DEFAULT_LIKE_SELECTIVITY;
     if (predicate_condition == PredicateCondition::NotLike) selectivity = 1.0 - selectivity;
-    clone->_row_count = _row_count * selectivity;
+    clone->set_row_count(row_count * selectivity);
     return clone;
   }
 
@@ -85,7 +92,7 @@ std::shared_ptr<TableStatistics> TableStatistics::predicate_statistics(const Col
 
   clone->_column_statistics[column_id] = column_statistics_container.column_statistics;
 
-  clone->_row_count *= column_statistics_container.selectivity;
+  clone->set_row_count(clone->row_count() * column_statistics_container.selectivity);
 
   return clone;
 }
@@ -111,7 +118,7 @@ std::shared_ptr<TableStatistics> TableStatistics::generate_cross_join_statistics
   join_table_stats->_reset_table_ptr();
 
   // calculate output size for cross joins
-  join_table_stats->_row_count *= right_table_stats->_row_count;
+  join_table_stats->set_row_count(join_table_stats->row_count() * right_table_stats->row_count());
   return join_table_stats;
 }
 
@@ -196,7 +203,7 @@ std::shared_ptr<TableStatistics> TableStatistics::generate_predicated_join_stati
       left_col_stats->estimate_selectivity_for_two_column_predicate(predicate_condition, right_col_stats);
 
   // apply predicate selectivity to cross join
-  join_table_stats->_row_count *= stats_container.selectivity;
+  join_table_stats->set_row_count(join_table_stats->row_count() * stats_container.selectivity);
 
   ColumnID new_right_column_id{static_cast<ColumnID::base_type>(_column_statistics.size() + column_ids.second)};
 
@@ -231,19 +238,18 @@ std::shared_ptr<TableStatistics> TableStatistics::generate_predicated_join_stati
     }
     case JoinMode::Left: {
       join_table_stats->_column_statistics[new_right_column_id] = stats_container.second_column_statistics;
-      join_table_stats->_row_count += right_null_value_no;
+      join_table_stats->set_row_count(join_table_stats->row_count() + right_null_value_no);
       apply_left_outer_join();
       break;
     }
     case JoinMode::Right: {
       join_table_stats->_column_statistics[column_ids.first] = stats_container.column_statistics;
-      join_table_stats->_row_count += left_null_value_no;
+      join_table_stats->set_row_count(join_table_stats->row_count() + left_null_value_no);
       apply_right_outer_join();
       break;
     }
     case JoinMode::Outer: {
-      join_table_stats->_row_count += right_null_value_no;
-      join_table_stats->_row_count += left_null_value_no;
+      join_table_stats->set_row_count(join_table_stats->row_count() + right_null_value_no + left_null_value_no);
       apply_left_outer_join();
       apply_right_outer_join();
       break;
@@ -252,6 +258,24 @@ std::shared_ptr<TableStatistics> TableStatistics::generate_predicated_join_stati
   }
 
   return join_table_stats;
+}
+
+std::shared_ptr<TableStatistics> TableStatistics::generate_disjunction_statistics(
+    const std::shared_ptr<TableStatistics>& right_table_stats) {
+  DebugAssert(column_statistics().size() == right_table_stats->column_statistics().size(), "Layouts not matching");
+
+  /**
+   * Placeholder algorithm that just assumes both tables are disjunct
+   */
+
+  std::vector<std::shared_ptr<BaseColumnStatistics>> column_statistics;
+
+  for (size_t column_idx = 0; column_idx < _column_statistics.size(); ++column_idx) {
+    column_statistics.emplace_back(
+        _column_statistics[column_idx]->estimate_disjunction(right_table_stats->column_statistics()[column_idx]));
+  }
+
+  return std::make_shared<TableStatistics>(_row_count + right_table_stats->row_count(), column_statistics);
 }
 
 void TableStatistics::increment_invalid_row_count(uint64_t count) { _approx_invalid_row_count += count; }

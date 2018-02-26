@@ -52,6 +52,9 @@ class ColumnStatistics : public BaseColumnStatistics {
       const std::shared_ptr<BaseColumnStatistics>& right_base_column_statistics,
       const std::optional<AllTypeVariant>& value2 = std::nullopt) override;
 
+  std::shared_ptr<BaseColumnStatistics> estimate_disjunction(
+      const std::shared_ptr<BaseColumnStatistics>& right_base_column_statistics) override;
+
   /**
    * Accessors for class variable optionals. Compute values, if not available.
    * See _distinct_count declaration below for explanation of float type.

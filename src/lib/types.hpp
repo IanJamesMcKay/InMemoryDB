@@ -180,6 +180,8 @@ enum class PredicateCondition {
   IsNotNull
 };
 
+PredicateCondition flip_predicate_condition(const PredicateCondition predicate_condition);
+
 enum class ExpressionType {
   /*Any literal value*/
   Literal,

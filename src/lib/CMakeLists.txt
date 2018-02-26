@@ -207,6 +207,14 @@ set(
     planviz/lqp_visualizer.hpp
     planviz/sql_query_plan_visualizer.cpp
     planviz/sql_query_plan_visualizer.hpp
+    planviz/join_graph_visualizer.cpp
+    planviz/join_graph_visualizer.hpp
+    planviz/join_plan_visualizer.cpp
+    planviz/join_plan_visualizer.hpp
+    planviz/sql_pipeline_report.cpp
+    planviz/sql_pipeline_report.hpp
+    planviz/viz_record_layout.cpp
+    planviz/viz_record_layout.hpp
     resolve_type.hpp
     scheduler/abstract_scheduler.cpp
     scheduler/abstract_scheduler.hpp
@@ -357,6 +365,7 @@ set(
     tasks/migration_preparation_task.hpp
     type_cast.hpp
     type_comparison.hpp
+    types.cpp
     types.hpp
     uid_allocator.hpp
     utils/arithmetic_operator_expression.hpp

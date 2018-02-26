@@ -38,6 +38,7 @@ struct VizEdgeInfo {
   std::string label;
   std::string color = "white";
   std::string font_color = "white";
+  std::string dir = "forward";
   double pen_width = 1.0;
 };
 
@@ -78,6 +79,7 @@ class AbstractVisualizer {
     _add_property("fontcolor", &VizEdgeInfo::font_color);
     _add_property("label", &VizEdgeInfo::label);
     _add_property("penwidth", &VizEdgeInfo::pen_width);
+    _add_property("dir", &VizEdgeInfo::dir);
   }
 
   void visualize(const GraphBase& graph_base, const std::string& graph_filename, const std::string& img_filename) {
@@ -108,7 +110,7 @@ class AbstractVisualizer {
   }
 
   template <typename T>
-  void _add_vertex(const T& vertex, VizVertexInfo& vertex_info) {
+  void _add_vertex(const T& vertex, VizVertexInfo vertex_info) {
     auto vertex_id = reinterpret_cast<uintptr_t>(vertex.get());
     auto inserted = _id_to_position.insert({vertex_id, _id_to_position.size()}).second;
     if (!inserted) {
@@ -116,6 +118,7 @@ class AbstractVisualizer {
       return;
     }
 
+    _escape_label(vertex_info.label);
     vertex_info.label = _wrap_label(vertex_info.label);
     boost::add_vertex(vertex_info, _graph);
   }
@@ -126,12 +129,14 @@ class AbstractVisualizer {
   }
 
   template <typename T, typename K>
-  void _add_edge(const T& from, const K& to, const VizEdgeInfo& edge_info) {
+  void _add_edge(const T& from, const K& to, VizEdgeInfo edge_info) {
     auto from_id = reinterpret_cast<uintptr_t>(from.get());
     auto to_id = reinterpret_cast<uintptr_t>(to.get());
 
     auto from_pos = _id_to_position.at(from_id);
     auto to_pos = _id_to_position.at(to_id);
+
+    edge_info.label = _wrap_label(edge_info.label);
 
     boost::add_edge(from_pos, to_pos, edge_info, _graph);
   }
@@ -148,6 +153,11 @@ class AbstractVisualizer {
     // Use this to add a property that is read from each vertex/edge (depending on the value). This will result in:
     // <node_id> [..., property_name=value, ...];
     _properties.property(property_name, boost::get(value, _graph));
+  }
+
+  void _escape_label(std::string& label) {
+    boost::replace_all(label, "<", "\\<");
+    boost::replace_all(label, ">", "\\>");
   }
 
   std::string _wrap_label(const std::string& label) {
@@ -173,6 +183,15 @@ class AbstractVisualizer {
     }
 
     return wrapped_label.str();
+  }
+
+  std::string _random_color() const {
+    // Favor a hand picked list of nice-to-look-at colors over random generation for now.
+    static std::vector<std::string> colors({"#00FA9A", "#00BFFF", "#AFEEEE", "#BC8F8F", "#F0E68C", "#FFFF00", "#FFC0CB", "#FF8C00", "#FF00FF"});
+    static size_t color_index;
+
+    color_index = (color_index + 1) % colors.size();
+    return colors[color_index];
   }
 
   Graph _graph;
