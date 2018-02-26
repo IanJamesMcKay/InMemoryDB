@@ -68,13 +68,13 @@ std::shared_ptr<const Table> JitOperator::_on_execute() {
     module.specialize_slow(std::make_shared<JitConstantRuntimePointer>(_source().get()));
     auto runtime = std::round(std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
     execute_func = module.compile<void(const JitReadTuple*, JitRuntimeContext&)>();
-    std::cout << "slow jitting took " << runtime / 1000.0 << "ms" << std::endl;
+    std::cerr << "slow jitting took " << runtime / 1000.0 << "ms" << std::endl;
   } else if (JitEvaluationHelper::get().experiment().at("jit_engine") == "fast") {
     auto start = std::chrono::high_resolution_clock::now();
     module.specialize_fast(std::make_shared<JitConstantRuntimePointer>(_source().get()));
     auto runtime = std::round(std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
     execute_func = module.compile<void(const JitReadTuple*, JitRuntimeContext&)>();
-    std::cout << "fast jitting took " << runtime / 1000.0 << "ms" << std::endl;
+    std::cerr << "fast jitting took " << runtime / 1000.0 << "ms" << std::endl;
   } else {
     Fail("unknown jet engine");
   }

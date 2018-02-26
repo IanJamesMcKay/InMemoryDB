@@ -2,6 +2,7 @@
 
 #include <json.hpp>
 
+#include <jit/jit_table_generator.hpp>
 #include <jit_evaluation_helper.hpp>
 #include <operators/jit_operator/specialization/jit_repository.hpp>
 #include <planviz/lqp_visualizer.hpp>
@@ -63,7 +64,9 @@ int main(int argc, char* argv[]) {
 
   double scale_factor = config.at("scale_factor").get<double>();
   std::cerr << "Generating tables with scale factor " << scale_factor << std::endl;
-  opossum::TpchDbGenerator generator(scale_factor);
+  // opossum::TpchDbGenerator generator(scale_factor);
+  // generator.generate_and_store();
+  opossum::JitTableGenerator generator(scale_factor);
   generator.generate_and_store();
 
   std::cerr << "Initializing JIT repository" << std::endl;

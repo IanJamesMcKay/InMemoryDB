@@ -15,6 +15,8 @@ set(
     tpcc/tpcc_random_generator.hpp
     tpcc/tpcc_table_generator.cpp
     tpcc/tpcc_table_generator.hpp
+    jit/jit_table_generator.cpp
+    jit/jit_table_generator.hpp
 
     tpch/tpch_queries.cpp
     tpch/tpch_queries.hpp
