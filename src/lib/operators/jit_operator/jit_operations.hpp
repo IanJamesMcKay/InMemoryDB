@@ -101,9 +101,11 @@ template <typename T>
 void jit_compute(const T& op_func, const JitMaterializedValue& lhs,
                                                 const JitMaterializedValue& rhs, JitMaterializedValue& result) {
   // Handle NULL values and return if either input is NULL.
-  result.set_is_null(lhs.is_null() || rhs.is_null());
-  if (result.is_null()) {
-    return;
+  if (result.is_nullable()) {
+    result.set_is_null(lhs.is_null() || rhs.is_null());
+    if (result.is_null()) {
+      return;
+    }
   }
 
   // This lambda calls the op_func (a lambda that performs the actual computation) with type arguments and stores
