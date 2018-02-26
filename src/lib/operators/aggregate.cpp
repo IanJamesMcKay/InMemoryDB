@@ -321,8 +321,7 @@ void Aggregate::_aggregate_column(ChunkID chunk_id, ColumnID column_index, const
 }
 
 std::shared_ptr<const Table> Aggregate::_on_execute() {
-  auto input_table = _input_table_left();
-  _out_chunk = std::make_shared<Chunk>();
+  auto input_table = input_table_left();
 
   // check for invalid aggregates
   for (const auto& aggregate : _aggregates) {
@@ -330,7 +329,7 @@ std::shared_ptr<const Table> Aggregate::_on_execute() {
       if (aggregate.function != AggregateFunction::Count) {
         Fail("Aggregate: Asterisk is only valid with COUNT");
       }
-    } else if (input_table->column_type(*aggregate.column) == DataType::String &&
+    } else if (input_table->column_data_type(*aggregate.column) == DataType::String &&
                (aggregate.function == AggregateFunction::Sum || aggregate.function == AggregateFunction::Avg)) {
       Fail("Aggregate: Cannot calculate SUM or AVG on string column");
     }
@@ -356,7 +355,7 @@ std::shared_ptr<const Table> Aggregate::_on_execute() {
       // Partition by group columns
       for (const auto column_id : _groupby_column_ids) {
         auto base_column = chunk_in->get_column(column_id);
-        auto column_type = input_table->column_type(column_id);
+        auto column_type = input_table->column_data_type(column_id);
 
         resolve_data_and_column_type(column_type, *base_column, [&](auto type, auto& typed_column) {
           using ColumnDataType = typename decltype(type)::type;
@@ -477,7 +476,7 @@ std::shared_ptr<const Table> Aggregate::_on_execute() {
         }
 
         auto base_column = chunk_in->get_column(*aggregate.column);
-        auto data_type = input_table->column_type(*aggregate.column);
+        auto data_type = input_table->column_data_type(*aggregate.column);
 
         /*
         Invoke correct aggregator for each column
@@ -513,20 +512,16 @@ std::shared_ptr<const Table> Aggregate::_on_execute() {
     }
   }
 
-  // Write the output
-  _output = std::make_shared<Table>();
-
   // add group by columns
   for (const auto column_id : _groupby_column_ids) {
-    const auto& column_type = input_table->column_type(column_id);
-    const auto& column_name = input_table->column_name(column_id);
+    _output_column_definitions.emplace_back(input_table->column_name(column_id),
+                                            input_table->column_data_type(column_id));
 
-    _output->add_column_definition(column_name, column_type, true);
-
-    _groupby_columns.emplace_back(make_shared_by_data_type<BaseColumn, ValueColumn>(column_type, true));
-    _out_chunk->add_column(_groupby_columns.back());
+    auto groupby_column =
+        make_shared_by_data_type<BaseColumn, ValueColumn>(input_table->column_data_type(column_id), true);
+    _groupby_columns.push_back(groupby_column);
+    _output_columns.push_back(groupby_column);
   }
-
   /**
    * Write group-by columns.
    *
@@ -553,7 +548,7 @@ std::shared_ptr<const Table> Aggregate::_on_execute() {
     const auto column = aggregate.column;
 
     // Output column for COUNT(*). int is chosen arbitrarily.
-    const auto data_type = !column ? DataType::Int : input_table->column_type(*column);
+    const auto data_type = !column ? DataType::Int : input_table->column_data_type(*column);
 
     resolve_data_type(
         data_type, [&, column_index](auto type) { _write_aggregate_output(type, column_index, aggregate.function); });
@@ -561,7 +556,9 @@ std::shared_ptr<const Table> Aggregate::_on_execute() {
     ++column_index;
   }
 
-  _output->emplace_chunk(std::move(_out_chunk));
+  // Write the output
+  _output = std::make_shared<Table>(_output_column_definitions, TableType::Data);
+  _output->append_chunk(_output_columns);
 
   return _output;
 }
@@ -684,7 +681,7 @@ void Aggregate::write_aggregate_output(ColumnID column_index) {
 
   if (aggregate_data_type == DataType::Null) {
     // if not specified, it’s the input column’s type
-    aggregate_data_type = _input_table_left()->column_type(*aggregate.column);
+    aggregate_data_type = input_table_left()->column_data_type(*aggregate.column);
   }
 
   // use the alias or generate the name, e.g. MAX(column_a)
@@ -694,7 +691,7 @@ void Aggregate::write_aggregate_output(ColumnID column_index) {
   } else if (!aggregate.column) {
     output_column_name = "COUNT(*)";
   } else {
-    const auto& column_name = _input_table_left()->column_name(*aggregate.column);
+    const auto& column_name = input_table_left()->column_name(*aggregate.column);
 
     if (aggregate.function == AggregateFunction::CountDistinct) {
       output_column_name = std::string("COUNT(DISTINCT ") + column_name + ")";
@@ -704,7 +701,7 @@ void Aggregate::write_aggregate_output(ColumnID column_index) {
   }
 
   constexpr bool needs_null = (function != AggregateFunction::Count && function != AggregateFunction::CountDistinct);
-  _output->add_column_definition(output_column_name, aggregate_data_type, needs_null);
+  _output_column_definitions.emplace_back(output_column_name, aggregate_data_type, needs_null);
 
   auto col = std::make_shared<ValueColumn<decltype(aggregate_type)>>(needs_null);
 
@@ -722,7 +719,7 @@ void Aggregate::write_aggregate_output(ColumnID column_index) {
 
   // write aggregated values into the column
   _write_aggregate_values<ColumnType, decltype(aggregate_type), function>(col, context->results);
-  _out_chunk->add_column(col);
+  _output_columns.push_back(col);
 }
 
 }  // namespace opossum

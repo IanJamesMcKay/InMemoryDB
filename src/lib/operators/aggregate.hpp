@@ -118,8 +118,10 @@ class Aggregate : public AbstractReadOnlyOperator {
   const std::vector<ColumnID> _groupby_column_ids;
 
   std::shared_ptr<Table> _output;
-  std::shared_ptr<Chunk> _out_chunk;
-  std::vector<std::shared_ptr<BaseColumn>> _groupby_columns;
+  TableColumnDefinitions _output_column_definitions;
+  ChunkColumns _output_columns;
+
+  ChunkColumns _groupby_columns;
   std::vector<std::shared_ptr<ColumnVisitableContext>> _contexts_per_column;
   std::vector<std::shared_ptr<std::vector<AggregateKey>>> _keys_per_chunk;
 };
