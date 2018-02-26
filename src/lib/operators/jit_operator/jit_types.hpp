@@ -82,6 +82,8 @@ class JitVariantVector {
   T get(const size_t index) const;
   template <typename T>
   void set(const size_t index, const T value);
+  template <typename T>
+  size_t grow();
   bool is_null(const size_t index) { return _is_null[index]; }
   void set_is_null(const size_t index, const bool is_null) { _is_null[index] = is_null; }
 
@@ -170,8 +172,8 @@ class JitTupleValue {
 
 class JitHashmapValue {
  public:
-  JitHashmapValue(const DataType data_type, const bool is_nullable, const size_t vector_index)
-          : _data_type{data_type}, _is_nullable{is_nullable}, _vector_index{vector_index} {}
+  JitHashmapValue(const JitTupleValue& tuple_value, const size_t vector_index)
+          : _data_type{tuple_value.data_type()}, _is_nullable{tuple_value.is_nullable()}, _vector_index{vector_index} {}
 
   DataType data_type() const { return _data_type; }
   bool is_nullable() const { return _is_nullable; }
@@ -183,6 +185,8 @@ class JitHashmapValue {
   JitMaterializedValue materialize(JitRuntimeContext& ctx, const size_t index) const {
     return JitMaterializedValue(_data_type, _is_nullable, index, ctx.hashmap.values[_vector_index]);
   }
+
+  size_t grow(JitRuntimeContext& ctx) const;
 
  private:
   const DataType _data_type;
