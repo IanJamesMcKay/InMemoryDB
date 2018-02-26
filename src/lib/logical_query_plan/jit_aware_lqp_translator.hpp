@@ -53,7 +53,7 @@ class JitAwareLQPTranslator final : protected LQPTranslator {
 
   bool _has_another_condition(const std::shared_ptr<AbstractLQPNode>& node) const;
 
-  bool _node_is_jitable(const std::shared_ptr<AbstractLQPNode>& node) const;
+  bool _node_is_jittable(const std::shared_ptr<AbstractLQPNode>& node, const bool is_first_node) const;
 
   void _breadth_first_search(const std::shared_ptr<AbstractLQPNode>& node,
                              std::function<bool(const std::shared_ptr<AbstractLQPNode>&)> func) const;

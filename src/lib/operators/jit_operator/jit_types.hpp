@@ -82,6 +82,8 @@ class JitVariantVector {
   T get(const size_t index) const;
   template <typename T>
   void set(const size_t index, const T value);
+  template <typename T>
+  size_t grow();
   bool is_null(const size_t index) { return _is_null[index]; }
   void set_is_null(const size_t index, const bool is_null) { _is_null[index] = is_null; }
 
@@ -93,6 +95,11 @@ class JitVariantVector {
 class BaseJitColumnReader;
 class BaseJitColumnWriter;
 
+struct JitRuntimeHashmap {
+  std::unordered_map<uint64_t, std::vector<size_t>> map;
+  std::vector<JitVariantVector> values;
+};
+
 // The structure encapsulates all data available to the JitOperator at runtime,
 // but NOT during code specialization.
 struct JitRuntimeContext {
@@ -101,6 +108,7 @@ struct JitRuntimeContext {
   JitVariantVector tuple;
   std::vector<std::shared_ptr<BaseJitColumnReader>> inputs;
   std::vector<std::shared_ptr<BaseJitColumnWriter>> outputs;
+  JitRuntimeHashmap hashmap;
   std::shared_ptr<Chunk> out_chunk;
 };
 
@@ -160,6 +168,30 @@ class JitTupleValue {
   const DataType _data_type;
   const bool _is_nullable;
   const size_t _tuple_index;
+};
+
+class JitHashmapValue {
+ public:
+  JitHashmapValue(const JitTupleValue& tuple_value, const size_t vector_index)
+          : _data_type{tuple_value.data_type()}, _is_nullable{tuple_value.is_nullable()}, _vector_index{vector_index} {}
+
+  DataType data_type() const { return _data_type; }
+  bool is_nullable() const { return _is_nullable; }
+
+  JitMaterializedValue materialize(JitRuntimeContext& ctx) const {
+    return JitMaterializedValue(_data_type, _is_nullable, 0, ctx.hashmap.values[_vector_index]);
+  }
+
+  JitMaterializedValue materialize(JitRuntimeContext& ctx, const size_t index) const {
+    return JitMaterializedValue(_data_type, _is_nullable, index, ctx.hashmap.values[_vector_index]);
+  }
+
+  size_t grow(JitRuntimeContext& ctx) const;
+
+ private:
+  const DataType _data_type;
+  const bool _is_nullable;
+  const size_t _vector_index;
 };
 
 // cleanup
