@@ -6,9 +6,9 @@
 namespace opossum {
 
 #ifdef __APPLE__
-#define JIT_ABSTRACT_SOURCE_EXECUTE_MANGLED_NAME ""
+#define JIT_ABSTRACT_SOURCE_EXECUTE_MANGLED_NAME "_ZNK7opossum12JitReadTuple7executeERNS_17JitRuntimeContextE"
 #else
-#define JIT_ABSTRACT_SOURCE_EXECUTE_MANGLED_NAME ""
+#define JIT_ABSTRACT_SOURCE_EXECUTE_MANGLED_NAME "_ZNK7opossum12JitReadTuple7executeERNS_17JitRuntimeContextE"
 #endif
 
 JitOperator::JitOperator(const std::shared_ptr<const AbstractOperator> left,

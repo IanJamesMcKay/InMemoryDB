@@ -48,7 +48,7 @@ void run() {
   opossum::Print::print(table, 0, std::cerr);
   std::cerr << "rows " << table->row_count() << std::endl;
   std::cerr << "compile " << pipeline.compile_time_microseconds().count() / 1000.0 << std::endl;
-  std::cerr << "compile " << pipeline.execution_time_microseconds().count() / 1000.0 << std::endl;
+  std::cerr << "execute " << pipeline.execution_time_microseconds().count() / 1000.0 << std::endl;
 }
 
 int main(int argc, char* argv[]) {
