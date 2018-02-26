@@ -6,6 +6,7 @@
 #include <unordered_set>
 
 #include "constant_mappings.hpp"
+#include "jit_evaluation_helper.hpp"
 #include "operators/jit_operator/operators/jit_filter.hpp"
 #include "operators/jit_operator/operators/jit_read_tuple.hpp"
 #include "operators/jit_operator/operators/jit_write_tuple.hpp"
@@ -17,7 +18,13 @@ namespace opossum {
 
 std::shared_ptr<AbstractOperator> JitAwareLQPTranslator::translate_node(
     const std::shared_ptr<AbstractLQPNode>& node) const {
-  //return LQPTranslator::translate_node(node);
+
+  if (JitEvaluationHelper::get().experiment().at("engine") == "opossum") {
+    return LQPTranslator::translate_node(node);
+  } else if (JitEvaluationHelper::get().experiment().at("engine") != "jit") {
+    Fail("unknown query engine parameter");
+  }
+
   uint32_t num_jittable_nodes{0};
   std::unordered_set<std::shared_ptr<AbstractLQPNode>> input_nodes;
 
