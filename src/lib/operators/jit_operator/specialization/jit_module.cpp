@@ -24,7 +24,7 @@ JitModule::JitModule(const std::string& root_function_name)
   _module->setDataLayout(_compiler.data_layout());
 }
 
-void JitModule::specialize(const JitRuntimePointer::Ptr& runtime_this) {
+void JitModule::specialize_fast(const JitRuntimePointer::Ptr& runtime_this) {
   const auto root_function = _repository.get_function(_root_function_name);
   DebugAssert(root_function, "root function not found in repository");
   _root_function = _clone_function(*root_function, "_");
@@ -33,37 +33,21 @@ void JitModule::specialize(const JitRuntimePointer::Ptr& runtime_this) {
   _resolve_virtual_calls();
   //_replace_loads_with_runtime_values();
   _optimize();
-  //_runtime_values[&*_root_function->arg_begin()] = runtime_this;
-  //_resolve_virtual_calls();
- // _optimize();
 
   // llvm_utils::module_to_file("/tmp/after.ll", *_module);
+}
 
-  return;
+void JitModule::specialize_slow(const JitRuntimePointer::Ptr& runtime_this) {
+  const auto root_function = _repository.get_function(_root_function_name);
+  DebugAssert(root_function, "root function not found in repository");
+  _root_function = _clone_function(*root_function, "_");
 
-  auto start = std::chrono::high_resolution_clock::now();
   _specialize(runtime_this);
-  auto runtime = std::round(std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
-  std::cout << runtime << std::endl;
-
-  start = std::chrono::high_resolution_clock::now();
   _optimize();
-  runtime = std::round(std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
-  std::cout << runtime << std::endl;
-
-  start = std::chrono::high_resolution_clock::now();
   _specialize(runtime_this);
-  runtime = std::round(std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
-  std::cout << runtime << std::endl;
-
-  start = std::chrono::high_resolution_clock::now();
   _optimize();
-  runtime = std::round(std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
-  std::cout << runtime << std::endl;
-
-  //_specialize(runtime_this);
-  //_optimize();
-
+  _specialize(runtime_this);
+  _optimize();
 }
 
 void JitModule::_resolve_virtual_calls() {

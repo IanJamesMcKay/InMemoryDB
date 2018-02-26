@@ -41,7 +41,14 @@ void pqp() {
 }
 
 void run() {
-
+  std::string query_id = opossum::JitEvaluationHelper::get().experiment().at("query_id");
+  std::string query = opossum::JitEvaluationHelper::get().queries().at(query_id).at("query");
+  opossum::SQLPipeline pipeline(query);
+  const auto table = pipeline.get_result_table();
+  opossum::Print::print(table, 0, std::cerr);
+  std::cerr << "rows " << table->row_count() << std::endl;
+  std::cerr << "compile " << pipeline.compile_time_microseconds().count() / 1000.0 << std::endl;
+  std::cerr << "compile " << pipeline.execution_time_microseconds().count() / 1000.0 << std::endl;
 }
 
 int main(int argc, char* argv[]) {

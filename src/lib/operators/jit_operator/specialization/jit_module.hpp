@@ -20,7 +20,8 @@ class JitModule {
  public:
   explicit JitModule(const std::string& root_function_name);
 
-  void specialize(const JitRuntimePointer::Ptr& runtime_this);
+  void specialize_fast(const JitRuntimePointer::Ptr& runtime_this);
+  void specialize_slow(const JitRuntimePointer::Ptr& runtime_this);
 
   template <typename T>
   std::function<T> compile() {

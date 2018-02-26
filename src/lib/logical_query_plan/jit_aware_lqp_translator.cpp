@@ -45,7 +45,7 @@ std::shared_ptr<AbstractOperator> JitAwareLQPTranslator::translate_node(
 
   // It does not make sense to create a JitOperator for fewer than 2 LQP nodes,
   // but we may want a better heuristic here
-  if (num_jittable_nodes < 1 || input_nodes.size() != 1) {
+  if (num_jittable_nodes < 2 || input_nodes.size() != 1) {
     return LQPTranslator::translate_node(node);
   }
 

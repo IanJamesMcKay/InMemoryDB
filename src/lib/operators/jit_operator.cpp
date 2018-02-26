@@ -1,11 +1,12 @@
 #include "jit_operator.hpp"
 
+#include "jit_evaluation_helper.hpp"
 #include "jit_operator/specialization/jit_module.hpp"
 
 namespace opossum {
 
 #ifdef __APPLE__
-#define JIT_ABSTRACT_SOURCE_EXECUTE_MANGLED_NAME "_ZNK7opossum12JitReadTuple7executeERNS_17JitRuntimeContextE"
+#define JIT_ABSTRACT_SOURCE_EXECUTE_MANGLED_NAME ""
 #else
 #define JIT_ABSTRACT_SOURCE_EXECUTE_MANGLED_NAME ""
 #endif
@@ -60,15 +61,22 @@ std::shared_ptr<const Table> JitOperator::_on_execute() {
   JitModule module(JIT_ABSTRACT_SOURCE_EXECUTE_MANGLED_NAME);
   std::function<void(const JitReadTuple*, JitRuntimeContext&)> execute_func;
 
-  if (_use_jit) {
-    JitRepository::get();
+  if (JitEvaluationHelper::get().experiment().at("jit_engine") == "none") {
+    execute_func = &JitReadTuple::execute;
+  } else if (JitEvaluationHelper::get().experiment().at("jit_engine") == "slow") {
     auto start = std::chrono::high_resolution_clock::now();
-    module.specialize(std::make_shared<JitConstantRuntimePointer>(_source().get()));
+    module.specialize_slow(std::make_shared<JitConstantRuntimePointer>(_source().get()));
     auto runtime = std::round(std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
     execute_func = module.compile<void(const JitReadTuple*, JitRuntimeContext&)>();
-    std::cout << "jitting took " << runtime / 1000.0 << "ms" << std::endl;
+    std::cout << "slow jitting took " << runtime / 1000.0 << "ms" << std::endl;
+  } else if (JitEvaluationHelper::get().experiment().at("jit_engine") == "fast") {
+    auto start = std::chrono::high_resolution_clock::now();
+    module.specialize_fast(std::make_shared<JitConstantRuntimePointer>(_source().get()));
+    auto runtime = std::round(std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
+    execute_func = module.compile<void(const JitReadTuple*, JitRuntimeContext&)>();
+    std::cout << "fast jitting took " << runtime / 1000.0 << "ms" << std::endl;
   } else {
-    execute_func = &JitReadTuple::execute;
+    Fail("unknown jet engine");
   }
 
   for (opossum::ChunkID chunk_id{0}; chunk_id < in_table.chunk_count(); ++chunk_id) {
