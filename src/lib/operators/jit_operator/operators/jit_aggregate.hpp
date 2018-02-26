@@ -28,7 +28,7 @@ class JitAggregate : public JitAbstractSink {
   void add_groupby_column(const std::string& column_name, const JitTupleValue& tuple_value);
 
  private:
-  void next(JitRuntimeContext& ctx) const final;
+  void _consume(JitRuntimeContext& ctx) const final;
 
   uint64_t _compute_hash(JitRuntimeContext& ctx) const;
   bool _equals(JitRuntimeContext& ctx, const uint64_t index) const;

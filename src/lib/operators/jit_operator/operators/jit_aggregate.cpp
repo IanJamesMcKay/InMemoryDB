@@ -77,7 +77,7 @@ void JitAggregate::add_groupby_column(const std::string& column_name, const JitT
   _groupby_columns.push_back(JitGroupByColumn{column_name, value, JitHashmapValue(value, _num_hashmap_values++)});
 }
 
-void JitAggregate::next(JitRuntimeContext& ctx) const {
+void JitAggregate::_consume(JitRuntimeContext& ctx) const {
   const auto hash = _compute_hash(ctx);
   auto &bucket = ctx.hashmap.map[hash];
 
