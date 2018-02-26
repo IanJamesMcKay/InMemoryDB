@@ -155,13 +155,33 @@ set(
     optimizer/base_column_statistics.hpp
     optimizer/column_statistics.cpp
     optimizer/column_statistics.hpp
+    optimizer/join_ordering/abstract_dp_algorithm.cpp
+    optimizer/join_ordering/abstract_dp_algorithm.hpp
+    optimizer/join_ordering/abstract_join_plan_node.cpp
+    optimizer/join_ordering/abstract_join_plan_node.hpp
+    optimizer/join_ordering/dp_ccp.cpp
+    optimizer/join_ordering/dp_ccp.hpp
+    optimizer/join_ordering/dp_ccp_top_k.cpp
+    optimizer/join_ordering/dp_ccp_top_k.hpp
+    optimizer/join_ordering/dp_subplan_cache_best.cpp
+    optimizer/join_ordering/dp_subplan_cache_best.hpp
+    optimizer/join_ordering/dp_subplan_cache_top_k.cpp
+    optimizer/join_ordering/dp_subplan_cache_top_k.hpp
+    optimizer/join_ordering/enumerate_ccp.cpp
+    optimizer/join_ordering/enumerate_ccp.hpp
     optimizer/join_ordering/join_edge.cpp
     optimizer/join_ordering/join_edge.hpp
     optimizer/join_ordering/join_graph_builder.cpp
     optimizer/join_ordering/join_graph_builder.hpp
     optimizer/join_ordering/join_graph.cpp
     optimizer/join_ordering/join_graph.hpp
+    optimizer/join_ordering/join_plan_join_node.cpp
+    optimizer/join_ordering/join_plan_join_node.hpp
+    optimizer/join_ordering/join_plan_vertex_node.cpp
+    optimizer/join_ordering/join_plan_vertex_node.hpp
     optimizer/join_ordering/join_plan_predicate.cpp
+    optimizer/join_ordering/join_plan_predicate_estimate.cpp
+    optimizer/join_ordering/join_plan_predicate_estimate.hpp
     optimizer/join_ordering/join_plan_predicate.hpp
     optimizer/join_ordering/join_vertex_set.hpp
     optimizer/optimizer.cpp
@@ -174,6 +194,8 @@ set(
     optimizer/strategy/index_scan_rule.hpp
     optimizer/strategy/join_detection_rule.cpp
     optimizer/strategy/join_detection_rule.hpp
+    optimizer/strategy/join_ordering_rule.cpp
+    optimizer/strategy/join_ordering_rule.hpp
     optimizer/strategy/predicate_reordering_rule.cpp
     optimizer/strategy/predicate_reordering_rule.hpp
     optimizer/strategy/rule_batch.cpp

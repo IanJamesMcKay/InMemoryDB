@@ -1,0 +1,29 @@
+#pragma once
+
+#include "abstract_join_plan_node.hpp"
+#include "join_plan_predicate.hpp"
+
+namespace opossum {
+
+class JoinPlanJoinNode final : public AbstractJoinPlanNode {
+ public:
+  JoinPlanJoinNode(const std::shared_ptr<const AbstractJoinPlanNode>& left_child,
+                   const std::shared_ptr<const AbstractJoinPlanNode>& right_child,
+                   std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> _predicates);
+
+  std::shared_ptr<const JoinPlanAtomicPredicate> primary_join_predicate() const;
+  const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& secondary_predicates() const;
+
+  bool contains_vertex(const std::shared_ptr<AbstractLQPNode>& node) const override;
+  std::optional<ColumnID> find_column_id(const LQPColumnReference& column_reference) const override;
+  std::shared_ptr<AbstractLQPNode> to_lqp() const override;
+  size_t output_column_count() const override;
+  std::string description() const override;
+
+ private:
+  // The predicate, removed from AbstractJoinPlanNode::_predicates, that will be turned into a JoinNode
+  std::shared_ptr<const JoinPlanAtomicPredicate> _primary_join_predicate;
+  std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> _secondary_predicates;
+};
+
+}  // namespace opossum
