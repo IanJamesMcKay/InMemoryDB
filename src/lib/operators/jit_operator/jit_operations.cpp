@@ -8,7 +8,7 @@ void jit_not(const JitTupleValue &lhs, const JitTupleValue &result, JitRuntimeCo
   result.set_is_null(lhs.is_null(context), context);
 }
 
-__attribute__((noinline)) void jit_and(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result, JitRuntimeContext& context) {
+void jit_and(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result, JitRuntimeContext& context) {
   DebugAssert(
           lhs.data_type() == DataType::Bool && rhs.data_type() == DataType::Bool &&
           result.data_type() == DataType::Bool,

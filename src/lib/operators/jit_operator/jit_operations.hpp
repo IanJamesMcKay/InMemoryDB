@@ -47,18 +47,9 @@ namespace opossum {
     catching_func(context.tuple.get<JIT_GET_DATA_TYPE(0, types)>(lhs.tuple_index()), context.tuple.get<JIT_GET_DATA_TYPE(0, types)>(rhs.tuple_index()), result); \
     break;
 
-//indirection<decltype(catching_func), JIT_GET_DATA_TYPE(0, types), JIT_GET_DATA_TYPE(1, types)>(catching_func, lhs, rhs, result, context);
-//    break;
-
-
 #define JIT_COMPUTE_TYPE_CASE(r, types)                                                                              \
   case static_cast<uint8_t>(JIT_GET_ENUM_VALUE(0, types)) << 8 | static_cast<uint8_t>(JIT_GET_ENUM_VALUE(1, types)): \
     return catching_func(JIT_GET_DATA_TYPE(0, types)(), JIT_GET_DATA_TYPE(1, types)());
-
-template <typename A, typename B, typename C>
-__attribute__((noinline)) void indirection(A& a, const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result, JitRuntimeContext& context) {
-  a(lhs.get<B>(context), rhs.get<C>(context), result);
-};
 
 /* Arithmetic operators */
 const auto jit_addition = [](const auto& a, const auto& b) -> decltype(a + b) { return a + b; };
