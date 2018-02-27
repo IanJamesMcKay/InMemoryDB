@@ -44,7 +44,7 @@ namespace opossum {
 
 #define JIT_COMPUTE_CASE(r, types)                                                                                   \
   case static_cast<uint8_t>(JIT_GET_ENUM_VALUE(0, types)) << 8 | static_cast<uint8_t>(JIT_GET_ENUM_VALUE(1, types)): \
-    catching_func(lhs.get<JIT_GET_DATA_TYPE(0, types)>(context), rhs.get<JIT_GET_DATA_TYPE(1, types)>(context), result); \
+    catching_func(context.tuple.get<JIT_GET_DATA_TYPE(0, types)>(lhs.tuple_index()), context.tuple.get<JIT_GET_DATA_TYPE(0, types)>(rhs.tuple_index()), result); \
     break;
 
 //indirection<decltype(catching_func), JIT_GET_DATA_TYPE(0, types), JIT_GET_DATA_TYPE(1, types)>(catching_func, lhs, rhs, result, context);

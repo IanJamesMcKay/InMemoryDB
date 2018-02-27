@@ -31,8 +31,8 @@ void JitModule::specialize_fast(const JitRuntimePointer::Ptr& runtime_this) {
 
   _runtime_values[&*_root_function->arg_begin()] = runtime_this;
   _resolve_virtual_calls();
-  //_replace_loads_with_runtime_values();
-  //_optimize();
+  _replace_loads_with_runtime_values();
+  _optimize();
   //_runtime_values[&*_root_function->arg_begin()] = runtime_this;
   //_replace_loads_with_runtime_values();
   //_optimize();
