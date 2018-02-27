@@ -67,69 +67,59 @@ int main() {
   const auto unoptimized_lqps = sql_pipeline.get_unoptimized_logical_plans();
   const auto unoptimized_lqp = LogicalPlanRootNode::make(unoptimized_lqps.at(0));
 
-  auto pqp = LQPTranslator{}.translate_node(unoptimized_lqp->left_child());
-  unoptimized_lqp->print();
+  SQLQueryPlan query_plan;
+  query_plan.add_tree_by_root(pqp);
+  CurrentScheduler::schedule_and_wait_for_tasks(query_plan.create_tasks());
+
   pqp->print();
 
-  auto optimized_lqp = Optimizer::create_default_optimizer()->optimize(unoptimized_lqp->left_child());
-  optimized_lqp->print();
+  const auto join_graph = JoinGraphBuilder{}(unoptimized_lqp);
 
-  auto optimized_pqp = LQPTranslator{}.translate_node(optimized_lqp);
-  optimized_pqp->print();
+  DpCcpTopK dp_ccp_top_k{join_graph, 20};
+  dp_ccp_top_k();
 
-//  SQLQueryPlan query_plan;
-//  query_plan.add_tree_by_root(pqp);
-//  CurrentScheduler::schedule_and_wait_for_tasks(query_plan.create_tasks());
+  boost::dynamic_bitset<> vertex_set(join_graph->vertices.size());
+  vertex_set.flip();
 
-//  pqp->print();
+  const auto join_plans = dp_ccp_top_k.subplan_cache()->get_best_plans(vertex_set);
 
-//  const auto join_graph = JoinGraphBuilder{}(unoptimized_lqp);
-//
-//  DpCcpTopK dp_ccp_top_k{join_graph, 20};
-//  dp_ccp_top_k();
-//
-//  boost::dynamic_bitset<> vertex_set(join_graph->vertices.size());
-//  vertex_set.flip();
-//
-//  const auto join_plans = dp_ccp_top_k.subplan_cache()->get_best_plans(vertex_set);
-//
-//  auto min_time = std::numeric_limits<long>::max();
-//
-//  for (const auto& join_plan : join_plans) {
-//    std::cout << "Executing plan; Cost: " << join_plan->plan_cost() << std::endl;
-//
-//    auto lqp = join_plan->to_lqp();
-//    for (const auto& parent_relation : join_graph->parent_relations) {
-//      parent_relation.parent->set_child(parent_relation.child_side, lqp);
-//    }
-//
-//    auto pqp = LQPTranslator{}.translate_node(unoptimized_lqp->left_child());
-//
-//
-//
-//    SQLQueryPlan query_plan;
-//    query_plan.add_tree_by_root(pqp);
-//
-//    const auto begin = std::chrono::high_resolution_clock::now();
-//    CurrentScheduler::schedule_and_wait_for_tasks(query_plan.create_tasks());
-//    const auto end = std::chrono::high_resolution_clock::now();
-//    const auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
-//
-//    if (microseconds < min_time) {
-//      pqp->print();
-//      min_time = microseconds;
-//    }
-//
-//    std::cout << "Cost: " << join_plan->plan_cost() << "; Time: " << microseconds << "; Ratio: " << (microseconds / join_plan->plan_cost()) << std::endl;
-//
-// //   Print::print(pqp->get_output());
-//
-//    std::cout << std::endl;
-//    std::cout << std::endl;
-//    std::cout << std::endl;
-//
-//
-//  }
+  auto min_time = std::numeric_limits<long>::max();
+
+  for (const auto& join_plan : join_plans) {
+    std::cout << "Executing plan; Cost: " << join_plan->plan_cost() << std::endl;
+
+    auto lqp = join_plan->to_lqp();
+    for (const auto& parent_relation : join_graph->parent_relations) {
+      parent_relation.parent->set_child(parent_relation.child_side, lqp);
+    }
+
+    auto pqp = LQPTranslator{}.translate_node(unoptimized_lqp->left_child());
+
+
+
+    SQLQueryPlan query_plan;
+    query_plan.add_tree_by_root(pqp);
+
+    const auto begin = std::chrono::high_resolution_clock::now();
+    CurrentScheduler::schedule_and_wait_for_tasks(query_plan.create_tasks());
+    const auto end = std::chrono::high_resolution_clock::now();
+    const auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+
+    if (microseconds < min_time) {
+      pqp->print();
+      min_time = microseconds;
+    }
+
+    std::cout << "Cost: " << join_plan->plan_cost() << "; Time: " << microseconds << "; Ratio: " << (microseconds / join_plan->plan_cost()) << std::endl;
+
+ //   Print::print(pqp->get_output());
+
+    std::cout << std::endl;
+    std::cout << std::endl;
+    std::cout << std::endl;
+
+
+  }
 
 
 //  for (size_t supported_tpch_query_idx{0}; supported_tpch_query_idx < NUM_SUPPORTED_TPCH_QUERIES; ++supported_tpch_query_idx) {
