@@ -70,15 +70,15 @@ void JitAggregate::before_query(Table& out_table, JitRuntimeContext& ctx) {
 }
 
 void JitAggregate::add_aggregate_column(const std::string& column_name, const JitTupleValue& value, const AggregateFunction function) {
-  _aggregate_columns.push_back(JitAggregateColumn{column_name, value, JitHashmapValue(value, _num_hashmap_values++), function});
+  //_aggregate_columns.push_back(JitAggregateColumn{column_name, value, JitHashmapValue(value, _num_hashmap_values++), function});
 }
 
 void JitAggregate::add_groupby_column(const std::string& column_name, const JitTupleValue& value) {
-  _groupby_columns.push_back(JitGroupByColumn{column_name, value, JitHashmapValue(value, _num_hashmap_values++)});
+  //_groupby_columns.push_back(JitGroupByColumn{column_name, value, JitHashmapValue(value, _num_hashmap_values++)});
 }
 
-void JitAggregate::_consume(JitRuntimeContext& ctx) const {
-  const auto hash = _compute_hash(ctx);
+void JitAggregate::_consume(JitRuntimeContext& ctx) const {}
+/*  const auto hash = _compute_hash(ctx);
   auto &bucket = ctx.hashmap.map[hash];
 
   auto value_index{-1};
@@ -136,7 +136,7 @@ bool JitAggregate::_equals_one(const JitMaterializedValue& lhs, const JitMateria
 
 uint64_t JitAggregate::_compute_hash(JitRuntimeContext& ctx) const {
   uint64_t hash{0};
-/*  for (const auto& groupby_column : _groupby_columns) {
+  for (const auto& groupby_column : _groupby_columns) {
     // auto const value = groupby_column.tuple_value.materialize(ctx);
     if (!value.is_null()) {
       switch (value.data_type()) {
@@ -162,7 +162,7 @@ uint64_t JitAggregate::_compute_hash(JitRuntimeContext& ctx) const {
           break;
       }
     }
-  }*/
+  }
   return hash;
 }
 
@@ -190,5 +190,5 @@ void JitAggregate::_assign(const JitMaterializedValue& in, JitMaterializedValue&
       break;
   }
 }
-
+*/
 }  // namespace opossum

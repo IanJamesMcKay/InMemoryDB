@@ -11,9 +11,9 @@
 
 namespace opossum {
 
-/* This file contains the type dispatching mechanisms that allow generic operations on JitMaterializedValues.
+/* This file contains the type dispatching mechanisms that allow generic operations on JitTupleValues.
  *
- * Each binary operation takes three JitMaterializedValues as parameters: a left input (lhs), a right input (rhs) and an
+ * Each binary operation takes three JitTupleValues as parameters: a left input (lhs), a right input (rhs) and an
  * output (result). Each value has one of the supported data types and can be
  * nullable or non-nullable. This leaves us with (number_of_datatypes * 2) ^ 2 combinations for each operation.
  *
@@ -44,18 +44,21 @@ namespace opossum {
 
 #define JIT_COMPUTE_CASE(r, types)                                                                                   \
   case static_cast<uint8_t>(JIT_GET_ENUM_VALUE(0, types)) << 8 | static_cast<uint8_t>(JIT_GET_ENUM_VALUE(1, types)): \
-    indirection<decltype(catching_func), JIT_GET_DATA_TYPE(0, types), JIT_GET_DATA_TYPE(1, types)>(catching_func, lhs.tuple_index(), rhs.tuple_index(), result, context); \
+    catching_func(lhs.get<JIT_GET_DATA_TYPE(0, types)>(context), rhs.get<JIT_GET_DATA_TYPE(1, types)>(context), result); \
     break;
+
+//indirection<decltype(catching_func), JIT_GET_DATA_TYPE(0, types), JIT_GET_DATA_TYPE(1, types)>(catching_func, lhs, rhs, result, context);
+//    break;
+
 
 #define JIT_COMPUTE_TYPE_CASE(r, types)                                                                              \
   case static_cast<uint8_t>(JIT_GET_ENUM_VALUE(0, types)) << 8 | static_cast<uint8_t>(JIT_GET_ENUM_VALUE(1, types)): \
     return catching_func(JIT_GET_DATA_TYPE(0, types)(), JIT_GET_DATA_TYPE(1, types)());
 
 template <typename A, typename B, typename C>
-__attribute__((noinline)) void indirection(A& a, size_t lhs, size_t rhs, const JitTupleValue& result, JitRuntimeContext& context) {
-  a(context.tuple.get<B>(lhs), context.tuple.get<B>(rhs), result);
+__attribute__((noinline)) void indirection(A& a, const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result, JitRuntimeContext& context) {
+  a(lhs.get<B>(context), rhs.get<C>(context), result);
 };
-
 
 /* Arithmetic operators */
 const auto jit_addition = [](const auto& a, const auto& b) -> decltype(a + b) { return a + b; };
@@ -95,8 +98,8 @@ struct InvalidTypeCatcher : Functor {
 
   template <typename... Ts>
   Result operator()(const Ts...) const {
+    // TODO(johannes)
     return Result();
-    // Fail("invalid combination of types for operation");
   }
 };
 
@@ -105,15 +108,11 @@ struct InvalidTypeCatcher : Functor {
 // lot of work for the JIT compiler. If we let the JIT compiler do the inlining instead, it is able to prune the
 // function to the relevant case during inlining. This allows for faster jitting.
 template <typename T>
-void jit_compute(const T& op_func, const JitTupleValue& lhs,
-                                                const JitTupleValue& rhs, const JitTupleValue& result, JitRuntimeContext& context) {
+void jit_compute(const T& op_func, const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result, JitRuntimeContext& context) {
   // Handle NULL values and return if either input is NULL.
-  //if (result.is_nullable()) {
-  //  result.set_is_null(lhs.is_null() || rhs.is_null());
-  //  if (result.is_null()) {
-  //    return;
-  //  }
-  //}
+  const bool result_is_null = lhs.is_null(context) || rhs.is_null(context);
+  result.set_is_null(result_is_null, context);
+  if (result_is_null) { return; }
 
   // This lambda calls the op_func (a lambda that performs the actual computation) with type arguments and stores
   // the result.
@@ -155,14 +154,11 @@ DataType jit_compute_type(const T& op_func, const DataType lhs, const DataType r
   }
 }
 
-void jit_not(const JitMaterializedValue& lhs, JitMaterializedValue& result);
-void jit_and(const JitMaterializedValue& lhs, const JitMaterializedValue& rhs, JitMaterializedValue& result);
-void jit_and_2(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result, JitRuntimeContext& ctx);
-void jit_gt_2(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result, JitRuntimeContext& ctx);
-void jit_add_2(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result, JitRuntimeContext& ctx);
-void jit_or(const JitMaterializedValue& lhs, const JitMaterializedValue& rhs, JitMaterializedValue& result);
-void jit_is_null(const JitMaterializedValue& lhs, JitMaterializedValue& result);
-void jit_is_not_null(const JitMaterializedValue& lhs, JitMaterializedValue& result);
+void jit_not(const JitTupleValue& lhs, const JitTupleValue& result, JitRuntimeContext& context);
+void jit_and(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result, JitRuntimeContext& context);
+void jit_or(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result, JitRuntimeContext& context);
+void jit_is_null(const JitTupleValue& lhs, const JitTupleValue& result, JitRuntimeContext& context);
+void jit_is_not_null(const JitTupleValue& lhs, const JitTupleValue& result, JitRuntimeContext& context);
 
 // cleanup
 #undef JIT_GET_ENUM_VALUE

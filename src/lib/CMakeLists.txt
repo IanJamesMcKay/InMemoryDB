@@ -386,8 +386,6 @@ if (NOT DISABLE_JIT_SUPPORT)
         operators/jit_operator/operators/jit_filter.hpp
         operators/jit_operator/operators/jit_read_tuple.cpp
         operators/jit_operator/operators/jit_read_tuple.hpp
-        operators/jit_operator/operators/jit_read_tuple_2.cpp
-        operators/jit_operator/operators/jit_read_tuple_2.hpp
         operators/jit_operator/operators/jit_write_tuple.cpp
         operators/jit_operator/operators/jit_write_tuple.hpp
     )

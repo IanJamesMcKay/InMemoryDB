@@ -5,7 +5,7 @@ namespace opossum {
 #define JIT_VARIANT_VECTOR_GET(r, d, type)          \
   template <>                                       \
   BOOST_PP_TUPLE_ELEM(3, 0, type)                   \
-  JitVariantVector::get(const size_t index) const { \
+  JitVariantVector::get(const size_t index) {       \
     return BOOST_PP_TUPLE_ELEM(3, 1, type)[index];  \
   }
 
@@ -25,9 +25,9 @@ namespace opossum {
 // Generate get and set methods for all data types defined in the JIT_DATA_TYPE_INFO
 BOOST_PP_SEQ_FOR_EACH(JIT_VARIANT_VECTOR_GET, _, JIT_DATA_TYPE_INFO)
 BOOST_PP_SEQ_FOR_EACH(JIT_VARIANT_VECTOR_SET, _, JIT_DATA_TYPE_INFO)
-BOOST_PP_SEQ_FOR_EACH(JIT_VARIANT_VECTOR_GROW, _, JIT_DATA_TYPE_INFO)
+//BOOST_PP_SEQ_FOR_EACH(JIT_VARIANT_VECTOR_GROW, _, JIT_DATA_TYPE_INFO)
 
-size_t JitHashmapValue::grow(JitRuntimeContext& ctx) const {
+/*size_t JitHashmapValue::grow(JitRuntimeContext& ctx) const {
   switch (_data_type) {
     case DataType::Bool:
       return ctx.hashmap.values[_vector_index].grow<bool>();
@@ -44,7 +44,7 @@ size_t JitHashmapValue::grow(JitRuntimeContext& ctx) const {
     case DataType::Null:
       Fail("unreachable");
   }
-}
+}*/
 
 // cleanup
 #undef JIT_VARIANT_VECTOR_GET
