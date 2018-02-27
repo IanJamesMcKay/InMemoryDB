@@ -38,7 +38,10 @@ TableScan::TableScan(const std::shared_ptr<const AbstractOperator> in, ColumnID 
 
 TableScan::~TableScan() = default;
 
-void TableScan::set_excluded_chunk_ids(const std::vector<ChunkID>& chunk_ids) { _excluded_chunk_ids = chunk_ids; }
+void TableScan::set_excluded_chunk_ids(const std::vector<ChunkID>& chunk_ids) {
+  for(auto x : chunk_ids) std::cout << "set exclusion on " << x << std::endl;
+  _excluded_chunk_ids = chunk_ids;
+}
 
 ColumnID TableScan::left_column_id() const { return _left_column_id; }
 
@@ -56,21 +59,30 @@ const std::string TableScan::description(DescriptionMode description_mode) const
   std::string predicate_string = to_string(_right_parameter);
 
   const auto separator = description_mode == DescriptionMode::MultiLine ? "\n" : " ";
+
+  std::string exclusions = "\nexcluded: ";
+  for(auto x : _excluded_chunk_ids) exclusions += "-" + std::to_string(x) + ", ";
+
   return name() + separator + "(" + column_name + " " + predicate_condition_to_string.left.at(_predicate_condition) +
-         " " + predicate_string + ")";
+         " " + predicate_string + ")" + exclusions;
 }
 
 std::shared_ptr<AbstractOperator> TableScan::recreate(const std::vector<AllParameterVariant>& args) const {
+  std::shared_ptr<TableScan> recreated_scan;
+
   // Replace value in the new operator, if it’s a parameter and an argument is available.
   if (is_placeholder(_right_parameter)) {
     const auto index = boost::get<ValuePlaceholder>(_right_parameter).index();
     if (index < args.size()) {
-      return std::make_shared<TableScan>(_input_left->recreate(args), _left_column_id, _predicate_condition,
+      recreated_scan = std::make_shared<TableScan>(_input_left->recreate(args), _left_column_id, _predicate_condition,
                                          args[index]);
     }
   }
-  return std::make_shared<TableScan>(_input_left->recreate(args), _left_column_id, _predicate_condition,
+  if(!recreated_scan) recreated_scan = std::make_shared<TableScan>(_input_left->recreate(args), _left_column_id, _predicate_condition,
                                      _right_parameter);
+
+  recreated_scan->set_excluded_chunk_ids(_excluded_chunk_ids);
+  return recreated_scan;
 }
 
 std::shared_ptr<const Table> TableScan::_on_execute() {

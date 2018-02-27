@@ -9,7 +9,11 @@ extern "C" {
 #include <utility>
 
 #include "storage/chunk.hpp"
+#include "storage/chunk_encoder.hpp"
 #include "storage/storage_manager.hpp"
+#include "storage/index/group_key/group_key_index.hpp"
+#include "storage/index/base_index.hpp"
+#include "types.hpp"
 
 /**
  * Declare tpch_dbgen function we use that are not exposed by tpch-dbgen via headers
@@ -306,9 +310,21 @@ std::unordered_map<TpchTable, std::shared_ptr<Table>> TpchDbGenerator::generate(
 void TpchDbGenerator::generate_and_store() {
   const auto tables = generate();
 
+  std::map<std::string, std::vector<std::string>> all_indexes = {
+    {"lineitem", {"l_discount","l_shipdate"}}
+  };
+
+
   for (auto& table : tables) {
+    ChunkEncoder::encode_all_chunks(table.second);
     StorageManager::get().add_table(tpch_table_names.at(table.first), table.second);
+
+    auto indexes = all_indexes[tpch_table_names.at(table.first)];
+    for (auto column : indexes) {
+      table.second->create_index<GroupKeyIndex>({table.second->column_id_by_name(column)});
+    }
   }
+
 }
 
 }  // namespace opossum

@@ -34,6 +34,7 @@
 #include "operators/sort.hpp"
 #include "operators/table_scan.hpp"
 #include "operators/table_wrapper.hpp"
+#include "operators/union_all.hpp"
 #include "operators/union_positions.hpp"
 #include "operators/update.hpp"
 #include "operators/validate.hpp"
@@ -168,10 +169,12 @@ std::shared_ptr<AbstractOperator> LQPTranslator::_translate_predicate_node_to_in
     table_scan = std::make_shared<TableScan>(input_operator, column_id, predicate_node->predicate_condition(), value);
   }
 
+  for(auto x : indexed_chunks) std::cout << "index scan on " << x << std::endl;
+
   index_scan->set_included_chunk_ids(indexed_chunks);
   table_scan->set_excluded_chunk_ids(indexed_chunks);
 
-  return std::make_shared<UnionPositions>(index_scan, table_scan);
+  return std::make_shared<UnionAll>(index_scan, table_scan);
 }
 
 std::shared_ptr<AbstractOperator> LQPTranslator::_translate_projection_node(

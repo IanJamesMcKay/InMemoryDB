@@ -27,6 +27,22 @@ const std::string IndexScan::name() const { return "IndexScan"; }
 
 void IndexScan::set_included_chunk_ids(const std::vector<ChunkID>& chunk_ids) { _included_chunk_ids = chunk_ids; }
 
+std::shared_ptr<AbstractOperator> IndexScan::recreate(const std::vector<AllParameterVariant>& args) const {
+  // Replace value in the new operator, if it’s a parameter and an argument is available.
+  // if (is_placeholder(_right_values)) {
+  //   const auto index = boost::get<ValuePlaceholder>(_right_values).index();
+  //   if (index < args.size()) {
+  //     return std::make_shared<IndexScan>(_input_left->recreate(args), _index_type, _left_column_ids, _predicate_condition,
+  //                                        args[index]);
+  //   }
+  // }
+  auto x= std::make_shared<IndexScan>(_input_left->recreate(args), _index_type, _left_column_ids, _predicate_condition,
+                                     _right_values, _right_values2);
+  x->set_included_chunk_ids(_included_chunk_ids);
+  return x;
+}
+
+
 std::shared_ptr<const Table> IndexScan::_on_execute() {
   _in_table = _input_table_left();
 

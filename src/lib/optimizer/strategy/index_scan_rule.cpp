@@ -21,11 +21,11 @@ namespace opossum {
 // Only if we expect num_output_rows <= num_input_rows * selectivity_threshold, the ScanType can be set to IndexScan.
 // This value is kind of arbitrarily chosen, but the following paper suggests something similar:
 // Access Path Selection in Main-Memory Optimized Data Systems: Should I Scan or Should I Probe?
-constexpr float INDEX_SCAN_SELECTIVITY_THRESHOLD = 0.01f;
+constexpr float INDEX_SCAN_SELECTIVITY_THRESHOLD = 1.f;
 
 // Only if the number of input rows exceeds num_input_rows, the ScanType can be set to IndexScan.
 // The number is taken from: Fast Lookups for In-Memory Column Stores: Group-Key Indices, Lookup and Maintenance.
-constexpr float INDEX_SCAN_ROW_COUNT_THRESHOLD = 1000.0f;
+constexpr float INDEX_SCAN_ROW_COUNT_THRESHOLD = 1.0f;
 
 std::string IndexScanRule::name() const { return "Index Scan Rule"; }
 

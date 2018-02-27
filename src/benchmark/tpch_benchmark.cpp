@@ -14,6 +14,8 @@
 #include "sql/sql_pipeline.hpp"
 #include "tpch/tpch_db_generator.hpp"
 #include "tpch/tpch_queries.hpp"
+#include "planviz/sql_query_plan_visualizer.hpp"
+#include "planviz/lqp_visualizer.hpp"
 
 /**
  * This benchmark measures Hyrise's performance executing the TPC-H queries, it doesn't (yet) support running the TPC-H
@@ -200,13 +202,22 @@ class TpchBenchmark final {
         const auto query_benchmark_begin = std::chrono::steady_clock::now();
 
         // Execute the query, we don't care about the results
-        SQLPipeline{opossum::tpch_queries[query_id], _use_mvcc}.get_result_table();
+        auto pipeline = SQLPipeline{opossum::tpch_queries[query_id], _use_mvcc};
+        pipeline.get_result_table();
 
         const auto query_benchmark_end = std::chrono::steady_clock::now();
 
         auto& query_benchmark_result = _query_results_by_query_id.at(query_id);
         query_benchmark_result.duration += query_benchmark_end - query_benchmark_begin;
         query_benchmark_result.num_iterations++;
+
+
+        auto graph_filename = std::string{".queryplan_"} + std::to_string(query_id) + ".dot";
+        auto img_filename = std::string{"queryplan_"} + std::to_string(query_id) + ".png";
+        //SQLQueryPlanVisualizer visualizer;
+        LQPVisualizer visualizer;
+        visualizer.visualize(pipeline.get_optimized_logical_plans(), graph_filename, img_filename);
+
       }
     }
   }
