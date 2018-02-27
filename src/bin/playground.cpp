@@ -15,6 +15,7 @@
 #include "tpch/tpch_queries.hpp"
 #include "tpch/tpch_db_generator.hpp"
 #include "logical_query_plan/lqp_translator.hpp"
+#include "logical_query_plan/logical_plan_root_node.hpp"
 #include "planviz/abstract_visualizer.hpp"
 #include "planviz/join_graph_visualizer.hpp"
 #include "planviz/join_plan_visualizer.hpp"
@@ -27,11 +28,46 @@ using namespace opossum;  // NOLINT
 int main() {
   opossum::TpchDbGenerator(0.001f, Chunk::MAX_SIZE).generate_and_store();
 
-  SQLPipeline sql_pipeline{tpch_queries[6], UseMvcc::No};
+
+  const char* const query =
+    R"(SELECT
+          supp_nation,
+          cust_nation,
+          l_year,
+          SUM(volume) as revenue
+      FROM
+          (SELECT
+              n1.n_name as supp_nation,
+              n2.n_name as cust_nation,
+              l_shipdate as l_year,
+              l_extendedprice * (1.0 - l_discount) as volume
+          FROM
+              supplier,
+              lineitem,
+              orders,
+              customer,
+              nation n1,
+              nation n2
+          WHERE
+              s_suppkey = l_suppkey AND
+              o_orderkey = l_orderkey AND
+              c_custkey = o_custkey AND
+              s_nationkey = n1.n_nationkey AND
+              c_nationkey = n2.n_nationkey AND
+              ((n1.n_name = 'IRAN' AND n2.n_name = 'IRAQ') OR
+               (n1.n_name = 'IRAQ' AND n2.n_name = 'IRAN')) AND
+              l_shipdate BETWEEN '1995-01-01' AND '1996-12-31'
+          ) as shipping
+      GROUP BY
+          supp_nation, cust_nation, l_year
+      ORDER BY
+          supp_nation, cust_nation, l_year;)";
+  SQLPipeline sql_pipeline{query, UseMvcc::No};
 
   const auto unoptimized_lqps = sql_pipeline.get_unoptimized_logical_plans();
+  const auto unoptimized_lqp = LogicalPlanRootNode::make(unoptimized_lqps.at(0));
 
-  const auto join_graph = JoinGraphBuilder{}(unoptimized_lqps.at(0));
+  const auto join_graph = JoinGraphBuilder{}(unoptimized_lqp);
 
   DpCcpTopK dp_ccp_top_k{join_graph, 10};
   dp_ccp_top_k();
@@ -41,12 +77,19 @@ int main() {
 
   const auto join_plans = dp_ccp_top_k.subplan_cache()->get_best_plans(vertex_set);
 
+  auto min_time = std::numeric_limits<long>::max();
+
   for (const auto& join_plan : join_plans) {
     std::cout << "Executing plan; Cost: " << join_plan->plan_cost() << std::endl;
 
     auto lqp = join_plan->to_lqp();
+    for (const auto& parent_relation : join_graph->parent_relations) {
+      parent_relation.parent->set_child(parent_relation.child_side, lqp);
+    }
 
-    auto pqp = LQPTranslator{}.translate_node(lqp);
+    auto pqp = LQPTranslator{}.translate_node(unoptimized_lqp->left_child());
+
+
 
     SQLQueryPlan query_plan;
     query_plan.add_tree_by_root(pqp);
@@ -56,7 +99,17 @@ int main() {
     const auto end = std::chrono::high_resolution_clock::now();
     const auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
 
+    if (microseconds < min_time) {
+      lqp->print();
+      min_time = microseconds;
+    }
+
     std::cout << "Cost: " << join_plan->plan_cost() << "; Time: " << microseconds << "; Ratio: " << (microseconds / join_plan->plan_cost()) << std::endl;
+
+    Print::print(pqp->get_output());
+
+    std::cout << std::endl;
+    std::cout << std::endl;
     std::cout << std::endl;
 
 
