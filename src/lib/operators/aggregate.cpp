@@ -271,17 +271,8 @@ void Aggregate::_aggregate_column(ChunkID chunk_id, ColumnID column_index, const
 
   auto aggregator = AggregateFunctionBuilder<ColumnDataType, AggregateType, function>().get_aggregate_function();
 
-  // create context if it doesn't exist yet
-  if (!_contexts_per_column[column_index]) {
-    _contexts_per_column[column_index] = std::make_shared<AggregateContext<ColumnDataType, AggregateType>>();
-  }
-
   auto& context =
       *std::static_pointer_cast<AggregateContext<ColumnDataType, AggregateType>>(_contexts_per_column[column_index]);
-
-  if (!context.results) {
-    context.results = std::make_shared<std::map<AggregateKey, AggregateResult<AggregateType, ColumnDataType>>>();
-  }
 
   auto& results = *context.results;
   auto& hash_keys = _keys_per_chunk[chunk_id];
@@ -402,6 +393,21 @@ std::shared_ptr<const Table> Aggregate::_on_execute() {
     _contexts_per_column.push_back(context);
   }
 
+  /**
+   * Create an AggregateContext for each column in the input table that a normal (i.e. non-DISTINCT) aggregate is
+   * created on. We do this here, and not in the per-chunk-loop below, because there might be no Chunks in the input
+   * and _write_aggregate_output() needs these contexts anyway.
+   */
+  for (ColumnID column_id{0}; column_id < _aggregates.size(); ++column_id) {
+    const auto& aggregate = _aggregates[column_id];
+    if (!aggregate.column && aggregate.function == AggregateFunction::Count) {
+      continue;
+    }
+    auto data_type = input_table->column_data_type(*aggregate.column);
+    _contexts_per_column[column_id] = _create_aggregate_context(data_type, aggregate.function);
+  }
+
+  // Process Chunks and perform aggregations
   for (ChunkID chunk_id{0}; chunk_id < input_table->chunk_count(); ++chunk_id) {
     auto chunk_in = input_table->get_chunk(chunk_id);
 
@@ -720,6 +726,43 @@ void Aggregate::write_aggregate_output(ColumnID column_index) {
   // write aggregated values into the column
   _write_aggregate_values<ColumnType, decltype(aggregate_type), function>(col, context->results);
   _output_columns.push_back(col);
+}
+
+std::shared_ptr<ColumnVisitableContext> Aggregate::_create_aggregate_context(const DataType data_type,
+                                                                             const AggregateFunction function) const {
+  std::shared_ptr<ColumnVisitableContext> context;
+  resolve_data_type(data_type, [&](auto type) {
+    using ColumnDataType = typename decltype(type)::type;
+    switch (function) {
+      case AggregateFunction::Min:
+        context = _create_aggregate_context_impl<ColumnDataType, AggregateFunction::Min>();
+        break;
+      case AggregateFunction::Max:
+        context = _create_aggregate_context_impl<ColumnDataType, AggregateFunction::Max>();
+        break;
+      case AggregateFunction::Sum:
+        context = _create_aggregate_context_impl<ColumnDataType, AggregateFunction::Sum>();
+        break;
+      case AggregateFunction::Avg:
+        context = _create_aggregate_context_impl<ColumnDataType, AggregateFunction::Avg>();
+        break;
+      case AggregateFunction::Count:
+        context = _create_aggregate_context_impl<ColumnDataType, AggregateFunction::Count>();
+        break;
+      case AggregateFunction::CountDistinct:
+        context = _create_aggregate_context_impl<ColumnDataType, AggregateFunction::CountDistinct>();
+        break;
+    }
+  });
+  return context;
+}
+
+template <typename ColumnDataType, AggregateFunction aggregate_function>
+std::shared_ptr<ColumnVisitableContext> Aggregate::_create_aggregate_context_impl() const {
+  const auto context = std::make_shared<
+      AggregateContext<ColumnDataType, typename AggregateTraits<ColumnDataType, aggregate_function>::aggregate_type>>();
+  context->results = std::make_shared<typename decltype(context->results)::element_type>();
+  return context;
 }
 
 }  // namespace opossum

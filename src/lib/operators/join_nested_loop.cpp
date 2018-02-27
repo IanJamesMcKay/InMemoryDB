@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "resolve_type.hpp"
+#include "storage/column_iterables/any_column_iterable.hpp"
 #include "storage/create_iterable_from_column.hpp"
 #include "type_comparison.hpp"
 #include "utils/assert.hpp"
@@ -156,7 +157,7 @@ void JoinNestedLoop::_perform_join() {
 
           // clang-format off
           if constexpr (neither_is_string_column || both_are_string_columns) {
-            auto iterable_left = create_iterable_from_column<LeftType>(typed_left_column);
+            auto iterable_left = erase_type_from_iterable(create_iterable_from_column<LeftType>(typed_left_column));
             auto iterable_right = create_iterable_from_column<RightType>(typed_right_column);
 
             iterable_left.with_iterators([&](auto left_it, auto left_end) {
@@ -253,7 +254,7 @@ void JoinNestedLoop::_write_output_chunks(ChunkColumns& columns, const std::shar
         // pos_list will contain only NULL_ROW_IDs anyway, so it doesn't matter which Table the ReferenceColumn that
         // we output is referencing. HACK, but works fine: we create a dummy table and let the ReferenceColumn ref
         // it.
-        const auto dummy_table = std::make_shared<Table>(input_table->column_definitions(), TableType::Data);
+        const auto dummy_table = Table::create_dummy_table(input_table->column_definitions());
         column = std::make_shared<ReferenceColumn>(dummy_table, column_id, pos_list);
       }
     } else {
