@@ -79,6 +79,7 @@ std::shared_ptr<const Table> JitOperator::_on_execute() {
     Fail("unknown jet engine");
   }
 
+  auto start = std::chrono::high_resolution_clock::now();
   for (opossum::ChunkID chunk_id{0}; chunk_id < in_table.chunk_count(); ++chunk_id) {
     const auto& in_chunk = *in_table.get_chunk(chunk_id);
 
@@ -89,6 +90,8 @@ std::shared_ptr<const Table> JitOperator::_on_execute() {
     execute_func(_source().get(), context);
     _sink()->after_chunk(*out_table, context);
   }
+  auto runtime = std::round(std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
+  std::cerr << "running took " << runtime / 1000.0 << "ms" << std::endl;
 
   return out_table;
 }

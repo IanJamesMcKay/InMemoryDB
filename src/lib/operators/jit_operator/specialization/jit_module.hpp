@@ -30,8 +30,8 @@ class JitModule {
 
     // Strangely, llvm::verifyModule returns false for valid modules
     // DebugAssert(!llvm::verifyModule(*_module, &llvm::dbgs()), "Module is invalid.");
-    _compiler.add_module(llvm_utils::module_from_file("/tmp/final2.ll", _module->getContext()));
-    //_compiler.add_module(std::move(_module));
+    // _compiler.add_module(llvm_utils::module_from_file("/tmp/final2.ll", _module->getContext()));
+    _compiler.add_module(std::move(_module));
     return _compiler.find_symbol<T>(function_name);
   }
 
