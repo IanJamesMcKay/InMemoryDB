@@ -55,7 +55,8 @@ void JitExpression::compute(JitRuntimeContext& context) const {
         break;
 
       default:
-        Fail("expression type is not supported yet");
+        break;
+        // Fail("expression type is not supported yet");
     }
     return;
   }
@@ -91,7 +92,7 @@ void JitExpression::compute(JitRuntimeContext& context) const {
      // jit_compute(jit_not_equals, left_value, right_value, result_value);
       break;
     case ExpressionType::GreaterThan:
-      jit_gt_2(left_value, right_value, _result_value, context);
+      jit_compute(jit_greater_than, left_value, right_value, _result_value, context);
       break;
     case ExpressionType::GreaterThanEquals:
       //jit_compute(jit_greater_than_equals, left_value, right_value, result_value);
@@ -117,7 +118,8 @@ void JitExpression::compute(JitRuntimeContext& context) const {
       break;
 
     default:
-      Fail("expression type not supported");
+      break;
+      //Fail("expression type not supported");
   }
 }
 

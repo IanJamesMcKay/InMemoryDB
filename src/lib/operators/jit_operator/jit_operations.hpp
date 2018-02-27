@@ -44,36 +44,42 @@ namespace opossum {
 
 #define JIT_COMPUTE_CASE(r, types)                                                                                   \
   case static_cast<uint8_t>(JIT_GET_ENUM_VALUE(0, types)) << 8 | static_cast<uint8_t>(JIT_GET_ENUM_VALUE(1, types)): \
-    catching_func(lhs.get<JIT_GET_DATA_TYPE(0, types)>(), rhs.get<JIT_GET_DATA_TYPE(1, types)>(), result);           \
+    indirection<decltype(catching_func), JIT_GET_DATA_TYPE(0, types), JIT_GET_DATA_TYPE(1, types)>(catching_func, lhs.tuple_index(), rhs.tuple_index(), result, context); \
     break;
 
 #define JIT_COMPUTE_TYPE_CASE(r, types)                                                                              \
   case static_cast<uint8_t>(JIT_GET_ENUM_VALUE(0, types)) << 8 | static_cast<uint8_t>(JIT_GET_ENUM_VALUE(1, types)): \
     return catching_func(JIT_GET_DATA_TYPE(0, types)(), JIT_GET_DATA_TYPE(1, types)());
 
+template <typename A, typename B, typename C>
+__attribute__((noinline)) void indirection(A& a, size_t lhs, size_t rhs, const JitTupleValue& result, JitRuntimeContext& context) {
+  a(context.tuple.get<B>(lhs), context.tuple.get<B>(rhs), result);
+};
+
+
 /* Arithmetic operators */
-const auto jit_addition = [](const auto a, const auto b) -> decltype(a + b) { return a + b; };
-const auto jit_subtraction = [](const auto a, const auto b) -> decltype(a - b) { return a - b; };
-const auto jit_multiplication = [](const auto a, const auto b) -> decltype(a * b) { return a * b; };
-const auto jit_division = [](const auto a, const auto b) -> decltype(a / b) { return a / b; };
-const auto jit_modulo = [](const auto a, const auto b) -> decltype(a % b) { return a % b; };
-const auto jit_power = [](const auto a, const auto b) -> decltype(std::pow(a, b)) { return std::pow(a, b); };
+const auto jit_addition = [](const auto& a, const auto& b) -> decltype(a + b) { return a + b; };
+const auto jit_subtraction = [](const auto& a, const auto& b) -> decltype(a - b) { return a - b; };
+const auto jit_multiplication = [](const auto& a, const auto& b) -> decltype(a * b) { return a * b; };
+const auto jit_division = [](const auto& a, const auto& b) -> decltype(a / b) { return a / b; };
+const auto jit_modulo = [](const auto& a, const auto& b) -> decltype(a % b) { return a % b; };
+const auto jit_power = [](const auto& a, const auto& b) -> decltype(std::pow(a, b)) { return std::pow(a, b); };
 
 /* Comparison operators */
-const auto jit_equals = [](const auto a, const auto b) -> decltype(a == b) { return a == b; };
-const auto jit_not_equals = [](const auto a, const auto b) -> decltype(a != b) { return a != b; };
-const auto jit_less_than = [](const auto a, const auto b) -> decltype(a < b) { return a < b; };
-const auto jit_less_than_equals = [](const auto a, const auto b) -> decltype(a <= b) { return a <= b; };
-const auto jit_greater_than = [](const auto a, const auto b) -> decltype(a > b) { return a > b; };
-const auto jit_greater_than_equals = [](const auto a, const auto b) -> decltype(a >= b) { return a >= b; };
+const auto jit_equals = [](const auto& a, const auto& b) -> decltype(a == b) { return a == b; };
+const auto jit_not_equals = [](const auto& a, const auto& b) -> decltype(a != b) { return a != b; };
+const auto jit_less_than = [](const auto& a, const auto& b) -> decltype(a < b) { return a < b; };
+const auto jit_less_than_equals = [](const auto& a, const auto& b) -> decltype(a <= b) { return a <= b; };
+const auto jit_greater_than = [](const auto& a, const auto& b) -> decltype(a > b) { return a > b; };
+const auto jit_greater_than_equals = [](const auto& a, const auto& b) -> decltype(a >= b) { return a >= b; };
 
-const auto jit_like = [](const std::string a, const std::string b) -> bool {
+const auto jit_like = [](const std::string& a, const std::string& b) -> bool {
   const auto regex_string = LikeTableScanImpl::sqllike_to_regex(b);
   const auto regex = std::regex{regex_string, std::regex_constants::icase};
   return std::regex_match(a, regex);
 };
 
-const auto jit_not_like = [](const std::string a, const std::string b) -> bool {
+const auto jit_not_like = [](const std::string& a, const std::string& b) -> bool {
   const auto regex_string = LikeTableScanImpl::sqllike_to_regex(b);
   const auto regex = std::regex{regex_string, std::regex_constants::icase};
   return !std::regex_match(a, regex);
@@ -89,7 +95,8 @@ struct InvalidTypeCatcher : Functor {
 
   template <typename... Ts>
   Result operator()(const Ts...) const {
-    Fail("invalid combination of types for operation");
+    return Result();
+    // Fail("invalid combination of types for operation");
   }
 };
 
@@ -98,22 +105,22 @@ struct InvalidTypeCatcher : Functor {
 // lot of work for the JIT compiler. If we let the JIT compiler do the inlining instead, it is able to prune the
 // function to the relevant case during inlining. This allows for faster jitting.
 template <typename T>
-void jit_compute(const T& op_func, const JitMaterializedValue& lhs,
-                                                const JitMaterializedValue& rhs, JitMaterializedValue& result) {
+void jit_compute(const T& op_func, const JitTupleValue& lhs,
+                                                const JitTupleValue& rhs, const JitTupleValue& result, JitRuntimeContext& context) {
   // Handle NULL values and return if either input is NULL.
-  if (result.is_nullable()) {
-    result.set_is_null(lhs.is_null() || rhs.is_null());
-    if (result.is_null()) {
-      return;
-    }
-  }
+  //if (result.is_nullable()) {
+  //  result.set_is_null(lhs.is_null() || rhs.is_null());
+  //  if (result.is_null()) {
+  //    return;
+  //  }
+  //}
 
   // This lambda calls the op_func (a lambda that performs the actual computation) with type arguments and stores
   // the result.
   const auto store_result_wrapper = [&](const auto& typed_lhs, const auto& typed_rhs, auto& result) -> decltype(
       op_func(typed_lhs, typed_rhs), void()) {
     using ResultType = decltype(op_func(typed_lhs, typed_rhs));
-    result.template set<ResultType>(op_func(typed_lhs, typed_rhs));
+    context.tuple.template set<ResultType>(result.tuple_index(), op_func(typed_lhs, typed_rhs));
   };
 
   const auto catching_func = InvalidTypeCatcher<decltype(store_result_wrapper), void>(store_result_wrapper);
@@ -122,8 +129,6 @@ void jit_compute(const T& op_func, const JitMaterializedValue& lhs,
   const auto combined_types = static_cast<uint8_t>(lhs.data_type()) << 8 | static_cast<uint8_t>(rhs.data_type());
   switch (combined_types) {
     BOOST_PP_SEQ_FOR_EACH_PRODUCT(JIT_COMPUTE_CASE, (DATA_TYPE_INFO)(DATA_TYPE_INFO))
-    default:
-      Fail("unreachable");
   }
 }
 

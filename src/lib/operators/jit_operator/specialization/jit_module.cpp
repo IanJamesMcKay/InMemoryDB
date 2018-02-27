@@ -32,10 +32,10 @@ void JitModule::specialize_fast(const JitRuntimePointer::Ptr& runtime_this) {
   _runtime_values[&*_root_function->arg_begin()] = runtime_this;
   _resolve_virtual_calls();
   _replace_loads_with_runtime_values();
-  _optimize();
-  _runtime_values[&*_root_function->arg_begin()] = runtime_this;
-  _replace_loads_with_runtime_values();
-  _optimize();
+  //_optimize();
+  //_runtime_values[&*_root_function->arg_begin()] = runtime_this;
+  //_replace_loads_with_runtime_values();
+  //_optimize();
   //_adce();
 
   llvm_utils::module_to_file("/tmp/final.ll", *_module);
@@ -59,7 +59,7 @@ void JitModule::_resolve_virtual_calls() {
   _visit<llvm::CallInst>([&](llvm::CallInst& inst) { call_sites.push(llvm::CallSite(&inst)); });
   _visit<llvm::InvokeInst>([&](llvm::InvokeInst& inst) { call_sites.push(llvm::CallSite(&inst)); });
   uint32_t counter = 0;
-  //llvm_utils::module_to_file("/tmp/after_" + std::to_string(counter++) + ".ll", *_module);
+  llvm_utils::module_to_file("/tmp/after_" + std::to_string(counter++) + ".ll", *_module);
   while (!call_sites.empty()) {
     auto& call_site = call_sites.front();
     if (call_site.isIndirectCall()) {
@@ -129,7 +129,7 @@ void JitModule::_resolve_virtual_calls() {
   //  }
 
     call_sites.pop();
-    llvm_utils::module_to_file("/tmp/after_" + std::to_string(counter++) + ".ll", *_module);
+    //llvm_utils::module_to_file("/tmp/after_" + std::to_string(counter++) + ".ll", *_module);
   }
 }
 
