@@ -107,6 +107,7 @@ struct JitRuntimeContext {
   ChunkOffset chunk_offset;
   JitVariantVector tuple;
   std::vector<std::shared_ptr<BaseJitColumnReader>> inputs;
+  std::vector<std::shared_ptr<JitBaseColumnIterator2>> inputs2;
   std::vector<std::shared_ptr<BaseJitColumnWriter>> outputs;
   JitRuntimeHashmap hashmap;
   std::shared_ptr<Chunk> out_chunk;
@@ -160,9 +161,9 @@ class JitTupleValue {
   size_t tuple_index() const { return _tuple_index; }
 
   // Converts this abstract value into an actually accessible value
-  JitMaterializedValue materialize(JitRuntimeContext& context) const {
-    return JitMaterializedValue(_data_type, _is_nullable, _tuple_index, context.tuple);
-  }
+  // JitMaterializedValue materialize(JitRuntimeContext& context) const {
+  //  return JitMaterializedValue(_data_type, _is_nullable, _tuple_index, context.tuple);
+  //}
 
  private:
   const DataType _data_type;

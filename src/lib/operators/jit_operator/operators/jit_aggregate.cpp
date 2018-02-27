@@ -92,8 +92,8 @@ void JitAggregate::_consume(JitRuntimeContext& ctx) const {
   if (value_index == -1) {
     for (auto &groupby_column : _groupby_columns) {
       value_index = groupby_column.hashmap_value.grow(ctx);
-      auto value = groupby_column.hashmap_value.materialize(ctx, value_index);
-      _assign(groupby_column.tuple_value.materialize(ctx), value);
+      //auto value = groupby_column.hashmap_value.materialize(ctx, value_index);
+      // _assign(groupby_column.tuple_value.materialize(ctx), value);
     }
     for (auto &aggregate_column : _aggregate_columns) {
       aggregate_column.hashmap_value.grow(ctx);
@@ -101,18 +101,18 @@ void JitAggregate::_consume(JitRuntimeContext& ctx) const {
     bucket.push_back(value_index);
   }
 
-  for (auto &aggregate_column : _aggregate_columns) {
-    auto result = aggregate_column.hashmap_value.materialize(ctx, value_index);
-    jit_compute(jit_addition, aggregate_column.tuple_value.materialize(ctx), result, result);
-  }
+//  for (auto &aggregate_column : _aggregate_columns) {
+    //auto result = aggregate_column.hashmap_value.materialize(ctx, value_index);
+    // jit_compute(jit_addition, aggregate_column.tuple_value.materialize(ctx), result, result);
+  //}
 
 }
 
 bool JitAggregate::_equals(JitRuntimeContext& ctx, const uint64_t index) const {
-  for (auto& groupby_column : _groupby_columns) {
-    if (!_equals_one(groupby_column.tuple_value.materialize(ctx), groupby_column.hashmap_value.materialize(ctx, index))) return false;
-  }
-  return true;
+  //for (auto& groupby_column : _groupby_columns) {
+    //if (!_equals_one(groupby_column.tuple_value.materialize(ctx), groupby_column.hashmap_value.materialize(ctx, index))) return false;
+  //}
+  return false;
 }
 
 bool JitAggregate::_equals_one(const JitMaterializedValue& lhs, const JitMaterializedValue& rhs) const {
@@ -136,8 +136,8 @@ bool JitAggregate::_equals_one(const JitMaterializedValue& lhs, const JitMateria
 
 uint64_t JitAggregate::_compute_hash(JitRuntimeContext& ctx) const {
   uint64_t hash{0};
-  for (const auto& groupby_column : _groupby_columns) {
-    auto const value = groupby_column.tuple_value.materialize(ctx);
+/*  for (const auto& groupby_column : _groupby_columns) {
+    // auto const value = groupby_column.tuple_value.materialize(ctx);
     if (!value.is_null()) {
       switch (value.data_type()) {
         case DataType::Bool:
@@ -162,7 +162,7 @@ uint64_t JitAggregate::_compute_hash(JitRuntimeContext& ctx) const {
           break;
       }
     }
-  }
+  }*/
   return hash;
 }
 
@@ -190,20 +190,5 @@ void JitAggregate::_assign(const JitMaterializedValue& in, JitMaterializedValue&
       break;
   }
 }
-
-/*void JitAggreagate::_create_output_chunk(JitRuntimeContext& ctx) const {
-  ctx.out_chunk = std::make_shared<Chunk>();
-  ctx.outputs.clear();
-
-  for (const auto& output_column : _output_columns) {
-    const auto data_type = jit_data_type_to_data_type.at(output_column.second.data_type());
-    resolve_data_type(data_type, [&](auto type) {
-      using ColumnDataType = typename decltype(type)::type;
-      auto column = std::make_shared<ValueColumn<ColumnDataType>>(output_column.second.is_nullable());
-      ctx.outputs.push_back(column);
-      ctx.out_chunk->add_column(column);
-    });
-  }
-}*/
 
 }  // namespace opossum

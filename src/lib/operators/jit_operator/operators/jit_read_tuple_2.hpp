@@ -10,9 +10,10 @@ namespace opossum {
  * We need this class, so we can store a number of JitColumnReaders with different template
  * specializations in a common data structure.
  */
-class BaseJitColumnReader {
+class BaseJitColumnReader2 {
  public:
-  virtual void read_value(JitRuntimeContext& context) = 0;
+  virtual void read_value(JitRuntimeContext& context) const = 0;
+  virtual void increment(JitRuntimeContext& context) const = 0;
 };
 
 /* JitColumnReaders wrap the column iterable interface used by most operators and makes it accessible
@@ -20,7 +21,7 @@ class BaseJitColumnReader {
  *
  * Why we need this wrapper:
  * Most operators access data by creating a fixed number (usually one or two) of column iterables and
- * then immediately use those iterators in a lambda. The JitOperator, on the other hand, processes
+ * then immediately uses those iterators in a lambda. The JitOperator, on the other hand, processes
  * data in a tuple-at-a-time fashion and thus needs access to an arbitrary number of column iterators
  * at the same time.
  *
@@ -36,14 +37,13 @@ class BaseJitColumnReader {
  * vector as well and access all types of columns with a single interface.
  */
 template <typename Iterator, typename DataType, bool Nullable>
-class JitColumnReader : public BaseJitColumnReader {
+class JitColumnReader2 : public BaseJitColumnReader2 {
  public:
-  JitColumnReader(const Iterator& iterator, const JitTupleValue& tuple_value)
-      : _iterator{iterator}, _tuple_value{tuple_value} {}
+  JitColumnReader2(const size_t input_index, const JitTupleValue& tuple_value)
+          : _input_index{input_index}, _tuple_value{tuple_value} {}
 
-  void read_value(JitRuntimeContext& context) {
-    const auto& value = *_iterator;
-    ++_iterator;
+  void read_value(JitRuntimeContext& context) const {
+    const auto& value = *_iterator(context);
     // clang-format off
     if constexpr (Nullable) {
       context.tuple.set_is_null(_tuple_value.tuple_index(), value.is_null());
@@ -56,23 +56,29 @@ class JitColumnReader : public BaseJitColumnReader {
     // clang-format on
   }
 
+  void increment(JitRuntimeContext& context) const final { ++_iterator(context); }
+
  private:
-  Iterator _iterator;
-  JitTupleValue _tuple_value;
+  Iterator& _iterator(JitRuntimeContext& context) const {
+    return *std::static_pointer_cast<Iterator>(context.inputs2[_input_index]);
+  }
+
+  const size_t _input_index;
+  const JitTupleValue _tuple_value;
 };
 
-struct JitInputColumn {
+struct JitInputColumn2 {
   ColumnID column_id;
   JitTupleValue tuple_value;
 };
 
-struct JitInputLiteral {
+struct JitInputLiteral2 {
   AllTypeVariant value;
   JitTupleValue tuple_value;
 };
 
 /* JitReadTuple must be the first operator in any chain of jit operators.
- * It is responsible for:
+ * It is responsible for
  * 1) storing literal values to the runtime tuple before the query is executed
  * 2) reading data from the the input table to the runtime tuple
  * 3) advancing the column iterators
@@ -80,14 +86,14 @@ struct JitInputLiteral {
  *    another operator needs to store a temporary value in the runtime tuple,
  *    it can request a slot in the tuple from JitReadTuple.
  */
-class JitReadTuple : public JitAbstractOperator {
+class JitReadTuple2 : public JitAbstractOperator {
  public:
   std::string description() const final;
 
   void before_query(const Table& in_table, JitRuntimeContext& context);
   void before_chunk(const Table& in_table, const Chunk& in_chunk, JitRuntimeContext& context) const;
 
-  JitTupleValue add_input_column(const DataType data_type, const bool is_nullable, const ColumnID column_id);
+  JitTupleValue add_input_column(const Table& table, const ColumnID column_id);
   JitTupleValue add_literal_value(const AllTypeVariant& value);
   size_t add_temorary_value();
 
@@ -95,8 +101,9 @@ class JitReadTuple : public JitAbstractOperator {
 
  protected:
   uint32_t _num_tuple_values{0};
-  std::vector<JitInputColumn> _input_columns;
-  std::vector<JitInputLiteral> _input_literals;
+  std::vector<JitInputColumn2> _input_columns;
+  std::vector<JitInputLiteral2> _input_literals;
+  std::vector<std::shared_ptr<const BaseJitColumnReader2>> _column_readers;
 
  private:
   void _consume(JitRuntimeContext& context) const final {}

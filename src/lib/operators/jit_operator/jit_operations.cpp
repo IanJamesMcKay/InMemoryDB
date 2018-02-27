@@ -15,13 +15,34 @@ void jit_and(const JitMaterializedValue &lhs, const JitMaterializedValue &rhs, J
           "invalid type for operation");
 
   // three-valued logic AND
-  if (lhs.is_null()) {
-    result.set<bool>(false);
-    result.set_is_null(rhs.is_null() || rhs.get<bool>());
-  } else {
+  //if (lhs.is_null()) {
+  //  result.set<bool>(false);
+  //  result.set_is_null(rhs.is_null() || rhs.get<bool>());
+  //} else {
     result.set<bool>(lhs.get<bool>() && rhs.get<bool>());
-    result.set_is_null(lhs.get<bool>() && rhs.is_null());
-  }
+    //result.set_is_null(lhs.get<bool>() && rhs.is_null());
+  //}
+}
+
+
+void jit_add_2(const JitTupleValue &lhs, const JitTupleValue &rhs, const JitTupleValue &result, JitRuntimeContext& context) {
+  context.tuple.set<int32_t>(result.tuple_index(), context.tuple.get<int32_t>(lhs.tuple_index()) + context.tuple.get<int32_t>(rhs.tuple_index()));
+  // three-valued logic AND
+  //if (lhs.is_null()) {
+  //  result.set<bool>(false);
+  //  result.set_is_null(rhs.is_null() || rhs.get<bool>());
+  //} else {
+  //  result.set<bool>(lhs.get<bool>() && rhs.get<bool>());
+  //  result.set_is_null(lhs.get<bool>() && rhs.is_null());
+  //}
+}
+
+void jit_gt_2(const JitTupleValue &lhs, const JitTupleValue &rhs, const JitTupleValue &result, JitRuntimeContext& context) {
+  context.tuple.set<bool>(result.tuple_index(), context.tuple.get<int32_t>(lhs.tuple_index()) > context.tuple.get<int64_t>(rhs.tuple_index()));
+}
+
+void jit_and_2(const JitTupleValue &lhs, const JitTupleValue &rhs, const JitTupleValue &result, JitRuntimeContext& context) {
+  context.tuple.set<bool>(result.tuple_index(), context.tuple.get<bool>(lhs.tuple_index()) && context.tuple.get<bool>(rhs.tuple_index()));
 }
 
 void jit_or(const JitMaterializedValue &lhs, const JitMaterializedValue &rhs, JitMaterializedValue &result) {

@@ -31,10 +31,14 @@ void JitModule::specialize_fast(const JitRuntimePointer::Ptr& runtime_this) {
 
   _runtime_values[&*_root_function->arg_begin()] = runtime_this;
   _resolve_virtual_calls();
-  //_replace_loads_with_runtime_values();
+  _replace_loads_with_runtime_values();
   _optimize();
+  _runtime_values[&*_root_function->arg_begin()] = runtime_this;
+  _replace_loads_with_runtime_values();
+  _optimize();
+  //_adce();
 
-  // llvm_utils::module_to_file("/tmp/after.ll", *_module);
+  llvm_utils::module_to_file("/tmp/final.ll", *_module);
 }
 
 void JitModule::specialize_slow(const JitRuntimePointer::Ptr& runtime_this) {
@@ -54,7 +58,8 @@ void JitModule::_resolve_virtual_calls() {
   std::queue<llvm::CallSite> call_sites;
   _visit<llvm::CallInst>([&](llvm::CallInst& inst) { call_sites.push(llvm::CallSite(&inst)); });
   _visit<llvm::InvokeInst>([&](llvm::InvokeInst& inst) { call_sites.push(llvm::CallSite(&inst)); });
-
+  uint32_t counter = 0;
+  //llvm_utils::module_to_file("/tmp/after_" + std::to_string(counter++) + ".ll", *_module);
   while (!call_sites.empty()) {
     auto& call_site = call_sites.front();
     if (call_site.isIndirectCall()) {
@@ -124,6 +129,7 @@ void JitModule::_resolve_virtual_calls() {
   //  }
 
     call_sites.pop();
+    llvm_utils::module_to_file("/tmp/after_" + std::to_string(counter++) + ".ll", *_module);
   }
 }
 
@@ -204,7 +210,7 @@ void JitModule::_optimize() {
 
 //  const auto before_path = "/tmp/before.ll";
 //  const auto after_path = "/tmp/after.ll";
-//  const auto remarks_path = "/tmp/remarks.yml";
+  const auto remarks_path = "/tmp/remarks.yml";
 
 //  std::cout << "Running optimization" << std::endl
 //            << "  before:  " << before_path << std::endl
@@ -215,9 +221,9 @@ void JitModule::_optimize() {
 //  llvm_utils::module_to_file(before_path, *_module);
 
   // TODO(johannes) remove later
-//  std::error_code error_code;
-//  llvm::raw_fd_ostream remarks_file(remarks_path, error_code, llvm::sys::fs::F_None);
-//  _repository.llvm_context()->setDiagnosticsOutputFile(std::make_unique<llvm::yaml::Output>(remarks_file));
+  std::error_code error_code;
+  llvm::raw_fd_ostream remarks_file(remarks_path, error_code, llvm::sys::fs::F_None);
+  _repository.llvm_context()->setDiagnosticsOutputFile(std::make_unique<llvm::yaml::Output>(remarks_file));
 
   const llvm::Triple module_triple(_module->getTargetTriple());
   const llvm::TargetLibraryInfoImpl target_lib_info(module_triple);
@@ -252,7 +258,7 @@ void JitModule::_optimize() {
   pass_manager.run(*_module);
 
 //  llvm_utils::module_to_file(after_path, *_module);
-//  _repository.llvm_context()->setDiagnosticsOutputFile(nullptr);
+  _repository.llvm_context()->setDiagnosticsOutputFile(nullptr);
 }
 
 void JitModule::_replace_loads_with_runtime_values() {
@@ -342,6 +348,10 @@ llvm::Function* JitModule::_clone_function(const llvm::Function& function, const
 }
 
 llvm::GlobalVariable* JitModule::_clone_global(const llvm::GlobalVariable& global) {
+  if (auto gb = _module->getGlobalVariable(global.getName())) {
+    return gb;
+  }
+
   const auto cloned_global = new llvm::GlobalVariable(*_module, global.getValueType(), global.isConstant(),
                                                       global.getLinkage(), nullptr, global.getName(), nullptr,
                                                       global.getThreadLocalMode(), global.getType()->getAddressSpace());

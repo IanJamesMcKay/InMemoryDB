@@ -16,7 +16,7 @@ namespace opossum {
  * The class allows the JitOperator to keep pointers to differently specialized versions
  * of the iterators in a common data structure.
  */
-class JitBaseColumnIterator {};
+class JitBaseColumnIterator2 {};
 
 /**
  * @brief base class of all iterators used by iterables
@@ -49,7 +49,7 @@ class JitBaseColumnIterator {};
  */
 template <typename Derived, typename Value>
 class BaseColumnIterator : public boost::iterator_facade<Derived, Value, boost::forward_traversal_tag, Value>,
-                           public JitBaseColumnIterator {};
+                           public JitBaseColumnIterator2 {};
 
 /**
  * @brief base class of all point-access iterators used by iterables

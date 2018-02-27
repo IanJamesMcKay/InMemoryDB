@@ -239,12 +239,11 @@ std::shared_ptr<const JitExpression> JitAwareLQPTranslator::_translate_to_jit_ex
 
   if (column_id && stored_table_node) {
     // we reached a "raw" data column and register it as an input column
-    const auto original_column_id = lqp_column_reference.original_column_id();
     const auto table_name = stored_table_node->table_name();
     const auto table = StorageManager::get().get_table(table_name);
-    const auto data_type = table->column_type(original_column_id);
-    const auto is_nullable = table->column_is_nullable(original_column_id);
-    const auto tuple_value = jit_source.add_input_column(data_type, is_nullable, column_id.value());
+    const auto dt = table->column_type(column_id.value());
+    const auto n = table->column_is_nullable(column_id.value());
+    const auto tuple_value = jit_source.add_input_column(dt, n, column_id.value());
     return std::make_shared<JitExpression>(tuple_value);
   } else if (projection_node) {
     // if the LQPColumnReference references a computed column, we need to compute that expression as well

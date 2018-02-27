@@ -152,6 +152,9 @@ DataType jit_compute_type(const T& op_func, const DataType lhs, const DataType r
 
 void jit_not(const JitMaterializedValue& lhs, JitMaterializedValue& result);
 void jit_and(const JitMaterializedValue& lhs, const JitMaterializedValue& rhs, JitMaterializedValue& result);
+void jit_and_2(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result, JitRuntimeContext& ctx);
+void jit_gt_2(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result, JitRuntimeContext& ctx);
+void jit_add_2(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result, JitRuntimeContext& ctx);
 void jit_or(const JitMaterializedValue& lhs, const JitMaterializedValue& rhs, JitMaterializedValue& result);
 void jit_is_null(const JitMaterializedValue& lhs, JitMaterializedValue& result);
 void jit_is_not_null(const JitMaterializedValue& lhs, JitMaterializedValue& result);

@@ -40,7 +40,7 @@ void JitWriteTuple::add_output_column(const std::string& column_name, const JitT
 
 void JitWriteTuple::_consume(JitRuntimeContext& context) const {
   for (const auto& output : context.outputs) {
-    output->write_value();
+    output->write_value(context);
   }
 }
 
@@ -61,10 +61,10 @@ void JitWriteTuple::_create_output_chunk(JitRuntimeContext& context) const {
 
       if (is_nullable) {
         context.outputs.push_back(std::make_shared<JitColumnWriter<ValueColumn<ColumnDataType>, ColumnDataType, true>>(
-            column, output_column.tuple_value.materialize(context)));
+            column, output_column.tuple_value));
       } else {
         context.outputs.push_back(std::make_shared<JitColumnWriter<ValueColumn<ColumnDataType>, ColumnDataType, false>>(
-            column, output_column.tuple_value.materialize(context)));
+            column, output_column.tuple_value));
       }
     });
   }

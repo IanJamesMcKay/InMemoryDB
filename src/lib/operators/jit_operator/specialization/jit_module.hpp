@@ -4,6 +4,7 @@
 #include <llvm/IR/Verifier.h>
 
 #include <stack>
+#include <operators/jit_operator/specialization/utils/llvm_utils.hpp>
 
 #include "jit_repository.hpp"
 #include "jit_compiler.hpp"
@@ -29,8 +30,8 @@ class JitModule {
 
     // Strangely, llvm::verifyModule returns false for valid modules
     // DebugAssert(!llvm::verifyModule(*_module, &llvm::dbgs()), "Module is invalid.");
-
-    _compiler.add_module(std::move(_module));
+    _compiler.add_module(llvm_utils::module_from_file("/tmp/final2.ll", _module->getContext()));
+    //_compiler.add_module(std::move(_module));
     return _compiler.find_symbol<T>(function_name);
   }
 
