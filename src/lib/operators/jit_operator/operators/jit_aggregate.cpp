@@ -1,9 +1,9 @@
 #include "jit_aggregate.hpp"
 
 #include "constant_mappings.hpp"
+#include "operators/jit_operator/jit_operations.hpp"
 #include "resolve_type.hpp"
 #include "storage/value_column.hpp"
-#include "operators/jit_operator/jit_operations.hpp"
 
 namespace opossum {
 
@@ -15,7 +15,8 @@ std::string JitAggregate::description() const {
   }
   desc << " Aggregates: ";
   for (const auto& aggregate_column : _aggregate_columns) {
-    desc << aggregate_column.column_name  << " = " << aggregate_function_to_string.left.at(aggregate_column.function) << "(x" << aggregate_column.tuple_value.tuple_index() << "), ";
+    desc << aggregate_column.column_name << " = " << aggregate_function_to_string.left.at(aggregate_column.function)
+         << "(x" << aggregate_column.tuple_value.tuple_index() << "), ";
   }
   return desc.str();
 }
@@ -50,7 +51,7 @@ void JitAggregate::before_query(Table& out_table, JitRuntimeContext& ctx) {
 
   out_table.emplace_chunk(ctx.out_chunk);
 
-/*    const auto data_type = jit_data_type_to_data_type.at(output_column.second.data_type());
+  /*    const auto data_type = jit_data_type_to_data_type.at(output_column.second.data_type());
 
     out_table.add_column_definition(output_column.first, data_type, is_nullable);
 
@@ -69,7 +70,8 @@ void JitAggregate::before_query(Table& out_table, JitRuntimeContext& ctx) {
   // _create_output_chunk(ctx);
 }
 
-void JitAggregate::add_aggregate_column(const std::string& column_name, const JitTupleValue& value, const AggregateFunction function) {
+void JitAggregate::add_aggregate_column(const std::string& column_name, const JitTupleValue& value,
+                                        const AggregateFunction function) {
   //_aggregate_columns.push_back(JitAggregateColumn{column_name, value, JitHashmapValue(value, _num_hashmap_values++), function});
 }
 

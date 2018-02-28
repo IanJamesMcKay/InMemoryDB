@@ -35,7 +35,7 @@ class SQLQueryCache {
     if (_cache->capacity() == 0) return;
 
     std::lock_guard<std::mutex> lock(_mutex);
-    _cache->set(query, value);
+    // _cache->set(query, value);
   }
 
   // Tries to fetch the cache entry for the query into the result object.

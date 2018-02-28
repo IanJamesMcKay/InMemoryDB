@@ -7,12 +7,12 @@
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/Utils/Cloning.h>
 
+#include "jit_evaluation_helper.hpp"
+#include "utils/llvm_utils.hpp"
 #include "utils/my_llvm.hpp"
 
 #include <queue>
 #include <sstream>
-
-#include "utils/llvm_utils.hpp"
 
 namespace opossum {
 
@@ -31,14 +31,14 @@ void JitModule::specialize_fast(const JitRuntimePointer::Ptr& runtime_this) {
 
   _runtime_values[&*_root_function->arg_begin()] = runtime_this;
   _resolve_virtual_calls();
-  _replace_loads_with_runtime_values();
-  _optimize();
-  //_runtime_values[&*_root_function->arg_begin()] = runtime_this;
-  //_replace_loads_with_runtime_values();
-  //_optimize();
-  //_adce();
 
-  llvm_utils::module_to_file("/tmp/final.ll", *_module);
+  const auto optimize = JitEvaluationHelper::get().experiment().at("jit_optimize").get<bool>();
+  if (optimize) {
+    _replace_loads_with_runtime_values();
+    _optimize();
+  }
+
+  //llvm_utils::module_to_file("/tmp/final.ll", *_module);
 }
 
 void JitModule::specialize_slow(const JitRuntimePointer::Ptr& runtime_this) {
@@ -58,8 +58,8 @@ void JitModule::_resolve_virtual_calls() {
   std::queue<llvm::CallSite> call_sites;
   _visit<llvm::CallInst>([&](llvm::CallInst& inst) { call_sites.push(llvm::CallSite(&inst)); });
   _visit<llvm::InvokeInst>([&](llvm::InvokeInst& inst) { call_sites.push(llvm::CallSite(&inst)); });
-  uint32_t counter = 0;
-  llvm_utils::module_to_file("/tmp/after_" + std::to_string(counter++) + ".ll", *_module);
+  //uint32_t counter = 0;
+  //llvm_utils::module_to_file("/tmp/after_" + std::to_string(counter++) + ".ll", *_module);
   while (!call_sites.empty()) {
     auto& call_site = call_sites.front();
     if (call_site.isIndirectCall()) {
@@ -67,7 +67,8 @@ void JitModule::_resolve_virtual_calls() {
       //std::cout << std::endl;
       // attempt to resolve virtual function call
       const auto called_value = call_site.getCalledValue();
-      const auto called_runtime_value = std::dynamic_pointer_cast<const JitKnownRuntimePointer>(_get_runtime_value(called_value));
+      const auto called_runtime_value =
+          std::dynamic_pointer_cast<const JitKnownRuntimePointer>(_get_runtime_value(called_value));
       if (called_runtime_value && called_runtime_value->is_valid()) {
         const auto vtable_index = called_runtime_value->up().total_offset() / _module->getDataLayout().getPointerSize();
         const auto instance = reinterpret_cast<JitRTTIHelper*>(called_runtime_value->up().up().base().address());
@@ -93,7 +94,7 @@ void JitModule::_resolve_virtual_calls() {
     //      _llvm_value_map[&fn] = _create_function_declaration(fn);
     //    }
     //  });
-   // }
+    // }
 
     // map called functions
     _visit<const llvm::Function>(function, [&](const auto& fn) {
@@ -125,11 +126,11 @@ void JitModule::_resolve_virtual_calls() {
     }
 
     //if (function.hasPersonalityFn()) {
-//      _root_function->setPersonalityFn(_llvm_value_map[function.getPersonalityFn()]);
-  //  }
+    //      _root_function->setPersonalityFn(_llvm_value_map[function.getPersonalityFn()]);
+    //  }
 
     call_sites.pop();
-    llvm_utils::module_to_file("/tmp/after_" + std::to_string(counter++) + ".ll", *_module);
+    //llvm_utils::module_to_file("/tmp/after_" + std::to_string(counter++) + ".ll", *_module);
   }
 }
 
@@ -208,17 +209,17 @@ void JitModule::_optimize() {
     branch_inst.setMetadata(18, nullptr);
   });
 
-//  const auto before_path = "/tmp/before.ll";
-//  const auto after_path = "/tmp/after.ll";
+  //  const auto before_path = "/tmp/before.ll";
+  //  const auto after_path = "/tmp/after.ll";
   const auto remarks_path = "/tmp/remarks.yml";
 
-//  std::cout << "Running optimization" << std::endl
-//            << "  before:  " << before_path << std::endl
-//            << "  after:   " << after_path << std::endl
-//            << "  remarks: " << remarks_path << std::endl;
+  //  std::cout << "Running optimization" << std::endl
+  //            << "  before:  " << before_path << std::endl
+  //            << "  after:   " << after_path << std::endl
+  //            << "  remarks: " << remarks_path << std::endl;
 
-//  _rename_values();
-//  llvm_utils::module_to_file(before_path, *_module);
+  //  _rename_values();
+  //  llvm_utils::module_to_file(before_path, *_module);
 
   // TODO(johannes) remove later
   std::error_code error_code;
@@ -257,7 +258,7 @@ void JitModule::_optimize() {
   function_pass_manager.doFinalization();
   pass_manager.run(*_module);
 
-//  llvm_utils::module_to_file(after_path, *_module);
+  //  llvm_utils::module_to_file(after_path, *_module);
   _repository.llvm_context()->setDiagnosticsOutputFile(nullptr);
 }
 
@@ -404,8 +405,8 @@ const JitRuntimePointer::Ptr& JitModule::_get_runtime_value(const llvm::Value* v
   } else if (const auto gep_inst = llvm::dyn_cast<llvm::GetElementPtrInst>(value)) {
     llvm::APInt offset(64, 0);
     if (gep_inst->accumulateConstantOffset(_module->getDataLayout(), offset)) {
-      if (const auto base =
-              std::dynamic_pointer_cast<const JitKnownRuntimePointer>(_get_runtime_value(gep_inst->getPointerOperand()))) {
+      if (const auto base = std::dynamic_pointer_cast<const JitKnownRuntimePointer>(
+              _get_runtime_value(gep_inst->getPointerOperand()))) {
         _runtime_values[value] = std::make_shared<JitOffsetRuntimePointer>(base, offset.getLimitedValue());
       }
     }

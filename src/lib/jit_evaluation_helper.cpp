@@ -3,9 +3,9 @@
 namespace opossum {
 
 // singleton
-JitEvaluationHelper &JitEvaluationHelper::get() {
+JitEvaluationHelper& JitEvaluationHelper::get() {
   static JitEvaluationHelper instance;
   return instance;
 }
 
-} // namespace opossum
+}  // namespace opossum

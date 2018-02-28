@@ -37,7 +37,7 @@ void JitExpression::compute(JitRuntimeContext& context) const {
   if (_expression_type == ExpressionType::Column) {
     return;
   }
-  
+
   _left_child->compute(context);
 
   if (!_is_binary_operator()) {
@@ -133,22 +133,28 @@ std::pair<const DataType, const bool> JitExpression::_compute_result_type() {
   DataType result_data_type;
   switch (_expression_type) {
     case ExpressionType::Addition:
-      result_data_type = jit_compute_type(jit_addition, _left_child->result().data_type(), _right_child->result().data_type());
+      result_data_type =
+          jit_compute_type(jit_addition, _left_child->result().data_type(), _right_child->result().data_type());
       break;
     case ExpressionType::Subtraction:
-      result_data_type = jit_compute_type(jit_subtraction, _left_child->result().data_type(), _right_child->result().data_type());
+      result_data_type =
+          jit_compute_type(jit_subtraction, _left_child->result().data_type(), _right_child->result().data_type());
       break;
     case ExpressionType::Multiplication:
-      result_data_type = jit_compute_type(jit_multiplication, _left_child->result().data_type(), _right_child->result().data_type());
+      result_data_type =
+          jit_compute_type(jit_multiplication, _left_child->result().data_type(), _right_child->result().data_type());
       break;
     case ExpressionType::Division:
-      result_data_type = jit_compute_type(jit_division, _left_child->result().data_type(), _right_child->result().data_type());
+      result_data_type =
+          jit_compute_type(jit_division, _left_child->result().data_type(), _right_child->result().data_type());
       break;
     case ExpressionType::Modulo:
-      result_data_type = jit_compute_type(jit_modulo, _left_child->result().data_type(), _right_child->result().data_type());
+      result_data_type =
+          jit_compute_type(jit_modulo, _left_child->result().data_type(), _right_child->result().data_type());
       break;
     case ExpressionType::Power:
-      result_data_type = jit_compute_type(jit_power, _left_child->result().data_type(), _right_child->result().data_type());
+      result_data_type =
+          jit_compute_type(jit_power, _left_child->result().data_type(), _right_child->result().data_type());
       break;
     case ExpressionType::Equals:
     case ExpressionType::NotEquals:

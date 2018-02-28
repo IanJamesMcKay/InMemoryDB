@@ -16,4 +16,4 @@ class JitTableGenerator : public benchmark_utilities::AbstractBenchmarkTableGene
   const float _scale_factor;
 };
 
-} // namespace opossum
+}  // namespace opossum

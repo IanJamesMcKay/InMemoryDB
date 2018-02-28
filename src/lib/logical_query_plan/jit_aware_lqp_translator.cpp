@@ -1,7 +1,7 @@
 #include "jit_aware_lqp_translator.hpp"
 
-#include <boost/range/combine.hpp>
 #include <boost/range/adaptors.hpp>
+#include <boost/range/combine.hpp>
 
 #include <queue>
 #include <unordered_set>
@@ -21,7 +21,6 @@ namespace opossum {
 
 std::shared_ptr<AbstractOperator> JitAwareLQPTranslator::translate_node(
     const std::shared_ptr<AbstractLQPNode>& node) const {
-
   if (JitEvaluationHelper::get().experiment().at("engine") == "opossum") {
     return LQPTranslator::translate_node(node);
   } else if (JitEvaluationHelper::get().experiment().at("engine") != "jit") {
@@ -80,10 +79,10 @@ std::shared_ptr<AbstractOperator> JitAwareLQPTranslator::translate_node(
     const auto groupby_columns = aggregate_node->groupby_column_references();
     const auto aggregate_columns = aggregate_node->aggregate_expressions();
     const auto groupby_column_names = boost::adaptors::slice(column_names, 0, groupby_columns.size());
-    const auto aggregate_column_names = boost::adaptors::slice(column_names, groupby_columns.size(),
-                                                               column_names.size());
+    const auto aggregate_column_names =
+        boost::adaptors::slice(column_names, groupby_columns.size(), column_names.size());
 
-    for (const auto &groupby_column : boost::combine(groupby_column_names, groupby_columns)) {
+    for (const auto& groupby_column : boost::combine(groupby_column_names, groupby_columns)) {
       const auto expression = _translate_to_jit_expression(groupby_column.get<1>(), *read_tuple, input_node);
       if (expression->expression_type() != ExpressionType::Column) {
         jit_operator->add_jit_operator(std::make_shared<JitCompute>(expression));
@@ -99,7 +98,8 @@ std::shared_ptr<AbstractOperator> JitAwareLQPTranslator::translate_node(
       if (expression->expression_type() != ExpressionType::Column) {
         jit_operator->add_jit_operator(std::make_shared<JitCompute>(expression));
       }
-      aggregate->add_aggregate_column(aggregate_column.get<0>(), expression->result(), aggregate_expression->aggregate_function());
+      aggregate->add_aggregate_column(aggregate_column.get<0>(), expression->result(),
+                                      aggregate_expression->aggregate_function());
     }
 
     jit_operator->add_jit_operator(aggregate);
@@ -112,8 +112,8 @@ std::shared_ptr<AbstractOperator> JitAwareLQPTranslator::translate_node(
 
     // Add a compute operator for each output column that computes the column value.
     auto write_tuple = std::make_shared<JitWriteTuple>();
-    for (const auto &output_column : boost::combine(top_projection->output_column_names(),
-                                                    top_projection->output_column_references())) {
+    for (const auto& output_column :
+         boost::combine(top_projection->output_column_names(), top_projection->output_column_references())) {
       const auto expression = _translate_to_jit_expression(output_column.get<1>(), *read_tuple, input_node);
       // It the JitExpression is of type ExpressionType::Column, there is no need to add a compute node, since it
       // would not compute anything anyway
@@ -276,10 +276,11 @@ bool JitAwareLQPTranslator::_has_another_condition(const std::shared_ptr<Abstrac
   return current_node->type() == LQPNodeType::Predicate || current_node->type() == LQPNodeType::Union;
 }
 
-bool JitAwareLQPTranslator::_node_is_jittable(const std::shared_ptr<AbstractLQPNode>& node, const bool allow_aggregate_node) const {
+bool JitAwareLQPTranslator::_node_is_jittable(const std::shared_ptr<AbstractLQPNode>& node,
+                                              const bool allow_aggregate_node) const {
   switch (node->type()) {
     case LQPNodeType::Aggregate:
-      return allow_aggregate_node;
+      return allow_aggregate_node && JitEvaluationHelper::get().experiment().at("jit_aggregate").get<bool>();
     case LQPNodeType::Predicate:
       return std::dynamic_pointer_cast<PredicateNode>(node)->scan_type() == ScanType::TableScan &&
              std::dynamic_pointer_cast<PredicateNode>(node)->predicate_condition() != PredicateCondition::Between;

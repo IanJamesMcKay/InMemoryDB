@@ -3,11 +3,12 @@
 namespace opossum {
 
 JitTableGenerator::JitTableGenerator(const float scale_factor, const opossum::ChunkOffset chunk_size)
-        : benchmark_utilities::AbstractBenchmarkTableGenerator(chunk_size), _scale_factor{scale_factor} {}
+    : benchmark_utilities::AbstractBenchmarkTableGenerator(chunk_size), _scale_factor{scale_factor} {}
 
 void JitTableGenerator::generate_and_store() {
   benchmark_utilities::RandomGenerator generator;
-  auto cardinalities = std::make_shared<std::vector<size_t>>(std::initializer_list<size_t>{static_cast<size_t>(_scale_factor * 100)});
+  auto cardinalities =
+      std::make_shared<std::vector<size_t>>(std::initializer_list<size_t>{static_cast<size_t>(_scale_factor * 100)});
 
   auto table_scan = std::make_shared<opossum::Table>();
   add_column<int32_t>(table_scan, "ID", cardinalities, [&](std::vector<size_t> indices) { return indices[0]; });
@@ -35,4 +36,4 @@ void JitTableGenerator::generate_and_store() {
   StorageManager::get().add_table("TABLE_AGGREGATE", table_aggregate);
 }
 
-} // namespace opossum
+}  // namespace opossum

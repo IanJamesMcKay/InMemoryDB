@@ -44,7 +44,8 @@ namespace opossum {
 
 #define JIT_COMPUTE_CASE(r, types)                                                                                   \
   case static_cast<uint8_t>(JIT_GET_ENUM_VALUE(0, types)) << 8 | static_cast<uint8_t>(JIT_GET_ENUM_VALUE(1, types)): \
-    catching_func(context.tuple.get<JIT_GET_DATA_TYPE(0, types)>(lhs.tuple_index()), context.tuple.get<JIT_GET_DATA_TYPE(0, types)>(rhs.tuple_index()), result); \
+    catching_func(context.tuple.get<JIT_GET_DATA_TYPE(0, types)>(lhs.tuple_index()),                                 \
+                  context.tuple.get<JIT_GET_DATA_TYPE(0, types)>(rhs.tuple_index()), result);                        \
     break;
 
 #define JIT_COMPUTE_TYPE_CASE(r, types)                                                                              \
@@ -99,11 +100,14 @@ struct InvalidTypeCatcher : Functor {
 // lot of work for the JIT compiler. If we let the JIT compiler do the inlining instead, it is able to prune the
 // function to the relevant case during inlining. This allows for faster jitting.
 template <typename T>
-void jit_compute(const T& op_func, const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result, JitRuntimeContext& context) {
+void jit_compute(const T& op_func, const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result,
+                 JitRuntimeContext& context) {
   // Handle NULL values and return if either input is NULL.
   const bool result_is_null = lhs.is_null(context) || rhs.is_null(context);
   result.set_is_null(result_is_null, context);
-  if (result_is_null) { return; }
+  if (result_is_null) {
+    return;
+  }
 
   // This lambda calls the op_func (a lambda that performs the actual computation) with type arguments and stores
   // the result.
@@ -117,9 +121,7 @@ void jit_compute(const T& op_func, const JitTupleValue& lhs, const JitTupleValue
 
   // The type information from the lhs and rhs are combined into a single value for dispatching without nesting.
   const auto combined_types = static_cast<uint8_t>(lhs.data_type()) << 8 | static_cast<uint8_t>(rhs.data_type());
-  switch (combined_types) {
-    BOOST_PP_SEQ_FOR_EACH_PRODUCT(JIT_COMPUTE_CASE, (DATA_TYPE_INFO)(DATA_TYPE_INFO))
-  }
+  switch (combined_types) { BOOST_PP_SEQ_FOR_EACH_PRODUCT(JIT_COMPUTE_CASE, (DATA_TYPE_INFO)(DATA_TYPE_INFO)) }
 }
 
 template <typename T>
@@ -146,8 +148,10 @@ DataType jit_compute_type(const T& op_func, const DataType lhs, const DataType r
 }
 
 void jit_not(const JitTupleValue& lhs, const JitTupleValue& result, JitRuntimeContext& context);
-void jit_and(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result, JitRuntimeContext& context);
-void jit_or(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result, JitRuntimeContext& context);
+void jit_and(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result,
+             JitRuntimeContext& context);
+void jit_or(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result,
+            JitRuntimeContext& context);
 void jit_is_null(const JitTupleValue& lhs, const JitTupleValue& result, JitRuntimeContext& context);
 void jit_is_not_null(const JitTupleValue& lhs, const JitTupleValue& result, JitRuntimeContext& context);
 

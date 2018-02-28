@@ -5,9 +5,9 @@
 #include <llvm/Bitcode/BitcodeWriter.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IRReader/IRReader.h>
+#include <llvm/Support/Error.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Regex.h>
-#include <llvm/Support/Error.h>
 #include <llvm/Support/SourceMgr.h>
 
 #include <fstream>

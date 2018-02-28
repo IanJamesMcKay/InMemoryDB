@@ -111,7 +111,7 @@ struct JitRuntimeContext {
 // The JitTupleValue represents a value in the runtime tuple.
 // The JitTupleValue has information about the DataType and index of the value it represents, but it does NOT have
 // a reference to the runtime tuple with the actual values.
-// however, this is enough for the jit engine to optimize any operation involving the value.
+// However, this is enough for the jit engine to optimize any operation involving the value.
 // It only knows how to access the value, once it gets converted to a JitMaterializedValue by providing the runtime
 // context.
 class JitTupleValue {
@@ -125,10 +125,18 @@ class JitTupleValue {
   bool is_nullable() const { return _is_nullable; }
   size_t tuple_index() const { return _tuple_index; }
 
-  template <typename T> T get(JitRuntimeContext& context) const { return context.tuple.get<T>(_tuple_index); }
-  template <typename T> void set(const T value, JitRuntimeContext& context) const { context.tuple.set<T>(_tuple_index, value); }
+  template <typename T>
+  T get(JitRuntimeContext& context) const {
+    return context.tuple.get<T>(_tuple_index);
+  }
+  template <typename T>
+  void set(const T value, JitRuntimeContext& context) const {
+    context.tuple.set<T>(_tuple_index, value);
+  }
   inline bool is_null(JitRuntimeContext& context) const { return _is_nullable && context.tuple.is_null(_tuple_index); }
-  inline void set_is_null(const bool is_null, JitRuntimeContext& context) const { context.tuple.set_is_null(_tuple_index, is_null); }
+  inline void set_is_null(const bool is_null, JitRuntimeContext& context) const {
+    context.tuple.set_is_null(_tuple_index, is_null);
+  }
 
  private:
   const DataType _data_type;
@@ -136,29 +144,20 @@ class JitTupleValue {
   const size_t _tuple_index;
 };
 
-/*class JitHashmapValue {
+class JitHashmapValue {
  public:
-  JitHashmapValue(const JitTupleValue& tuple_value, const size_t vector_index)
-          : _data_type{tuple_value.data_type()}, _is_nullable{tuple_value.is_nullable()}, _vector_index{vector_index} {}
+  JitHashmapValue(const JitTupleValue& tuple_value, const size_t column_index)
+      : _data_type{tuple_value.data_type()}, _is_nullable{tuple_value.is_nullable()}, _column_index{column_index} {}
 
   DataType data_type() const { return _data_type; }
   bool is_nullable() const { return _is_nullable; }
-
-  JitMaterializedValue materialize(JitRuntimeContext& ctx) const {
-    return JitMaterializedValue(_data_type, _is_nullable, 0, ctx.hashmap.values[_vector_index]);
-  }
-
-  JitMaterializedValue materialize(JitRuntimeContext& ctx, const size_t index) const {
-    return JitMaterializedValue(_data_type, _is_nullable, index, ctx.hashmap.values[_vector_index]);
-  }
-
-  size_t grow(JitRuntimeContext& ctx) const;
+  size_t column_index() const { return _column_index; }
 
  private:
   const DataType _data_type;
   const bool _is_nullable;
-  const size_t _vector_index;
-};*/
+  const size_t _column_index;
+};
 
 // cleanup
 #undef JIT_VARIANT_VECTOR_MEMBER

@@ -1,5 +1,7 @@
 #include <json.hpp>
 
+#include <iostream>
+
 namespace opossum {
 
 // singleton
@@ -15,4 +17,4 @@ class JitEvaluationHelper {
   nlohmann::json _queries;
 };
 
-} // namespace opossum
+}  // namespace opossum

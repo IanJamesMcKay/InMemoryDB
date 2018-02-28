@@ -11,8 +11,7 @@ namespace opossum {
 #define JIT_ABSTRACT_SOURCE_EXECUTE_MANGLED_NAME "_ZNK7opossum12JitReadTuple7executeERNS_17JitRuntimeContextE"
 #endif
 
-JitOperator::JitOperator(const std::shared_ptr<const AbstractOperator> left,
-                         const bool use_jit,
+JitOperator::JitOperator(const std::shared_ptr<const AbstractOperator> left, const bool use_jit,
                          const std::vector<std::shared_ptr<JitAbstractOperator>>& operators)
     : AbstractReadOnlyOperator{left}, _use_jit{use_jit}, _operators{operators} {}
 
@@ -66,13 +65,15 @@ std::shared_ptr<const Table> JitOperator::_on_execute() {
   } else if (JitEvaluationHelper::get().experiment().at("jit_engine") == "slow") {
     auto start = std::chrono::high_resolution_clock::now();
     module.specialize_slow(std::make_shared<JitConstantRuntimePointer>(_source().get()));
-    auto runtime = std::round(std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
+    auto runtime = std::round(
+        std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
     execute_func = module.compile<void(const JitReadTuple*, JitRuntimeContext&)>();
     std::cerr << "slow jitting took " << runtime / 1000.0 << "ms" << std::endl;
   } else if (JitEvaluationHelper::get().experiment().at("jit_engine") == "fast") {
     auto start = std::chrono::high_resolution_clock::now();
     module.specialize_fast(std::make_shared<JitConstantRuntimePointer>(_source().get()));
-    auto runtime = std::round(std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
+    auto runtime = std::round(
+        std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
     execute_func = module.compile<void(const JitReadTuple*, JitRuntimeContext&)>();
     std::cerr << "fast jitting took " << runtime / 1000.0 << "ms" << std::endl;
   } else {
@@ -90,7 +91,8 @@ std::shared_ptr<const Table> JitOperator::_on_execute() {
     execute_func(_source().get(), context);
     _sink()->after_chunk(*out_table, context);
   }
-  auto runtime = std::round(std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
+  auto runtime =
+      std::round(std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
   std::cerr << "running took " << runtime / 1000.0 << "ms" << std::endl;
 
   return out_table;

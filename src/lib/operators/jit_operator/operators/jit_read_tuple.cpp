@@ -28,7 +28,7 @@ void JitReadTuple::before_query(const Table& in_table, JitRuntimeContext& contex
     resolve_data_type(data_type, [&](auto type) {
       using DataType = typename decltype(type)::type;
       context.tuple.set<DataType>(input_literal.tuple_value.tuple_index(), boost::get<DataType>(input_literal.value));
-   });
+    });
   }
 }
 
@@ -46,11 +46,11 @@ void JitReadTuple::before_chunk(const Table& in_table, const Chunk& in_chunk, Ji
       create_iterable_from_column<ColumnDataType>(typed_column).with_iterators([&](auto it, auto end) {
         using IteratorType = decltype(it);
         if (is_nullable) {
-          context.inputs.push_back(std::make_shared<JitColumnReader<IteratorType, ColumnDataType, true>>(
-              it, input_column.tuple_value));
+          context.inputs.push_back(
+              std::make_shared<JitColumnReader<IteratorType, ColumnDataType, true>>(it, input_column.tuple_value));
         } else {
-          context.inputs.push_back(std::make_shared<JitColumnReader<IteratorType, ColumnDataType, false>>(
-              it, input_column.tuple_value));
+          context.inputs.push_back(
+              std::make_shared<JitColumnReader<IteratorType, ColumnDataType, false>>(it, input_column.tuple_value));
         }
       });
     });

@@ -3,11 +3,11 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Verifier.h>
 
-#include <stack>
 #include <operators/jit_operator/specialization/utils/llvm_utils.hpp>
+#include <stack>
 
-#include "jit_repository.hpp"
 #include "jit_compiler.hpp"
+#include "jit_repository.hpp"
 #include "jit_runtime_pointer.hpp"
 
 namespace opossum {
