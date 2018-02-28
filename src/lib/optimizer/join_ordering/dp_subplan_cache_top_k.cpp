@@ -30,6 +30,8 @@ void DpSubplanCacheTopK::cache_plan(const boost::dynamic_bitset<>& vertex_set, c
 }
 
 bool DpSubplanCacheTopK::JoinPlanCostCompare::operator()(const std::shared_ptr<const AbstractJoinPlanNode> &lhs, const std::shared_ptr<const AbstractJoinPlanNode>& rhs) const {
+  if (lhs->plan_cost() == rhs->plan_cost()) return lhs.get() < rhs.get();
+
   return lhs->plan_cost() < rhs->plan_cost();
 }
 

@@ -43,30 +43,27 @@ void DpCcpTopK::_on_execute() {
    */
   const auto csg_cmp_pairs = EnumerateCcp{_join_graph->vertices.size(), enumerate_ccp_edges}();
   for (const auto& csg_cmp_pair : csg_cmp_pairs) {
-#if VERBOSE
-    std::cout << "Considering plan for " << (csg_cmp_pair.first | csg_cmp_pair.second) << ": " << csg_cmp_pair.first
-              << " + " << csg_cmp_pair.second << std::endl;
-#endif
 
     const auto predicates = _join_graph->find_predicates(csg_cmp_pair.first, csg_cmp_pair.second);
 
     const auto best_plans_left = subplan_cache()->get_best_plans(csg_cmp_pair.first);
     const auto best_plans_right = subplan_cache()->get_best_plans(csg_cmp_pair.second);
 
+#if VERBOSE
+    std::cout << "Considering plans " << (csg_cmp_pair.first | csg_cmp_pair.second) << ": " << csg_cmp_pair.first << "(" << best_plans_left.size() << ")"
+              << " + " << csg_cmp_pair.second << "(" << best_plans_right.size() << ")" << std::endl;
+#endif
+
     for (const auto& plan_left : best_plans_left) {
       for (const auto& plan_right : best_plans_right) {
         const auto plan_left_right = std::make_shared<JoinPlanJoinNode>(plan_left, plan_right, predicates);
         const auto plan_right_left = std::make_shared<JoinPlanJoinNode>(plan_right, plan_left, predicates);
-        const auto current_plan = plan_left_right->plan_cost() < plan_right_left->plan_cost() ? plan_left_right : plan_right_left;
-        subplan_cache()->cache_plan(csg_cmp_pair.first | csg_cmp_pair.second, current_plan);
+//        std::cout << "  Caching plan with cost " << plan_left_right->plan_cost() << std::endl;
+//        std::cout << "  - Caching plan with cost " << plan_right_left->plan_cost() << std::endl;
+        subplan_cache()->cache_plan(csg_cmp_pair.first | csg_cmp_pair.second, plan_left_right);
+        subplan_cache()->cache_plan(csg_cmp_pair.first | csg_cmp_pair.second, plan_right_left);
       }
     }
-
-#if VERBOSE
-    std::cout << "Cost=" << current_plan->cost() << std::endl;
-    current_plan->print();
-    std::cout << std::endl;
-#endif
   }
 }
 

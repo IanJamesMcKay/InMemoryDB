@@ -11,6 +11,8 @@
 #include "constant_mappings.hpp"
 #include "operators/pqp_expression.hpp"
 #include "resolve_type.hpp"
+#include "operators/print.hpp"
+#include "storage/create_iterable_from_column.hpp"
 #include "storage/reference_column.hpp"
 #include "utils/arithmetic_operator_expression.hpp"
 
@@ -95,20 +97,22 @@ std::shared_ptr<BaseColumn> Projection::_create_column(boost::hana::basic_type<T
 std::shared_ptr<const Table> Projection::_on_execute() {
   auto reuse_columns_from_input = true;
 
+  auto t1 = std::chrono::high_resolution_clock::now();
   /**
    * Determine the TableColumnDefinitions and create empty output table from them
    */
   TableColumnDefinitions column_definitions;
   for (const auto& column_expression : _column_expressions) {
+    auto t6 = std::chrono::high_resolution_clock::now();
     TableColumnDefinition column_definition;
 
     // Determine column name
     if (column_expression->alias()) {
       column_definition.name = *column_expression->alias();
     } else if (column_expression->type() == ExpressionType::Column) {
-      column_definition.name = input_table_left()->column_name(column_expression->column_id());
+      column_definition.name = "Blub";//input_table_left()->column_name(column_expression->column_id());
     } else if (column_expression->is_arithmetic_operator() || column_expression->type() == ExpressionType::Literal) {
-      column_definition.name = column_expression->to_string(input_table_left()->column_names());
+      column_definition.name = "Bla";//column_expression->to_string(input_table_left()->column_names());
     } else {
       Fail("Expression type is not supported.");
     }
@@ -116,8 +120,12 @@ std::shared_ptr<const Table> Projection::_on_execute() {
     if (column_expression->type() != ExpressionType::Column) {
       reuse_columns_from_input = false;
     }
+    auto t72 = std::chrono::high_resolution_clock::now();
+    std::cout << "Rinit1: " << std::chrono::duration_cast<std::chrono::nanoseconds>(t72 - t6).count() << std::endl;
 
     const auto type = _get_type_of_expression(column_expression, input_table_left());
+    auto t7 = std::chrono::high_resolution_clock::now();
+    std::cout << "Rinit2: " << std::chrono::duration_cast<std::chrono::nanoseconds>(t7 - t72).count() << std::endl;
     if (type == DataType::Null) {
       // in case of a NULL literal, simply add a nullable int column
       column_definition.data_type = DataType::Int;
@@ -129,6 +137,8 @@ std::shared_ptr<const Table> Projection::_on_execute() {
     column_definitions.emplace_back(column_definition);
   }
 
+  //auto t2 = std::chrono::high_resolution_clock::now();
+
   const auto table_type = reuse_columns_from_input ? input_table_left()->type() : TableType::Data;
   auto output_table = std::make_shared<Table>(column_definitions, table_type, input_table_left()->max_chunk_size());
 
@@ -136,6 +146,7 @@ std::shared_ptr<const Table> Projection::_on_execute() {
    * Perform the projection
    */
   for (ChunkID chunk_id{0}; chunk_id < input_table_left()->chunk_count(); ++chunk_id) {
+    auto t3 = std::chrono::high_resolution_clock::now();
     ChunkColumns output_columns;
 
     for (uint16_t expression_index = 0u; expression_index < _column_expressions.size(); ++expression_index) {
@@ -147,13 +158,35 @@ std::shared_ptr<const Table> Projection::_on_execute() {
     }
 
     output_table->append_chunk(output_columns);
+    auto t4 = std::chrono::high_resolution_clock::now();
+    std::cout << "R2," << chunk_id << ": " << std::chrono::duration_cast<std::chrono::nanoseconds>(t4 - t3).count() << std::endl;
   }
+
+  auto t5 = std::chrono::high_resolution_clock::now();
+  std::cout << "RT: " << std::chrono::duration_cast<std::chrono::nanoseconds>(t5 - t1).count() << std::endl;
 
   return output_table;
 }
 
+struct ScopeTimer final {
+  ScopeTimer(const std::string& name):
+    name(name), begin(std::chrono::high_resolution_clock::now()) {
+
+  }
+
+  ~ScopeTimer() {
+    const auto end = std::chrono::high_resolution_clock::now();
+    std::cout << name << ": " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() << std::endl;
+  }
+
+  const std::string name;
+  const std::chrono::high_resolution_clock::time_point begin;
+};
+
 DataType Projection::_get_type_of_expression(const std::shared_ptr<PQPExpression>& expression,
                                              const std::shared_ptr<const Table>& table) {
+  ScopeTimer t("  get_type_of_expression");
+
   if (expression->type() == ExpressionType::Literal || expression->type() == ExpressionType::Placeholder) {
     return data_type_from_all_type_variant(expression->value());
   }
@@ -170,13 +203,10 @@ DataType Projection::_get_type_of_expression(const std::shared_ptr<PQPExpression
   if (type_left == DataType::Null) return type_right;
   if (type_right == DataType::Null) return type_left;
 
-  const auto type_string_left = data_type_to_string.left.at(type_left);
-  const auto type_string_right = data_type_to_string.left.at(type_right);
-
   // TODO(anybody): int + float = float etc...
   // This is currently not supported by `_evaluate_expression()` because it is only templated once.
   Assert(type_left == type_right, "Projection currently only supports expressions with same type on both sides (" +
-                                      type_string_left + " vs " + type_string_right + ")");
+  data_type_to_string.left.at(type_left) + " vs " + data_type_to_string.left.at(type_right) + ")");
   return type_left;
 }
 
@@ -211,7 +241,15 @@ const pmr_concurrent_vector<std::optional<T>> Projection::_evaluate_expression(
       return ref_column->template materialize_values<T>();  // Clang needs the template prefix
     }
 
-    Fail("Materializing chunk failed.");
+    pmr_concurrent_vector<std::optional<T>> materialized_values;
+    materialized_values.reserve(table->get_chunk(chunk_id)->size());
+    resolve_column_type<T>(*column, [&](auto& resolved_column) {
+      const auto iterable = create_iterable_from_column<T>(resolved_column);
+      iterable.for_each([&](const auto& value) {
+        materialized_values.emplace_back(value.value());
+      });
+    });
+    return materialized_values;
   }
 
   /**

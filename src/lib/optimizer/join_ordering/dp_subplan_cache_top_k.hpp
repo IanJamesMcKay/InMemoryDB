@@ -13,6 +13,8 @@ class AbstractJoinPlanNode;
 
 class DpSubplanCacheTopK : public AbstractDpSubplanCache {
  public:
+  static constexpr auto NO_ENTRY_LIMIT = std::numeric_limits<size_t>::max();
+
   struct JoinPlanCostCompare {
     bool operator()(const std::shared_ptr<const AbstractJoinPlanNode> &lhs, const std::shared_ptr<const AbstractJoinPlanNode>& rhs) const;
   };

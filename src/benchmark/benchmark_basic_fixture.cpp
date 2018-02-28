@@ -16,6 +16,7 @@ void BenchmarkBasicFixture::SetUp(::benchmark::State& state) {
   // Generating a test table with generate_table function from table_generator.cpp
   _chunk_size = static_cast<ChunkID>(state.range(0));
 
+  std::cout << "Generating tables..." << std::endl;
   auto table_generator = std::make_shared<TableGenerator>();
 
   auto table_generator2 = std::make_shared<TableGenerator>();
@@ -30,6 +31,7 @@ void BenchmarkBasicFixture::SetUp(::benchmark::State& state) {
   _table_wrapper_b->execute();
   _table_dict_wrapper->execute();
   _table_deprecated_dict_wrapper->execute();
+  std::cout << "Done!" << std::endl;
 }
 
 void BenchmarkBasicFixture::TearDown(::benchmark::State&) { opossum::StorageManager::get().reset(); }

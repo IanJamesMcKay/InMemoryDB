@@ -28,54 +28,14 @@ using namespace opossum;  // NOLINT
 int main() {
   opossum::TpchDbGenerator(0.001f, 10'000).generate_and_store();
 
-  const char* const query =
-    R"(SELECT
-          supp_nation,
-          cust_nation,
-          l_year,
-          SUM(volume) as revenue
-      FROM
-          (SELECT
-              n1.n_name as supp_nation,
-              n2.n_name as cust_nation,
-              l_shipdate as l_year,
-              l_extendedprice * (1.0 - l_discount) as volume
-          FROM
-              supplier,
-              lineitem,
-              orders,
-              customer,
-              nation n1,
-              nation n2
-          WHERE
-              s_suppkey = l_suppkey AND
-              o_orderkey = l_orderkey AND
-              c_custkey = o_custkey AND
-              s_nationkey = n1.n_nationkey AND
-              c_nationkey = n2.n_nationkey AND
-              ((n1.n_name = 'IRAN' AND n2.n_name = 'IRAQ') OR
-               (n1.n_name = 'IRAQ' AND n2.n_name = 'IRAN')) AND
-              l_shipdate BETWEEN '1995-01-01' AND '1996-12-31'
-          ) as shipping
-      GROUP BY
-          supp_nation, cust_nation, l_year
-      ORDER BY
-          supp_nation, cust_nation, l_year;)";
-
-  SQLPipeline sql_pipeline{query, UseMvcc::No};
+  SQLPipeline sql_pipeline{tpch_queries[4], UseMvcc::No};
 
   const auto unoptimized_lqps = sql_pipeline.get_unoptimized_logical_plans();
   const auto unoptimized_lqp = LogicalPlanRootNode::make(unoptimized_lqps.at(0));
 
-  SQLQueryPlan query_plan;
-  query_plan.add_tree_by_root(pqp);
-  CurrentScheduler::schedule_and_wait_for_tasks(query_plan.create_tasks());
-
-  pqp->print();
-
   const auto join_graph = JoinGraphBuilder{}(unoptimized_lqp);
 
-  DpCcpTopK dp_ccp_top_k{join_graph, 20};
+  DpCcpTopK dp_ccp_top_k{join_graph, DpSubplanCacheTopK::NO_ENTRY_LIMIT};
   dp_ccp_top_k();
 
   boost::dynamic_bitset<> vertex_set(join_graph->vertices.size());
@@ -85,8 +45,10 @@ int main() {
 
   auto min_time = std::numeric_limits<long>::max();
 
+  std::cout << join_plans.size() << " plans generated" << std::endl;
+
   for (const auto& join_plan : join_plans) {
-    std::cout << "Executing plan; Cost: " << join_plan->plan_cost() << std::endl;
+//    std::cout << "Executing plan; Cost: " << join_plan->plan_cost() << std::endl;
 
     auto lqp = join_plan->to_lqp();
     for (const auto& parent_relation : join_graph->parent_relations) {
@@ -108,15 +70,24 @@ int main() {
     if (microseconds < min_time) {
       pqp->print();
       min_time = microseconds;
+
+      GraphvizConfig graphviz_config;
+      graphviz_config.format = "svg";
+
+      VizGraphInfo graph_info;
+      graph_info.bg_color = "black";
+
+      auto prefix = std::string("plan_") + std::to_string(microseconds) + "ms";
+      SQLQueryPlanVisualizer{graphviz_config, graph_info, {}, {}}.visualize(query_plan, prefix + ".dot", prefix + ".svg");
     }
 
     std::cout << "Cost: " << join_plan->plan_cost() << "; Time: " << microseconds << "; Ratio: " << (microseconds / join_plan->plan_cost()) << std::endl;
 
- //   Print::print(pqp->get_output());
+//    Print::print(pqp->get_output());
 
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
+//    std::cout << std::endl;
+//    std::cout << std::endl;
+//    std::cout << std::endl;
 
 
   }

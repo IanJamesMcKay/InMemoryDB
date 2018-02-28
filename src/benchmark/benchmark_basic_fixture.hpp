@@ -15,8 +15,7 @@ class BenchmarkBasicFixture : public benchmark::Fixture {
 
   static void ChunkSizeIn(benchmark::internal::Benchmark* b);
 
- protected:
-  void clear_cache();
+  static void clear_cache();
 
  protected:
   std::shared_ptr<TableWrapper> _table_wrapper_a;
