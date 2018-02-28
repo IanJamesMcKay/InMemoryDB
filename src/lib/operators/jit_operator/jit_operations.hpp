@@ -45,7 +45,7 @@ namespace opossum {
 #define JIT_COMPUTE_CASE(r, types)                                                                                   \
   case static_cast<uint8_t>(JIT_GET_ENUM_VALUE(0, types)) << 8 | static_cast<uint8_t>(JIT_GET_ENUM_VALUE(1, types)): \
     catching_func(context.tuple.get<JIT_GET_DATA_TYPE(0, types)>(lhs.tuple_index()),                                 \
-                  context.tuple.get<JIT_GET_DATA_TYPE(0, types)>(rhs.tuple_index()), result);                        \
+                  context.tuple.get<JIT_GET_DATA_TYPE(1, types)>(rhs.tuple_index()), result);                        \
     break;
 
 #define JIT_COMPUTE_TYPE_CASE(r, types)                                                                              \
@@ -141,7 +141,7 @@ DataType jit_compute_type(const T& op_func, const DataType lhs, const DataType r
   // The type information from the lhs and rhs are combined into a single value for dispatching without nesting.
   const auto combined_types = static_cast<uint8_t>(lhs) << 8 | static_cast<uint8_t>(rhs);
   switch (combined_types) {
-    BOOST_PP_SEQ_FOR_EACH_PRODUCT(JIT_COMPUTE_TYPE_CASE, (DATA_TYPE_INFO)(DATA_TYPE_INFO))
+    BOOST_PP_SEQ_FOR_EACH_PRODUCT(JIT_COMPUTE_TYPE_CASE, (JIT_DATA_TYPE_INFO)(JIT_DATA_TYPE_INFO))
     default:
       Fail("unreachable");
   }
