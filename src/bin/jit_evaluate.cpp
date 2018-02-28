@@ -10,10 +10,24 @@
 #include <sql/sql_pipeline.hpp>
 #include <tpch/tpch_db_generator.hpp>
 #include <resolve_type.hpp>
+#include <storage/chunk_encoder.hpp>
+#include <storage/deprecated_dictionary_column/fitted_attribute_vector.hpp>
+#include <scheduler/current_scheduler.hpp>
+
+const size_t cache_line = 64;
+
+template <typename Vector>
+void remove_vector_from_cache(Vector& vector) {
+  for (auto& value : vector) {
+    const auto address = reinterpret_cast<size_t>(&value);
+    if (address % cache_line == 0) {
+      asm volatile("clflush (%0)\n\t" : : "r"(&value) : "memory");
+    }
+  }
+  asm volatile("sfence\n\t" : : : "memory");
+};
 
 void remove_table_from_cache(opossum::Table& table) {
-  const size_t cache_line = 64;
-
   for (opossum::ChunkID chunk_id{0}; chunk_id < table.chunk_count(); ++chunk_id) {
     auto chunk = table.get_chunk(chunk_id);
     for (opossum::ColumnID column_id{0}; column_id < table.column_count(); ++column_id) {
@@ -23,21 +37,23 @@ void remove_table_from_cache(opossum::Table& table) {
         using ColumnDataType = typename decltype(type)::type;
 
         if (auto value_column = std::dynamic_pointer_cast<const opossum::ValueColumn<ColumnDataType>>(column)) {
-          for (auto& value : value_column->values()) {
-            const auto address = reinterpret_cast<size_t>(&value);
-            if (address % cache_line == 0) {
-              asm volatile("clflush (%0)\n\t" : : "r"(&value) : "memory");
-            }
-          }
+          remove_vector_from_cache(value_column->values());
           if (table.column_is_nullable(column_id)) {
-            for (auto& value : value_column->null_values()) {
-              const auto address = reinterpret_cast<size_t>(&value);
-              if (address % cache_line == 0) {
-                asm volatile("clflush (%0)\n\t" : : "r"(&value) : "memory");
-              }
-            }
+            remove_vector_from_cache(value_column->null_values());
           }
-          asm volatile("sfence\n\t" : : : "memory");
+        } else if (auto dict_column = std::dynamic_pointer_cast<const opossum::DeprecatedDictionaryColumn<ColumnDataType>>(column)) {
+          remove_vector_from_cache(*dict_column->dictionary());
+          auto base_attribute_vector = dict_column->attribute_vector();
+
+          if (auto attribute_vector = std::dynamic_pointer_cast<const opossum::FittedAttributeVector<uint8_t>>(base_attribute_vector)) {
+            remove_vector_from_cache(attribute_vector->attributes());
+          } else if (auto attribute_vector = std::dynamic_pointer_cast<const opossum::FittedAttributeVector<uint16_t>>(base_attribute_vector)) {
+            remove_vector_from_cache(attribute_vector->attributes());
+          } else if (auto attribute_vector = std::dynamic_pointer_cast<const opossum::FittedAttributeVector<uint32_t>>(base_attribute_vector)) {
+            remove_vector_from_cache(attribute_vector->attributes());
+          } else {
+            throw std::logic_error("could not flush cache, unknown attribute vector type");
+          }
         } else {
           throw std::logic_error("could not flush cache, unknown column type");
         }
@@ -47,26 +63,26 @@ void remove_table_from_cache(opossum::Table& table) {
 }
 
 void lqp() {
-  std::string query_id = opossum::JitEvaluationHelper::get().experiment().at("query_id");
-  bool optimize = opossum::JitEvaluationHelper::get().experiment().at("optimize");
-  std::string output_file = opossum::JitEvaluationHelper::get().experiment().at("output_file");
+  const std::string query_id = opossum::JitEvaluationHelper::get().experiment()["query_id"];
+  const bool optimize = opossum::JitEvaluationHelper::get().experiment()["optimize"];
+  const std::string lqp_file = opossum::JitEvaluationHelper::get().experiment()["lqp_file"];
 
-  std::string query = opossum::JitEvaluationHelper::get().queries().at(query_id).at("query");
+  const std::string query_string = opossum::JitEvaluationHelper::get().queries()[query_id]["query"];
 
-  opossum::SQLPipeline pipeline(query);
+  opossum::SQLPipeline pipeline(query_string);
   const auto plans = optimize ? pipeline.get_optimized_logical_plans() : pipeline.get_unoptimized_logical_plans();
 
   opossum::LQPVisualizer visualizer;
-  visualizer.visualize(plans, output_file + ".dot", output_file + ".png");
+  visualizer.visualize(plans, lqp_file + ".dot", lqp_file + ".png");
 }
 
 void pqp() {
-  std::string query_id = opossum::JitEvaluationHelper::get().experiment().at("query_id");
-  std::string output_file = opossum::JitEvaluationHelper::get().experiment().at("output_file");
+  const std::string query_id = opossum::JitEvaluationHelper::get().experiment()["query_id"];
+  const std::string pqp_file = opossum::JitEvaluationHelper::get().experiment()["pqp_file"];
 
-  std::string query = opossum::JitEvaluationHelper::get().queries().at(query_id).at("query");
+  const std::string query_string = opossum::JitEvaluationHelper::get().queries()[query_id]["query"];
 
-  opossum::SQLPipeline pipeline(query);
+  opossum::SQLPipeline pipeline(query_string);
   opossum::SQLQueryPlan query_plan;
   const auto plans = pipeline.get_query_plans();
   for (const auto& plan : plans) {
@@ -74,21 +90,29 @@ void pqp() {
   }
 
   opossum::SQLQueryPlanVisualizer visualizer;
-  visualizer.visualize(query_plan, output_file + ".dot", output_file + ".png");
+  visualizer.visualize(query_plan, pqp_file + ".dot", pqp_file + ".png");
 }
 
 void run() {
-  std::string query_id = opossum::JitEvaluationHelper::get().experiment().at("query_id");
-  std::string query = opossum::JitEvaluationHelper::get().queries().at(query_id).at("query");
+  const std::string query_id = opossum::JitEvaluationHelper::get().experiment()["query_id"];
+  const auto query = opossum::JitEvaluationHelper::get().queries()[query_id];
+  std::string query_string = query["query"];
 
-  const auto table_names = opossum::JitEvaluationHelper::get().queries().at(query_id).at("tables");
+  const auto table_names = query["tables"];
   for (const auto& table_name : table_names) {
     auto table = opossum::StorageManager::get().get_table(table_name.get<std::string>());
     remove_table_from_cache(*table);
   }
 
-  opossum::SQLPipeline pipeline(query);
+  // Make sure all table statistics are generated and ready.
+  opossum::SQLPipeline(query_string).get_optimized_logical_plans();
+
+  opossum::SQLPipeline pipeline(query_string);
   const auto table = pipeline.get_result_table();
+  auto& result = opossum::JitEvaluationHelper::get().result();
+  result["result_rows"] = table->row_count();
+  result["pipeline_compile_time"] = pipeline.compile_time_microseconds().count();
+  result["pipeline_execution_time"] = pipeline.execution_time_microseconds().count();
 }
 
 int main(int argc, char* argv[]) {
@@ -99,35 +123,61 @@ int main(int argc, char* argv[]) {
 
   nlohmann::json config;
   std::cin >> config;
-  opossum::JitEvaluationHelper::get().queries() = config.at("queries");
+  opossum::JitEvaluationHelper::get().queries() = config["queries"];
+  opossum::JitEvaluationHelper::get().globals() = config["globals"];
 
-  if (config.count("tpch_scale_factor")) {
-    double scale_factor = config.at("tpch_scale_factor").get<double>();
+  if (!config["globals"]["tpch_scale_factor"].is_null()) {
+    double scale_factor = config["globals"]["tpch_scale_factor"];
     std::cerr << "Generating TPCH tables with scale factor " << scale_factor << std::endl;
     opossum::TpchDbGenerator generator(scale_factor);
     generator.generate_and_store();
   }
 
-  if (config.count("jit_scale_factor")) {
-    double scale_factor = config.at("jit_scale_factor").get<double>();
+  if (!config["globals"]["jit_scale_factor"].is_null()) {
+    double scale_factor = config["globals"]["jit_scale_factor"];
     std::cerr << "Generating JIT tables with scale factor " << scale_factor << std::endl;
     opossum::JitTableGenerator generator(scale_factor);
     generator.generate_and_store();
   }
 
-  std::cerr << "Initializing JIT repository" << std::endl;
-  opossum::JitRepository::get();
-
-  for (const auto& experiment : config.at("experiments")) {
-    opossum::JitEvaluationHelper::get().experiment() = experiment;
-    if (experiment.at("task") == "lqp") {
-      lqp();
-    } else if (experiment.at("task") == "pqp") {
-      pqp();
-    } else if (experiment.at("task") == "run") {
-      run();
+  if (config["globals"]["dictionary_compress"]) {
+    std::cerr << "Dictionary encoding tables" << std::endl;
+    for (const auto& table_name : opossum::StorageManager::get().table_names()) {
+      auto table = opossum::StorageManager::get().get_table(table_name);
+      opossum::ChunkEncoder::encode_all_chunks(table);
     }
   }
 
-  std::cerr << "Bye" << std::endl;
+  std::cerr << "Initializing JIT repository" << std::endl;
+  opossum::JitRepository::get();
+
+  auto current_experiment = 0;
+  const auto num_experiments = config["experiments"].size();
+  for (const auto& experiment : config["experiments"]) {
+    current_experiment++;
+    opossum::JitEvaluationHelper::get().experiment() = experiment;
+    nlohmann::json output{{"experiment", experiment}, {"results", nlohmann::json::array()}};
+
+    const uint32_t num_repetitions = experiment.count("repetitions") ? experiment["repetitions"].get<uint32_t>() : 1;
+    auto current_repetition = 0;
+    for (uint32_t i = 0; i < num_repetitions; ++i) {
+      current_repetition++;
+      std::cerr << "Running experiment " << current_experiment << "/" << num_experiments << " repetition " << current_repetition << "/" << num_repetitions << std::endl;
+
+      opossum::JitEvaluationHelper::get().result() = nlohmann::json::object();
+      if (experiment["task"] == "lqp") {
+        lqp();
+      } else if (experiment["task"] == "pqp") {
+        pqp();
+      } else if (experiment["task"] == "run") {
+        run();
+      } else {
+        throw std::logic_error("unknown task");
+      }
+      output["results"].push_back(opossum::JitEvaluationHelper::get().result());
+    }
+    std::cout << output << std::endl;
+  }
+
+  std::cerr << "Done" << std::endl;
 }
