@@ -164,6 +164,9 @@ std::shared_ptr<const JitExpression> JitAwareLQPTranslator::_translate_to_jit_ex
   auto condition = predicate_condition_to_expression_type.at(node->predicate_condition());
   auto left = _translate_to_jit_expression(node->column_reference(), jit_source, input_node);
   std::shared_ptr<const JitExpression> right;
+  std::shared_ptr<const JitExpression> between_value2;
+  std::shared_ptr<const JitExpression> between_greater_than_equals;
+  std::shared_ptr<const JitExpression> between_less_than_equals;
 
   switch (condition) {
     /* Binary predicates */
@@ -181,6 +184,13 @@ std::shared_ptr<const JitExpression> JitAwareLQPTranslator::_translate_to_jit_ex
     case ExpressionType::IsNull:
     case ExpressionType::IsNotNull:
       return std::make_shared<JitExpression>(left, condition, jit_source.add_temorary_value());
+    /* Between */
+    case ExpressionType::Between:
+      right = _translate_to_jit_expression(node->value(), jit_source, input_node);
+      between_value2 = _translate_to_jit_expression(node->value2().value(), jit_source, input_node);
+      between_greater_than_equals = std::make_shared<JitExpression>(left, ExpressionType::GreaterThanEquals, right, jit_source.add_temorary_value());
+      between_less_than_equals = std::make_shared<JitExpression>(left, ExpressionType::LessThanEquals, between_value2, jit_source.add_temorary_value());
+      return std::make_shared<JitExpression>(between_greater_than_equals, ExpressionType::And, between_less_than_equals, jit_source.add_temorary_value());
     default:
       Fail("invalid expression type");
   }
