@@ -47,6 +47,7 @@ int main() {
 
   std::cout << join_plans.size() << " plans generated" << std::endl;
 
+  size_t plan_idx = 0;
   for (const auto& join_plan : join_plans) {
 //    std::cout << "Executing plan; Cost: " << join_plan->plan_cost() << std::endl;
 
@@ -81,31 +82,8 @@ int main() {
       SQLQueryPlanVisualizer{graphviz_config, graph_info, {}, {}}.visualize(query_plan, prefix + ".dot", prefix + ".svg");
     }
 
-    std::cout << "Cost: " << join_plan->plan_cost() << "; Time: " << microseconds << "; Ratio: " << (microseconds / join_plan->plan_cost()) << std::endl;
-
-//    Print::print(pqp->get_output());
-
-//    std::cout << std::endl;
-//    std::cout << std::endl;
-//    std::cout << std::endl;
-
+    std::cout << (++plan_idx) << " - Cost: " << join_plan->plan_cost() << "; Time: " << microseconds << "; Ratio: " << (microseconds / join_plan->plan_cost()) << std::endl;
 
   }
-
-
-//  for (size_t supported_tpch_query_idx{0}; supported_tpch_query_idx < NUM_SUPPORTED_TPCH_QUERIES; ++supported_tpch_query_idx) {
-//    const auto tpch_query_idx = tpch_supported_queries[supported_tpch_query_idx];
-//    const auto sql = tpch_queries[tpch_query_idx];
-//
-//    GraphvizConfig graphviz_config;
-//    graphviz_config.format = "svg";
-//
-//    VizGraphInfo graph_info;
-//    graph_info.bg_color = "black";
-//
-//    SQLPipeline pipeline{sql, false};
-//    create_sql_pipeline_report(pipeline, "TPCH-" + std::to_string(tpch_query_idx + 1), graphviz_config, graph_info);
-//  }
-
   return 0;
 }

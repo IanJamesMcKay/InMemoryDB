@@ -15,9 +15,18 @@ JoinPlanJoinNode::JoinPlanJoinNode(const std::shared_ptr<const AbstractJoinPlanN
    * sub plan
    */
   const auto iter = std::find_if(_secondary_predicates.begin(), _secondary_predicates.end(), [&](const auto& predicate) {
-    if (predicate->type() == JoinPlanPredicateType::LogicalOperator) return false;
+    if (predicate->type() != JoinPlanPredicateType::Atomic) return false;
     const auto atomic_predicate = std::static_pointer_cast<const JoinPlanAtomicPredicate>(predicate);
-    return is_lqp_column_reference(atomic_predicate->right_operand) && _right_child->find_column_id(boost::get<LQPColumnReference>(atomic_predicate->right_operand));
+    if (!is_lqp_column_reference(atomic_predicate->right_operand)) return false;
+
+    const auto right_operand_column_reference = boost::get<LQPColumnReference>(atomic_predicate->right_operand);
+
+    const auto left_operand_in_left_child = _left_child->find_column_id(atomic_predicate->left_operand);
+    const auto left_operand_in_right_child = _right_child->find_column_id(atomic_predicate->left_operand);
+    const auto right_operand_in_left_child = _left_child->find_column_id(right_operand_column_reference);
+    const auto right_operand_in_right_child = _right_child->find_column_id(right_operand_column_reference);
+
+    return (left_operand_in_left_child && right_operand_in_right_child) || (left_operand_in_right_child && right_operand_in_left_child);
   });
 
   if (iter != _secondary_predicates.end()) {
