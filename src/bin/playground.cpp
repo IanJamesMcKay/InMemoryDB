@@ -51,11 +51,11 @@ int main() {
 //    std::cout << "Executing plan; Cost: " << join_plan->plan_cost() << std::endl;
 
     auto lqp = join_plan->to_lqp();
-    for (const auto& parent_relation : join_graph->parent_relations) {
-      parent_relation.parent->set_child(parent_relation.child_side, lqp);
+    for (const auto& output_relation : join_graph->output_relations) {
+      output_relation.output->set_input(output_relation.input_side, lqp);
     }
 
-    auto pqp = LQPTranslator{}.translate_node(unoptimized_lqp->left_child());
+    auto pqp = LQPTranslator{}.translate_node(unoptimized_lqp->left_input());
 
 
 

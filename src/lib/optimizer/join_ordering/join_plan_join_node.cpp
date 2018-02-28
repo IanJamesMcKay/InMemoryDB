@@ -132,8 +132,8 @@ std::shared_ptr<AbstractLQPNode> JoinPlanJoinNode::to_lqp() const {
                                      predicate_condition);
   }
 
-  lqp->set_left_child(_left_child->to_lqp());
-  lqp->set_right_child(_right_child->to_lqp());
+  lqp->set_left_input(_left_child->to_lqp());
+  lqp->set_right_input(_right_child->to_lqp());
 
   /**
    * Apply all other predicates as PredicateNodes

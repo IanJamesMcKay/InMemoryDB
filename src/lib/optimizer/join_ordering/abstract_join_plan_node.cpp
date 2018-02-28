@@ -121,7 +121,7 @@ std::shared_ptr<AbstractLQPNode> AbstractJoinPlanNode::_insert_predicate(
       const auto atomic_predicate = std::static_pointer_cast<const JoinPlanAtomicPredicate>(predicate);
       const auto predicate_node = std::make_shared<PredicateNode>(
           atomic_predicate->left_operand, atomic_predicate->predicate_condition, atomic_predicate->right_operand);
-      predicate_node->set_left_child(lqp);
+      predicate_node->set_left_input(lqp);
       return predicate_node;
     }
     case JoinPlanPredicateType::LogicalOperator: {
@@ -138,8 +138,8 @@ std::shared_ptr<AbstractLQPNode> AbstractJoinPlanNode::_insert_predicate(
           const auto post_right_predicate = _insert_predicate(lqp, logical_operator_predicate->right_operand);
 
           const auto union_node = std::make_shared<UnionNode>(UnionMode::Positions);
-          union_node->set_left_child(post_left_predicate);
-          union_node->set_right_child(post_right_predicate);
+          union_node->set_left_input(post_left_predicate);
+          union_node->set_right_input(post_right_predicate);
 
           return union_node;
         }

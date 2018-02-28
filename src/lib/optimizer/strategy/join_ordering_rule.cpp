@@ -12,24 +12,24 @@ std::string JoinOrderingRule::name() const {
 
 bool JoinOrderingRule::apply_to(const std::shared_ptr<AbstractLQPNode>& root) {
   if (!_applicable(root)) {
-    return _apply_to_children(root);
+    return _apply_to_inputs(root);
   }
 
   const auto join_graph = JoinGraphBuilder{}(root);  // NOLINT
 
   for (const auto& vertex : join_graph->vertices) {
-    vertex->clear_parents();
+    vertex->clear_outputs();
   }
 
   const auto join_plan = DpCcp{join_graph}();
   const auto lqp = join_plan->to_lqp();
 
-  for (const auto& parent_relation : join_graph->parent_relations) {
-    parent_relation.parent->set_child(parent_relation.child_side, lqp);
+  for (const auto& parent_relation : join_graph->output_relations) {
+    parent_relation.output->set_input(parent_relation.input_side, lqp);
   }
 
   for (const auto& vertex : join_graph->vertices) {
-    _apply_to_children(vertex);
+    _apply_to_inputs(vertex);
   }
 
   return false;
@@ -49,7 +49,7 @@ bool JoinOrderingRule::_applicable(const std::shared_ptr<AbstractLQPNode>& node)
     case LQPNodeType::Sort:
     case LQPNodeType::StoredTable:
     case LQPNodeType::Validate:
-      return _applicable(node->left_child()) && _applicable(node->right_child());
+      return _applicable(node->left_input()) && _applicable(node->right_input());
     default:
       return false;
   }
