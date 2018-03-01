@@ -14,6 +14,8 @@
 #include <storage/deprecated_dictionary_column/fitted_attribute_vector.hpp>
 #include <scheduler/current_scheduler.hpp>
 
+#include <papi.h>
+
 const size_t cache_line = 64;
 
 template <typename Vector>
@@ -69,7 +71,7 @@ void lqp() {
 
   const std::string query_string = opossum::JitEvaluationHelper::get().queries()[query_id]["query"];
 
-  opossum::SQLPipeline pipeline(query_string);
+  opossum::SQLPipeline pipeline(query_string, opossum::UseMvcc::No);
   const auto plans = optimize ? pipeline.get_optimized_logical_plans() : pipeline.get_unoptimized_logical_plans();
 
   opossum::LQPVisualizer visualizer;
@@ -82,7 +84,7 @@ void pqp() {
 
   const std::string query_string = opossum::JitEvaluationHelper::get().queries()[query_id]["query"];
 
-  opossum::SQLPipeline pipeline(query_string);
+  opossum::SQLPipeline pipeline(query_string, opossum::UseMvcc::No);
   opossum::SQLQueryPlan query_plan;
   const auto plans = pipeline.get_query_plans();
   for (const auto& plan : plans) {
@@ -105,10 +107,15 @@ void run() {
   }
 
   // Make sure all table statistics are generated and ready.
-  opossum::SQLPipeline(query_string).get_optimized_logical_plans();
+  opossum::SQLPipeline(query_string, opossum::UseMvcc::No).get_optimized_logical_plans();
 
-  opossum::SQLPipeline pipeline(query_string);
+  opossum::SQLPipeline pipeline(query_string, opossum::UseMvcc::No);
   const auto table = pipeline.get_result_table();
+
+  if (opossum::JitEvaluationHelper::get().experiment()["print"]) {
+    opossum::Print::print(table, 0, std::cerr);
+  }
+
   auto& result = opossum::JitEvaluationHelper::get().result();
   result["result_rows"] = table->row_count();
   result["pipeline_compile_time"] = pipeline.compile_time_microseconds().count();
@@ -150,6 +157,9 @@ int main(int argc, char* argv[]) {
 
   std::cerr << "Initializing JIT repository" << std::endl;
   opossum::JitRepository::get();
+
+  std::cerr << "Initializing PAPI" << std::endl;
+  std::cerr << "  supports " << PAPI_num_counters() << " event counters" << std::endl;
 
   auto current_experiment = 0;
   const auto num_experiments = config["experiments"].size();

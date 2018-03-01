@@ -16,7 +16,7 @@ std::string JitWriteTuple::description() const {
   return desc.str();
 }
 
-void JitWriteTuple::before_query(Table& out_table, JitRuntimeContext& context) {
+void JitWriteTuple::before_query(Table& out_table, JitRuntimeContext& context) const {
   for (const auto& output_column : _output_columns) {
     // Add a column definition for each output column
     const auto data_type = output_column.tuple_value.data_type();

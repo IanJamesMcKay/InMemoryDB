@@ -19,7 +19,9 @@ class JitAbstractSink : public JitAbstractOperator {
   virtual ~JitAbstractSink() = default;
 
   // Is called
-  virtual void before_query(Table& out_table, JitRuntimeContext& context) {}
+  virtual void before_query(Table& out_table, JitRuntimeContext& context) const {}
+  virtual void after_query(Table& out_table, JitRuntimeContext& context) const {}
+
   virtual void after_chunk(Table& out_table, JitRuntimeContext& context) const {}
 };
 

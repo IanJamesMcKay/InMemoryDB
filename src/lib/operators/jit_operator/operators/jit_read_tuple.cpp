@@ -18,7 +18,7 @@ std::string JitReadTuple::description() const {
   return desc.str();
 }
 
-void JitReadTuple::before_query(const Table& in_table, JitRuntimeContext& context) {
+void JitReadTuple::before_query(const Table& in_table, JitRuntimeContext& context) const {
   // Create a runtime tuple of the appropriate size
   context.tuple.resize(_num_tuple_values);
 

@@ -21,9 +21,12 @@ std::string JitAggregate::description() const {
   return desc.str();
 }
 
-void JitAggregate::before_query(Table& out_table, JitRuntimeContext& ctx) {
-  ctx.out_chunk = std::make_shared<Chunk>();
-  ctx.hashmap.values.resize(_num_hashmap_values);
+void JitAggregate::before_query(Table& out_table, JitRuntimeContext& context) const {
+  context.hashmap.values.resize(_num_hashmap_values);
+}
+
+void JitAggregate::after_query(Table& out_table, JitRuntimeContext& context) const {
+  const auto out_chunk = std::make_shared<Chunk>();
 
   for (const auto& groupby_column : _groupby_columns) {
     const auto data_type = groupby_column.tuple_value.data_type();
@@ -33,7 +36,7 @@ void JitAggregate::before_query(Table& out_table, JitRuntimeContext& ctx) {
     resolve_data_type(data_type, [&](auto type) {
       using ColumnDataType = typename decltype(type)::type;
       auto column = std::make_shared<ValueColumn<ColumnDataType>>(is_nullable);
-      ctx.out_chunk->add_column(column);
+      out_chunk->add_column(column);
     });
   }
 
@@ -45,38 +48,20 @@ void JitAggregate::before_query(Table& out_table, JitRuntimeContext& ctx) {
     resolve_data_type(data_type, [&](auto type) {
       using ColumnDataType = typename decltype(type)::type;
       auto column = std::make_shared<ValueColumn<ColumnDataType>>(is_nullable);
-      ctx.out_chunk->add_column(column);
+      out_chunk->add_column(column);
     });
   }
 
-  out_table.emplace_chunk(ctx.out_chunk);
-
-  /*    const auto data_type = jit_data_type_to_data_type.at(output_column.second.data_type());
-
-    out_table.add_column_definition(output_column.first, data_type, is_nullable);
-
-    resolve_data_type(data_type, [&](auto type) {
-      using ColumnDataType = typename decltype(type)::type;
-      if (is_nullable) {
-        _column_writers.push_back(std::make_shared<JitColumnWriter<ValueColumn<ColumnDataType>, ColumnDataType, true>>(
-                _column_writers.size(), output_column.second));
-      } else {
-        _column_writers.push_back(std::make_shared<JitColumnWriter<ValueColumn<ColumnDataType>, ColumnDataType, false>>(
-                _column_writers.size(), output_column.second));
-      }
-    });
-  }*/
-
-  // _create_output_chunk(ctx);
+  out_table.emplace_chunk(out_chunk);
 }
 
 void JitAggregate::add_aggregate_column(const std::string& column_name, const JitTupleValue& value,
                                         const AggregateFunction function) {
-  //_aggregate_columns.push_back(JitAggregateColumn{column_name, value, JitHashmapValue(value, _num_hashmap_values++), function});
+  _aggregate_columns.push_back(JitAggregateColumn{column_name, value, JitHashmapValue(value, _num_hashmap_values++), function});
 }
 
 void JitAggregate::add_groupby_column(const std::string& column_name, const JitTupleValue& value) {
-  //_groupby_columns.push_back(JitGroupByColumn{column_name, value, JitHashmapValue(value, _num_hashmap_values++)});
+  _groupby_columns.push_back(JitGroupByColumn{column_name, value, JitHashmapValue(value, _num_hashmap_values++)});
 }
 
 void JitAggregate::_consume(JitRuntimeContext& ctx) const {}

@@ -50,13 +50,6 @@ std::shared_ptr<const Table> JitOperator::_on_execute() {
   DebugAssert(_source(), "JitOperator does not have a valid source node.");
   DebugAssert(_sink(), "JitOperator does not have a valid sink node.");
 
-  const auto& in_table = *input_left()->get_output();
-  auto out_table = std::make_shared<opossum::Table>(in_table.max_chunk_size());
-
-  JitRuntimeContext context;
-  _source()->before_query(in_table, context);
-  _sink()->before_query(*out_table, context);
-
   JitModule module(JIT_ABSTRACT_SOURCE_EXECUTE_MANGLED_NAME);
   std::function<void(const JitReadTuple*, JitRuntimeContext&)> execute_func;
 
@@ -66,19 +59,26 @@ std::shared_ptr<const Table> JitOperator::_on_execute() {
     auto start = std::chrono::high_resolution_clock::now();
     module.specialize_slow(std::make_shared<JitConstantRuntimePointer>(_source().get()));
     auto runtime = std::round(
-        std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
+            std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
     execute_func = module.compile<void(const JitReadTuple*, JitRuntimeContext&)>();
     std::cerr << "slow jitting took " << runtime / 1000.0 << "ms" << std::endl;
   } else if (JitEvaluationHelper::get().experiment().at("jit_engine") == "fast") {
     auto start = std::chrono::high_resolution_clock::now();
     module.specialize_fast(std::make_shared<JitConstantRuntimePointer>(_source().get()));
     auto runtime = std::round(
-        std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
+            std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
     execute_func = module.compile<void(const JitReadTuple*, JitRuntimeContext&)>();
     std::cerr << "fast jitting took " << runtime / 1000.0 << "ms" << std::endl;
   } else {
     Fail("unknown jet engine");
   }
+
+  const auto& in_table = *input_left()->get_output();
+  auto out_table = std::make_shared<opossum::Table>(in_table.max_chunk_size());
+
+  JitRuntimeContext context;
+  _source()->before_query(in_table, context);
+  _sink()->before_query(*out_table, context);
 
   auto start = std::chrono::high_resolution_clock::now();
   for (opossum::ChunkID chunk_id{0}; chunk_id < in_table.chunk_count(); ++chunk_id) {
@@ -91,6 +91,9 @@ std::shared_ptr<const Table> JitOperator::_on_execute() {
     execute_func(_source().get(), context);
     _sink()->after_chunk(*out_table, context);
   }
+
+  _sink()->after_query(*out_table, context);
+
   auto runtime =
       std::round(std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
   std::cerr << "running took " << runtime / 1000.0 << "ms" << std::endl;

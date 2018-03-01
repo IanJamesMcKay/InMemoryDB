@@ -75,6 +75,8 @@ class AbstractOperator : public std::enable_shared_from_this<AbstractOperator>, 
 
   struct PerformanceData {
     uint64_t walltime_ns = 0;  // time spent in nanoseconds executing this operator
+    uint64_t papi_instructions;
+    uint64_t papi_branches;
   };
   const AbstractOperator::PerformanceData& performance_data() const;
 

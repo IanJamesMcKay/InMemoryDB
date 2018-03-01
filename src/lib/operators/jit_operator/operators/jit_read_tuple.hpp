@@ -84,7 +84,7 @@ class JitReadTuple : public JitAbstractOperator {
  public:
   std::string description() const final;
 
-  void before_query(const Table& in_table, JitRuntimeContext& context);
+  void before_query(const Table& in_table, JitRuntimeContext& context) const;
   void before_chunk(const Table& in_table, const Chunk& in_chunk, JitRuntimeContext& context) const;
 
   JitTupleValue add_input_column(const DataType data_type, const bool is_nullable, const ColumnID column_id);

@@ -60,7 +60,7 @@ class JitWriteTuple : public JitAbstractSink {
  public:
   std::string description() const final;
 
-  void before_query(Table& out_table, JitRuntimeContext& context) final;
+  void before_query(Table& out_table, JitRuntimeContext& context) const final;
   void after_chunk(Table& out_table, JitRuntimeContext& context) const final;
 
   void add_output_column(const std::string& column_name, const JitTupleValue& tuple_value);

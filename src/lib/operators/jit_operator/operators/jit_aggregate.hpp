@@ -21,8 +21,8 @@ class JitAggregate : public JitAbstractSink {
  public:
   std::string description() const final;
 
-  void before_query(Table& out_table, JitRuntimeContext& ctx) final;
-  //  void after_query(Table& out_table, JitRuntimeContext& ctx) final;
+  void before_query(Table& out_table, JitRuntimeContext& context) const final;
+  void after_query(Table& out_table, JitRuntimeContext& context) const final;
 
   void add_aggregate_column(const std::string& column_name, const JitTupleValue& tuple_value,
                             const AggregateFunction function);
