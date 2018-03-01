@@ -112,7 +112,8 @@ void run() {
   opossum::SQLPipeline pipeline(query_string, opossum::UseMvcc::No);
   const auto table = pipeline.get_result_table();
 
-  if (opossum::JitEvaluationHelper::get().experiment()["print"]) {
+  auto& experiment = opossum::JitEvaluationHelper::get().experiment();
+  if (experiment.count("print") && experiment["print"]) {
     opossum::Print::print(table, 0, std::cerr);
   }
 
@@ -125,23 +126,27 @@ void run() {
 int main(int argc, char* argv[]) {
   std::cerr << "Starting the JIT benchmarking suite" << std::endl;
 
-  freopen("input.json", "r", stdin);
-  freopen("output.json", "w", stdout);
+  if (argc <= 1) {
+    freopen("input.json", "r", stdin);
+    freopen("output.json", "w", stdout);
+  }
 
   nlohmann::json config;
   std::cin >> config;
   opossum::JitEvaluationHelper::get().queries() = config["queries"];
   opossum::JitEvaluationHelper::get().globals() = config["globals"];
 
-  if (!config["globals"]["tpch_scale_factor"].is_null()) {
-    double scale_factor = config["globals"]["tpch_scale_factor"];
+  const auto additional_scale_factor = argc > 1 ? std::stod(argv[1]) : 1.0;
+  double scale_factor = config["globals"]["scale_factor"].get<double>() * additional_scale_factor;
+  config["globals"]["scale_factor"] = scale_factor;
+
+  if (config["globals"]["use_tpch_tables"]) {
     std::cerr << "Generating TPCH tables with scale factor " << scale_factor << std::endl;
     opossum::TpchDbGenerator generator(scale_factor);
     generator.generate_and_store();
   }
 
-  if (!config["globals"]["jit_scale_factor"].is_null()) {
-    double scale_factor = config["globals"]["jit_scale_factor"];
+  if (config["globals"]["use_other_tables"]) {
     std::cerr << "Generating JIT tables with scale factor " << scale_factor << std::endl;
     opossum::JitTableGenerator generator(scale_factor);
     generator.generate_and_store();
@@ -166,7 +171,7 @@ int main(int argc, char* argv[]) {
   for (const auto& experiment : config["experiments"]) {
     current_experiment++;
     opossum::JitEvaluationHelper::get().experiment() = experiment;
-    nlohmann::json output{{"experiment", experiment}, {"results", nlohmann::json::array()}};
+    nlohmann::json output{{"globals", config["globals"]}, {"experiment", experiment}, {"results", nlohmann::json::array()}};
 
     const uint32_t num_repetitions = experiment.count("repetitions") ? experiment["repetitions"].get<uint32_t>() : 1;
     auto current_repetition = 0;

@@ -7,6 +7,7 @@
 
 #include "abstract_read_only_operator.hpp"
 #include "concurrency/transaction_context.hpp"
+#include "jit_evaluation_helper.hpp"
 #include "storage/table.hpp"
 #include "utils/assert.hpp"
 #include "utils/print_directed_acyclic_graph.hpp"
@@ -18,8 +19,16 @@ AbstractOperator::AbstractOperator(const std::shared_ptr<const AbstractOperator>
     : _input_left(left), _input_right(right) {}
 
 void AbstractOperator::execute() {
-  auto start = std::chrono::high_resolution_clock::now();
+  auto& result = JitEvaluationHelper::get().result();
 
+  auto start_prepare = std::chrono::high_resolution_clock::now();
+  _prepare();
+  auto end_prepare = std::chrono::high_resolution_clock::now();
+
+  auto walltime_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(end_prepare - start_prepare).count();
+  result["operators"].push_back({{"name", name()}, {"prepare", true}, {"walltime", walltime_ns / 1000.0}});
+
+  auto start = std::chrono::high_resolution_clock::now();
   auto transaction_context = this->transaction_context();
 
   if (transaction_context) {
@@ -42,7 +51,9 @@ void AbstractOperator::execute() {
   _on_cleanup();
 
   auto end = std::chrono::high_resolution_clock::now();
+
   _performance_data.walltime_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+  result["operators"].push_back({{"name", name()}, {"prepare", false}, {"walltime", _performance_data.walltime_ns / 1000.0}});
 }
 
 // returns the result of the operator

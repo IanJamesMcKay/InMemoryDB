@@ -5,6 +5,7 @@
 #include "abstract_read_only_operator.hpp"
 #include "jit_operator/operators/jit_abstract_sink.hpp"
 #include "jit_operator/operators/jit_read_tuple.hpp"
+#include "jit_operator/specialization/jit_module.hpp"
 
 namespace opossum {
 
@@ -24,10 +25,13 @@ class JitOperator : public AbstractReadOnlyOperator {
   const std::string description(DescriptionMode description_mode) const final;
   std::shared_ptr<AbstractOperator> recreate(const std::vector<AllParameterVariant>& args) const final;
 
+  void compile_query();
+
   void add_jit_operator(const std::shared_ptr<JitAbstractOperator>& op);
 
  protected:
   std::shared_ptr<const Table> _on_execute() override;
+  void _prepare() override;
 
  private:
   const std::shared_ptr<JitReadTuple> _source() const;
@@ -35,6 +39,8 @@ class JitOperator : public AbstractReadOnlyOperator {
 
   const bool _use_jit;
   std::vector<std::shared_ptr<JitAbstractOperator>> _operators;
+  std::function<void(const JitReadTuple*, JitRuntimeContext&)> _execute_func;
+  JitModule _module;
 };
 
 }  // namespace opossum

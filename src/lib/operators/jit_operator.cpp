@@ -1,19 +1,12 @@
 #include "jit_operator.hpp"
 
 #include "jit_evaluation_helper.hpp"
-#include "jit_operator/specialization/jit_module.hpp"
 
 namespace opossum {
 
-#ifdef __APPLE__
-#define JIT_ABSTRACT_SOURCE_EXECUTE_MANGLED_NAME "_ZNK7opossum12JitReadTuple7executeERNS_17JitRuntimeContextE"
-#else
-#define JIT_ABSTRACT_SOURCE_EXECUTE_MANGLED_NAME "_ZNK7opossum12JitReadTuple7executeERNS_17JitRuntimeContextE"
-#endif
-
 JitOperator::JitOperator(const std::shared_ptr<const AbstractOperator> left, const bool use_jit,
                          const std::vector<std::shared_ptr<JitAbstractOperator>>& operators)
-    : AbstractReadOnlyOperator{left}, _use_jit{use_jit}, _operators{operators} {}
+    : AbstractReadOnlyOperator{left}, _use_jit{use_jit}, _operators{operators}, _module{"_ZNK7opossum12JitReadTuple7executeERNS_17JitRuntimeContextE"} {}
 
 const std::string JitOperator::name() const { return "JitOperator"; }
 
@@ -41,7 +34,7 @@ const std::shared_ptr<JitAbstractSink> JitOperator::_sink() const {
   return std::dynamic_pointer_cast<JitAbstractSink>(_operators.back());
 }
 
-std::shared_ptr<const Table> JitOperator::_on_execute() {
+void JitOperator::_prepare() {
   // Connect operators to a chain
   for (auto it = _operators.begin(); it != _operators.end() && it + 1 != _operators.end(); ++it) {
     (*it)->set_next_operator(*(it + 1));
@@ -50,29 +43,28 @@ std::shared_ptr<const Table> JitOperator::_on_execute() {
   DebugAssert(_source(), "JitOperator does not have a valid source node.");
   DebugAssert(_sink(), "JitOperator does not have a valid sink node.");
 
-  JitModule module(JIT_ABSTRACT_SOURCE_EXECUTE_MANGLED_NAME);
-  std::function<void(const JitReadTuple*, JitRuntimeContext&)> execute_func;
-
   if (JitEvaluationHelper::get().experiment().at("jit_engine") == "none") {
-    execute_func = &JitReadTuple::execute;
+    _execute_func = &JitReadTuple::execute;
   } else if (JitEvaluationHelper::get().experiment().at("jit_engine") == "slow") {
     auto start = std::chrono::high_resolution_clock::now();
-    module.specialize_slow(std::make_shared<JitConstantRuntimePointer>(_source().get()));
+    _module.specialize_slow(std::make_shared<JitConstantRuntimePointer>(_source().get()));
     auto runtime = std::round(
             std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
-    execute_func = module.compile<void(const JitReadTuple*, JitRuntimeContext&)>();
+    _execute_func = _module.compile<void(const JitReadTuple*, JitRuntimeContext&)>();
     std::cerr << "slow jitting took " << runtime / 1000.0 << "ms" << std::endl;
   } else if (JitEvaluationHelper::get().experiment().at("jit_engine") == "fast") {
     auto start = std::chrono::high_resolution_clock::now();
-    module.specialize_fast(std::make_shared<JitConstantRuntimePointer>(_source().get()));
+    _module.specialize_fast(std::make_shared<JitConstantRuntimePointer>(_source().get()));
     auto runtime = std::round(
             std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
-    execute_func = module.compile<void(const JitReadTuple*, JitRuntimeContext&)>();
+    _execute_func = _module.compile<void(const JitReadTuple*, JitRuntimeContext&)>();
     std::cerr << "fast jitting took " << runtime / 1000.0 << "ms" << std::endl;
   } else {
     Fail("unknown jet engine");
   }
+}
 
+std::shared_ptr<const Table> JitOperator::_on_execute() {
   const auto& in_table = *input_left()->get_output();
   auto out_table = std::make_shared<opossum::Table>(in_table.max_chunk_size());
 
@@ -88,7 +80,7 @@ std::shared_ptr<const Table> JitOperator::_on_execute() {
     context.chunk_offset = 0;
 
     _source()->before_chunk(in_table, in_chunk, context);
-    execute_func(_source().get(), context);
+    _execute_func(_source().get(), context);
     _sink()->after_chunk(*out_table, context);
   }
 
