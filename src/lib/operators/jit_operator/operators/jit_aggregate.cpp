@@ -29,8 +29,8 @@ void JitAggregate::after_query(Table &out_table, JitRuntimeContext &context) con
   const auto out_chunk = std::make_shared<Chunk>();
 
   for (const auto &groupby_column : _groupby_columns) {
-    const auto data_type = groupby_column.tuple_value.data_type();
-    const auto is_nullable = groupby_column.tuple_value.is_nullable();
+    const auto data_type = groupby_column.hashmap_value.data_type();
+    const auto is_nullable = groupby_column.hashmap_value.is_nullable();
     out_table.add_column_definition(groupby_column.column_name, data_type, is_nullable);
 
     resolve_data_type(data_type, [&](auto type) {
@@ -42,8 +42,8 @@ void JitAggregate::after_query(Table &out_table, JitRuntimeContext &context) con
   }
 
   for (const auto &aggregate_column : _aggregate_columns) {
-    const auto data_type = aggregate_column.tuple_value.data_type();
-    const auto is_nullable = aggregate_column.tuple_value.is_nullable();
+    const auto data_type = aggregate_column.hashmap_value.data_type();
+    const auto is_nullable = aggregate_column.hashmap_value.is_nullable();
     out_table.add_column_definition(aggregate_column.column_name, data_type, is_nullable);
 
     resolve_data_type(data_type, [&](auto type) {
