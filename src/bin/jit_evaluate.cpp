@@ -14,7 +14,7 @@
 #include <storage/deprecated_dictionary_column/fitted_attribute_vector.hpp>
 #include <scheduler/current_scheduler.hpp>
 
-#include "papi.h"
+#include <papi.h>
 
 const size_t cache_line = 64;
 
