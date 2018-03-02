@@ -225,12 +225,12 @@ const std::shared_ptr<const Table>& SQLPipeline::get_result_table() {
   }
 
   for (auto& pipeline_statement : _sql_pipeline_statements) {
-    try {
+    //try {
       pipeline_statement->get_result_table();
-    } catch (const std::exception& exception) {
-      _failed_pipeline_statement = pipeline_statement;
-      throw;
-    }
+    //} catch (const std::exception& exception) {
+    //  _failed_pipeline_statement = pipeline_statement;
+    //  throw;
+    //}
   }
 
   _result_table = _sql_pipeline_statements.back()->get_result_table();

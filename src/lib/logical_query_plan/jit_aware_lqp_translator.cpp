@@ -247,13 +247,13 @@ std::shared_ptr<const JitExpression> JitAwareLQPTranslator::_translate_to_jit_ex
   const auto stored_table_node = std::dynamic_pointer_cast<const StoredTableNode>(lqp_column_reference.original_node());
   const auto projection_node = std::dynamic_pointer_cast<const ProjectionNode>(lqp_column_reference.original_node());
 
-  if (column_id && stored_table_node) {
+  if (stored_table_node) {
     // we reached a "raw" data column and register it as an input column
     const auto table_name = stored_table_node->table_name();
     const auto table = StorageManager::get().get_table(table_name);
-    const auto dt = table->column_type(column_id.value());
-    const auto n = table->column_is_nullable(column_id.value());
-    const auto tuple_value = jit_source.add_input_column(dt, n, column_id.value());
+    const auto data_type = table->column_type(lqp_column_reference.original_column_id());
+    const auto is_nullable = table->column_is_nullable(lqp_column_reference.original_column_id());
+    const auto tuple_value = jit_source.add_input_column(data_type, is_nullable, column_id.value());
     return std::make_shared<JitExpression>(tuple_value);
   } else if (projection_node) {
     // if the LQPColumnReference references a computed column, we need to compute that expression as well
@@ -290,7 +290,7 @@ bool JitAwareLQPTranslator::_node_is_jittable(const std::shared_ptr<AbstractLQPN
                                               const bool allow_aggregate_node) const {
   switch (node->type()) {
     case LQPNodeType::Aggregate:
-      return allow_aggregate_node && JitEvaluationHelper::get().experiment().at("jit_aggregate").get<bool>();
+      return allow_aggregate_node;
     case LQPNodeType::Predicate:
       return std::dynamic_pointer_cast<PredicateNode>(node)->scan_type() == ScanType::TableScan &&
              std::dynamic_pointer_cast<PredicateNode>(node)->predicate_condition() != PredicateCondition::Between;

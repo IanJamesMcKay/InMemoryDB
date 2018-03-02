@@ -28,6 +28,12 @@ template <typename T>
 ValueColumn<T>::ValueColumn(pmr_concurrent_vector<T>&& values) : _values(std::move(values)) {}
 
 template <typename T>
+ValueColumn<T>::ValueColumn(std::vector<T>& values) : _values(values) {}
+
+template <typename T>
+ValueColumn<T>::ValueColumn(std::vector<T>& values, std::vector<bool>& null_values) : _values(values), _null_values(null_values) {}
+
+template <typename T>
 ValueColumn<T>::ValueColumn(pmr_concurrent_vector<T>&& values, pmr_concurrent_vector<bool>&& null_values)
     : _values(std::move(values)), _null_values(std::move(null_values)) {}
 

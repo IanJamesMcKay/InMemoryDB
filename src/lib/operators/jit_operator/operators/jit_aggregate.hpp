@@ -9,6 +9,7 @@ struct JitAggregateColumn {
   JitTupleValue tuple_value;
   JitHashmapValue hashmap_value;
   AggregateFunction function;
+  bool part_of_output;
 };
 
 struct JitGroupByColumn {
@@ -30,11 +31,6 @@ class JitAggregate : public JitAbstractSink {
 
  private:
   void _consume(JitRuntimeContext& ctx) const final;
-
-  //uint64_t _compute_hash(JitRuntimeContext& ctx) const;
-  //bool _equals(JitRuntimeContext& ctx, const uint64_t index) const;
-  //void _assign(const JitMaterializedValue& in, JitMaterializedValue& out) const;
-  //bool _equals_one(const JitMaterializedValue& lhs, const JitMaterializedValue& rhs) const;
 
   uint32_t _num_hashmap_values{0};
   std::vector<JitAggregateColumn> _aggregate_columns;

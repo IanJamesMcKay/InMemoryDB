@@ -19,6 +19,8 @@ class ValueColumn : public BaseValueColumn {
 
   // Create a ValueColumn with the given values.
   explicit ValueColumn(pmr_concurrent_vector<T>&& values);
+  explicit ValueColumn(std::vector<T>& values);
+  explicit ValueColumn(std::vector<T>& values, std::vector<bool>& null_values);
   explicit ValueColumn(pmr_concurrent_vector<T>&& values, pmr_concurrent_vector<bool>&& null_values);
 
   // Return the value at a certain position. If you want to write efficient operators, back off!

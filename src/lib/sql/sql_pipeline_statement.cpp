@@ -160,12 +160,12 @@ const std::shared_ptr<SQLQueryPlan>& SQLPipelineStatement::get_query_plan() {
 
   const auto& lqp = get_optimized_logical_plan();
 
-  try {
+  //try {
     _query_plan->add_tree_by_root(CurrentLQPTranslator{}.translate_node(lqp));
     if (_use_mvcc == UseMvcc::Yes) _query_plan->set_transaction_context(_transaction_context);
-  } catch (const std::exception& exception) {
-    throw std::runtime_error("Error while translating query plan:\n  " + std::string(exception.what()));
-  }
+  //} catch (const std::exception& exception) {
+  //  throw std::runtime_error("Error while translating query plan:\n  " + std::string(exception.what()));
+  //}
 
   const auto done = std::chrono::high_resolution_clock::now();
   _compile_time_micros = std::chrono::duration_cast<std::chrono::microseconds>(done - started);
@@ -204,12 +204,12 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table() {
 
   const auto started = std::chrono::high_resolution_clock::now();
 
-  try {
+  //try {
     CurrentScheduler::schedule_and_wait_for_tasks(tasks);
-  } catch (const std::exception& exception) {
-    if (_use_mvcc == UseMvcc::Yes) _transaction_context->rollback();
-    throw std::runtime_error("Error while executing tasks:\n  " + std::string(exception.what()));
-  }
+  //} catch (const std::exception& exception) {
+  //  if (_use_mvcc == UseMvcc::Yes) _transaction_context->rollback();
+  //  throw std::runtime_error("Error while executing tasks:\n  " + std::string(exception.what()));
+  //}
 
   if (_auto_commit) {
     _transaction_context->commit();
