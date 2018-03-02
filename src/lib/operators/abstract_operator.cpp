@@ -21,14 +21,30 @@ AbstractOperator::AbstractOperator(const std::shared_ptr<const AbstractOperator>
 void AbstractOperator::execute() {
   auto& result = JitEvaluationHelper::get().result();
 
+  auto papi_events = JitEvaluationHelper::get().globals()["papi_events"];
+  auto num_counters = papi_events.size();
+  int32_t papi_event_ids[10];
+  int64_t papi_values[10];
+
+  for (uint32_t i = 0; i < num_counters; ++i) {
+    papi_event_ids[i] = papi_events[i]["id"];
+  }
+
   auto start_prepare = std::chrono::high_resolution_clock::now();
+  PAPI_start_counters(papi_event_ids, num_counters);
   _prepare();
+  PAPI_stop_counters(papi_values, num_counters);
   auto end_prepare = std::chrono::high_resolution_clock::now();
 
   auto walltime_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(end_prepare - start_prepare).count();
-  result["operators"].push_back({{"name", name()}, {"prepare", true}, {"walltime", walltime_ns / 1000.0}});
+  nlohmann::json op = {{"name", name()}, {"prepare", true}, {"walltime", walltime_ns / 1000.0}};
+  for (uint32_t i = 0; i < num_counters; ++i) {
+    op[papi_events[i]["name"].get<std::string>()] = papi_values[i];
+  }
+  result["operators"].push_back(op);
 
   auto start = std::chrono::high_resolution_clock::now();
+  PAPI_start_counters(papi_event_ids, num_counters);
   auto transaction_context = this->transaction_context();
 
   if (transaction_context) {
@@ -50,10 +66,15 @@ void AbstractOperator::execute() {
   // release any temporary data if possible
   _on_cleanup();
 
+  PAPI_stop_counters(papi_values, num_counters);
   auto end = std::chrono::high_resolution_clock::now();
   walltime_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
   _performance_data.walltime_ns = walltime_ns;
-  result["operators"].push_back({{"name", name()}, {"prepare", false}, {"walltime", walltime_ns / 1000.0}});
+  nlohmann::json op2 = {{"name", name()}, {"prepare", false}, {"walltime", walltime_ns / 1000.0}};
+  for (uint32_t i = 0; i < num_counters; ++i) {
+    op2[papi_events[i]["name"].get<std::string>()] = papi_values[i];
+  }
+  result["operators"].push_back(op2);
 }
 
 // returns the result of the operator
