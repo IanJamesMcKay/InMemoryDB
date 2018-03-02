@@ -12,6 +12,8 @@
 #include "utils/assert.hpp"
 #include "utils/print_directed_acyclic_graph.hpp"
 
+#include <papi.h>
+
 namespace opossum {
 
 AbstractOperator::AbstractOperator(const std::shared_ptr<const AbstractOperator> left,

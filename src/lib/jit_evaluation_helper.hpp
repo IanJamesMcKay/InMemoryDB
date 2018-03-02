@@ -2,8 +2,6 @@
 
 #include <iostream>
 
-#include "papi.h"
-
 namespace opossum {
 
 // singleton
