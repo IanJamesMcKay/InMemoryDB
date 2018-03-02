@@ -55,7 +55,9 @@ class AbstractBenchmarkTableGenerator {
   template <typename T>
   void add_column(std::shared_ptr<opossum::Table> table, std::string name,
                   std::shared_ptr<std::vector<size_t>> cardinalities,
-                  const std::function<std::vector<T>(std::vector<size_t>)>& generator_function) {
+                  const std::function<std::vector<T>(std::vector<size_t>)>& generator_function,
+                  const bool is_nullable,
+                  const std::function<std::vector<bool>(std::vector<size_t>)>& null_generator_function) {
     /**
      * We have to add Chunks when we add the first column.
      * This has to be done after the first column was created and added,
@@ -64,17 +66,19 @@ class AbstractBenchmarkTableGenerator {
     bool is_first_column = table->column_count() == 0;
 
     auto data_type = opossum::data_type_from_type<T>();
-    table->add_column_definition(name, data_type);
+    table->add_column_definition(name, data_type, is_nullable);
 
     /**
      * Calculate the total row count for this column based on the cardinalities of the influencing tables.
      * For the CUSTOMER table this calculates 1*10*3000
      */
     auto loop_count =
-        std::accumulate(std::begin(*cardinalities), std::end(*cardinalities), 1u, std::multiplies<size_t>());
+            std::accumulate(std::begin(*cardinalities), std::end(*cardinalities), 1u, std::multiplies<size_t>());
 
     tbb::concurrent_vector<T> column;
+    tbb::concurrent_vector<bool> null_column;
     column.reserve(_chunk_size);
+    null_column.reserve(_chunk_size);
 
     /**
      * The loop over all records that the final column of the table will contain, e.g. loop_count = 30 000 for CUSTOMER
@@ -109,12 +113,22 @@ class AbstractBenchmarkTableGenerator {
        * and iterate it to add to the output column.
        */
       auto values = generator_function(indices);
+      auto null_values = null_generator_function(indices);
+      for (bool value : null_values) {
+        null_column.push_back(value);
+      }
+
       for (T& value : values) {
         column.push_back(value);
 
         // write output chunks if column size has reached chunk_size
         if (row_index % _chunk_size == _chunk_size - 1) {
-          auto value_column = std::make_shared<opossum::ValueColumn<T>>(std::move(column));
+          std::shared_ptr<opossum::ValueColumn<T>> value_column;
+          if (is_nullable) {
+            value_column = std::make_shared<opossum::ValueColumn<T>>(std::move(column), std::move(null_values));
+          } else {
+            value_column = std::make_shared<opossum::ValueColumn<T>>(std::move(column));
+          }
 
           if (is_first_column) {
             auto chunk = std::make_shared<opossum::Chunk>(opossum::UseMvcc::Yes);
@@ -167,7 +181,7 @@ class AbstractBenchmarkTableGenerator {
                   std::shared_ptr<std::vector<size_t>> cardinalities,
                   const std::function<T(std::vector<size_t>)>& generator_function) {
     const std::function<std::vector<T>(std::vector<size_t>)> wrapped_generator_function =
-        [generator_function](std::vector<size_t> indices) { return std::vector<T>({generator_function(indices)}); };
+            [generator_function](std::vector<size_t> indices) { return std::vector<T>({generator_function(indices)}); };
     add_column(table, name, cardinalities, wrapped_generator_function);
   }
 };
