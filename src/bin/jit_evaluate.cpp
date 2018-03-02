@@ -108,6 +108,9 @@ void run() {
 
   // Make sure all table statistics are generated and ready.
   opossum::SQLPipeline(query_string, opossum::UseMvcc::No).get_optimized_logical_plans();
+  auto& result = opossum::JitEvaluationHelper::get().result();
+
+  result = nlohmann::json::object();
 
   opossum::SQLPipeline pipeline(query_string, opossum::UseMvcc::No);
   const auto table = pipeline.get_result_table();
@@ -117,7 +120,6 @@ void run() {
     opossum::Print::print(table, 0, std::cerr);
   }
 
-  auto& result = opossum::JitEvaluationHelper::get().result();
   result["result_rows"] = table->row_count();
   result["pipeline_compile_time"] = pipeline.compile_time_microseconds().count();
   result["pipeline_execution_time"] = pipeline.execution_time_microseconds().count();
@@ -166,6 +168,8 @@ int main(int argc, char* argv[]) {
   std::cerr << "Initializing PAPI" << std::endl;
   std::cerr << "  supports " << PAPI_num_counters() << " event counters" << std::endl;
 
+  std::cout << "[" << std::endl;
+
   auto current_experiment = 0;
   const auto num_experiments = config["experiments"].size();
   for (const auto& experiment : config["experiments"]) {
@@ -191,8 +195,8 @@ int main(int argc, char* argv[]) {
       }
       output["results"].push_back(opossum::JitEvaluationHelper::get().result());
     }
-    std::cout << output << std::endl;
+    std::cout << output << "," << std::endl;
   }
-
+  std::cout << "]" << std::endl;
   std::cerr << "Done" << std::endl;
 }

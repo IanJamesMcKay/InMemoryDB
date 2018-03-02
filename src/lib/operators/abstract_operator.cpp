@@ -32,7 +32,7 @@ void AbstractOperator::execute() {
   auto transaction_context = this->transaction_context();
 
   if (transaction_context) {
-    /**
+    /*
      * Do not execute Operators if transaction has been aborted.
      * Not doing so is crucial in order to make sure no other
      * tasks of the Transaction run while the Rollback happens.
@@ -51,9 +51,9 @@ void AbstractOperator::execute() {
   _on_cleanup();
 
   auto end = std::chrono::high_resolution_clock::now();
-
-  _performance_data.walltime_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-  result["operators"].push_back({{"name", name()}, {"prepare", false}, {"walltime", _performance_data.walltime_ns / 1000.0}});
+  walltime_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+  _performance_data.walltime_ns = walltime_ns;
+  result["operators"].push_back({{"name", name()}, {"prepare", false}, {"walltime", walltime_ns / 1000.0}});
 }
 
 // returns the result of the operator

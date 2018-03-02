@@ -180,15 +180,15 @@ const std::vector<std::shared_ptr<SQLQueryPlan>>& SQLPipeline::get_query_plans()
 
   _query_plans.reserve(statement_count());
   for (auto& pipeline_statement : _sql_pipeline_statements) {
-    try {
+    //try {
       _query_plans.push_back(pipeline_statement->get_query_plan());
-    } catch (const std::exception& exception) {
-      _failed_pipeline_statement = pipeline_statement;
+    //} catch (const std::exception& exception) {
+      //_failed_pipeline_statement = pipeline_statement;
 
       // Don't keep bad values
-      _query_plans.clear();
-      throw;
-    }
+      //_query_plans.clear();
+      //throw;
+    //}
   }
 
   return _query_plans;

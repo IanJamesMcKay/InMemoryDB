@@ -35,6 +35,7 @@
 #include "sql/sql_translator.hpp"
 #include "storage/storage_manager.hpp"
 #include "tpcc/tpcc_table_generator.hpp"
+#include "tpch/tpch_db_generator.hpp"
 #include "utils/load_table.hpp"
 
 #define ANSI_COLOR_RED "\x1B[31m"
@@ -352,23 +353,7 @@ int Console::help(const std::string&) {
 }
 
 int Console::generate_tpcc(const std::string& tablename) {
-  if (tablename.empty() || "ALL" == tablename) {
-    out("Generating TPCC tables (this might take a while) ...\n");
-    auto tables = tpcc::TpccTableGenerator().generate_all_tables();
-    for (auto& pair : tables) {
-      StorageManager::get().add_table(pair.first, pair.second);
-    }
-    return Console::ReturnCode::Ok;
-  }
-
-  out("Generating TPCC table: \"" + tablename + "\" ...\n");
-  auto table = tpcc::TpccTableGenerator::generate_tpcc_table(tablename);
-  if (table == nullptr) {
-    out("Error: No TPCC table named \"" + tablename + "\" available.\n");
-    return Console::ReturnCode::Error;
-  }
-
-  opossum::StorageManager::get().add_table(tablename, table);
+  TpchDbGenerator(std::stod(tablename)).generate_and_store();
   return Console::ReturnCode::Ok;
 }
 

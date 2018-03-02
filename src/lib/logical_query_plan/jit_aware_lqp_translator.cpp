@@ -44,7 +44,7 @@ std::shared_ptr<AbstractOperator> JitAwareLQPTranslator::translate_node(
 
   // It does not make sense to create a JitOperator for fewer than 2 LQP nodes,
   // but we may want a better heuristic here
-  if (num_jittable_nodes < 2 || input_nodes.size() != 1) {
+  if (num_jittable_nodes < 1 || (num_jittable_nodes < 2 && node->type() != LQPNodeType::Aggregate) || input_nodes.size() != 1) {
     return LQPTranslator::translate_node(node);
   }
 
@@ -288,19 +288,18 @@ bool JitAwareLQPTranslator::_has_another_condition(const std::shared_ptr<Abstrac
 
 bool JitAwareLQPTranslator::_node_is_jittable(const std::shared_ptr<AbstractLQPNode>& node,
                                               const bool allow_aggregate_node) const {
+  const bool jit_predicate = JitEvaluationHelper::get().experiment()["jit_predicate"];
   switch (node->type()) {
     case LQPNodeType::Aggregate:
       return allow_aggregate_node;
     case LQPNodeType::Predicate:
-      return std::dynamic_pointer_cast<PredicateNode>(node)->scan_type() == ScanType::TableScan &&
-             std::dynamic_pointer_cast<PredicateNode>(node)->predicate_condition() != PredicateCondition::Between;
+      return jit_predicate && std::dynamic_pointer_cast<PredicateNode>(node)->scan_type() == ScanType::TableScan;
     case LQPNodeType::Projection:
-    case LQPNodeType::Union:
       return true;
-      break;
+    case LQPNodeType::Union:
+      return jit_predicate;
     default:
       return false;
-      break;
   }
 }
 
