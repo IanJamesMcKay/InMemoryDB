@@ -233,12 +233,11 @@ class AbstractBenchmarkTableGenerator {
        */
       auto values = generator_function(indices);
       auto null_values = null_generator_function(indices);
-      for (bool value : null_values) {
-        null_column.push_back(value);
-      }
 
+      auto index = 0;
       for (T& value : values) {
         column.push_back(value);
+        null_column.push_back(null_values[index++]);
 
         // write output chunks if column size has reached chunk_size
         if (row_index % _chunk_size == _chunk_size - 1) {
@@ -264,7 +263,7 @@ class AbstractBenchmarkTableGenerator {
 
     // write partially filled last chunk
     if (row_index % _chunk_size != 0) {
-      auto value_column = std::make_shared<opossum::ValueColumn<T>>(std::move(column));
+      auto value_column = std::make_shared<opossum::ValueColumn<T>>(std::move(column), std::move(null_column));
 
       // add Chunk if it is the first column, e.g. WAREHOUSE_ID in the example above
       if (is_first_column) {

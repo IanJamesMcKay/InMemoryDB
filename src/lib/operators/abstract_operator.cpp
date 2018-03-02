@@ -33,9 +33,13 @@ void AbstractOperator::execute() {
   }
 
   auto start_prepare = std::chrono::high_resolution_clock::now();
+#ifndef __APPLE__
   PAPI_start_counters(papi_event_ids, num_counters);
+#endif
   _prepare();
+#ifndef __APPLE__
   PAPI_stop_counters(papi_values, num_counters);
+#endif
   auto end_prepare = std::chrono::high_resolution_clock::now();
 
   auto walltime_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(end_prepare - start_prepare).count();
@@ -46,7 +50,9 @@ void AbstractOperator::execute() {
   result["operators"].push_back(op);
 
   auto start = std::chrono::high_resolution_clock::now();
+#ifndef __APPLE__
   PAPI_start_counters(papi_event_ids, num_counters);
+#endif
   auto transaction_context = this->transaction_context();
 
   if (transaction_context) {
@@ -68,7 +74,9 @@ void AbstractOperator::execute() {
   // release any temporary data if possible
   _on_cleanup();
 
+#ifndef __APPLE__
   PAPI_stop_counters(papi_values, num_counters);
+#endif
   auto end = std::chrono::high_resolution_clock::now();
   walltime_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
   _performance_data.walltime_ns = walltime_ns;
