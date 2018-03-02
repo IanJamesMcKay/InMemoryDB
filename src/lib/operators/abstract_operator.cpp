@@ -26,7 +26,7 @@ void AbstractOperator::execute() {
   auto papi_events = JitEvaluationHelper::get().globals()["papi_events"];
   auto num_counters = papi_events.size();
   int32_t papi_event_ids[10];
-  int64_t papi_values[10];
+  long long papi_values[10];
 
   for (uint32_t i = 0; i < num_counters; ++i) {
     papi_event_ids[i] = papi_events[i]["id"];
