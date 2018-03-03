@@ -20,6 +20,8 @@ class Product : public AbstractReadOnlyOperator {
  public:
   Product(const std::shared_ptr<const AbstractOperator> left, const std::shared_ptr<const AbstractOperator> right);
 
+  std::shared_ptr<AbstractOperator> recreate(const std::vector<AllParameterVariant>& args) const;
+
   const std::string name() const override;
 
  protected:

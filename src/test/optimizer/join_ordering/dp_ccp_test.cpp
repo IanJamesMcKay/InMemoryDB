@@ -11,12 +11,13 @@
 #include "optimizer/strategy/join_ordering_rule.hpp"
 #include "utils/load_table.hpp"
 #include "testing_assert.hpp"
+#include "operators/print.hpp"
 
 namespace {
 
 struct SqlAndPredicates {
   std::string sql;
-  std::vector<std::string> predicates;
+  std::vector<std::string> predicates;g
 };
 
 }  // namespace
@@ -105,6 +106,7 @@ class DpCcpSqlTest: public ::testing::TestWithParam<std::string> {
     StorageManager::get().add_table("t_a", load_table("src/test/tables/sqlite/int_int_int_100.tbl"));
     StorageManager::get().add_table("t_b", load_table("src/test/tables/sqlite/int_int_int_100.tbl"));
     StorageManager::get().add_table("t_c", load_table("src/test/tables/sqlite/int_int_int_100.tbl"));
+    StorageManager::get().add_table("int_float2", load_table("src/test/tables/int_float2.tbl"));
   }
   void TearDown() override {
     StorageManager::reset();
@@ -123,15 +125,42 @@ TEST_P(DpCcpSqlTest, SameResult) {
   SQLPipelineStatement optimized_sql_statement{sql, optimizer};
   SQLPipelineStatement unoptimized_sql_statement{sql, Optimizer::get_dummy_optimizer()};
 
-  EXPECT_TABLE_EQ_UNORDERED(optimized_sql_statement.get_result_table(), unoptimized_sql_statement.get_result_table());
+  const auto optimized_table = optimized_sql_statement.get_result_table();
+  const auto unoptimized_table = unoptimized_sql_statement.get_result_table();
+
+  // We want the result to have more than one line because there are many wrong ways to create an empty table, but its
+  // reasonably less likely that a wrong way creates the right, non-empty table
+  ASSERT_GT(optimized_table->row_count(), 0u);
+
+  EXPECT_TABLE_EQ_UNORDERED(optimized_table, unoptimized_table);
 }
 
 // clang-format off
 INSTANTIATE_TEST_CASE_P(DpCcpSqlTestInstances,
                         DpCcpSqlTest,
                         ::testing::Values(
-  R"(SELECT * FROM t_a, t_b, t_c WHERE t_a.id = t_b.id;)"
-                        ), );
+  // JoinGraph has to handle 2 simple components
+  R"(SELECT * FROM t_a, t_b, int_float2 WHERE t_a.id = t_b.id AND int_float2.a < 1000;)",
+
+  // JoinGraph has to handle multiple more complex components
+  R"(SELECT t_a.int_a * 3, c.a
+     FROM
+       t_a, t_b, int_float2 AS a, int_float2 AS b, int_float2 AS c
+     WHERE
+       t_a.id = a.a AND t_a.id = b.a AND t_b.id = b.a;
+  )",
+
+  //
+  R"(SELECT *
+     FROM
+       t_a AS t_a_a, t_a AS t_a_b, t_b, t_c
+     WHERE
+       t_a_a.id = t_a_b.int_a AND
+       t_a_b.int_a = t_b.int_b AND
+       t_b.int_b = t_c.int_c AND
+       t_c.int_c >= t_a_a.int_c;
+  )"
+                        ),);
 // clang-format on
 
 }  // namespace opossum

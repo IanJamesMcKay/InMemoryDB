@@ -15,6 +15,10 @@ Product::Product(const std::shared_ptr<const AbstractOperator> left,
 
 const std::string Product::name() const { return "Product"; }
 
+std::shared_ptr<AbstractOperator> Product::recreate(const std::vector<AllParameterVariant>& args) const {
+  return std::make_shared<Product>(_input_left->recreate(args), _input_right->recreate(args));
+}
+
 std::shared_ptr<const Table> Product::_on_execute() {
   TableColumnDefinitions column_definitions;
 

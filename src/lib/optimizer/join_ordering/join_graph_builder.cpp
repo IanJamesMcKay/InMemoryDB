@@ -234,16 +234,17 @@ std::vector<std::shared_ptr<JoinEdge>> edges) {
 
   std::vector<size_t> one_vertex_per_component;
 
-  while (remaining_vertex_indices.empty()) {
+  while (!remaining_vertex_indices.empty()) {
     one_vertex_per_component.emplace_back(remaining_vertex_indices.front());
 
     std::stack<size_t> bfs_stack;
+    bfs_stack.push(remaining_vertex_indices.front());
 
     while (!bfs_stack.empty()) {
       const auto vertex_idx = bfs_stack.top();
       bfs_stack.pop();
 
-      remaining_vertex_indices.erase(remaining_vertex_indices.begin() + vertex_idx);
+      remaining_vertex_indices.erase(std::remove(remaining_vertex_indices.begin(), remaining_vertex_indices.end(), vertex_idx), remaining_vertex_indices.end());
 
       for (auto iter = edges.begin(); iter != edges.end();) {
         const auto& edge = *iter;
