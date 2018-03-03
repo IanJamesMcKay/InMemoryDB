@@ -166,9 +166,8 @@ int main(int argc, char* argv[]) {
   opossum::JitRepository::get();
 
   std::cerr << "Initializing PAPI" << std::endl;
+  if (PAPI_library_init(PAPI_VER_CURRENT) < 0) throw std::logic_error("PAPI error");
   std::cerr << "  supports " << PAPI_num_counters() << " event counters" << std::endl;
-
-  std::cout << "[" << std::endl;
 
   auto current_experiment = 0;
   const auto num_experiments = config["experiments"].size();
@@ -195,8 +194,7 @@ int main(int argc, char* argv[]) {
       }
       output["results"].push_back(opossum::JitEvaluationHelper::get().result());
     }
-    std::cout << output << "," << std::endl;
+    std::cout << output << std::endl;
   }
-  std::cout << "]" << std::endl;
   std::cerr << "Done" << std::endl;
 }

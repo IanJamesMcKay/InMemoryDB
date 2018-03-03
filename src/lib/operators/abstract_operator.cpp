@@ -29,15 +29,16 @@ void AbstractOperator::execute() {
   long long papi_values[10];
 
   for (uint32_t i = 0; i < num_counters; ++i) {
-    if (PAPI_event_name_to_code(papi_events[i], &papi_event_ids[i]) < 0) throw std::logic_error("PAPI error");
+    if (PAPI_event_name_to_code(papi_events[i].get<std::string>().c_str(), &papi_event_ids[i]) < 0) throw std::logic_error("PAPI error");
   }
 
   auto start_prepare = std::chrono::high_resolution_clock::now();
   if (num_counters) {
-     if (PAPI_start_counters(papi_event_ids, num_counters) < 0) throw std::logic_error("PAPI error");
+     //if (PAPI_assign_eventset_component(papi_event_ids, 0) < 0) throw std::logic_error("PAPI error");
+     if (PAPI_start_counters(papi_event_ids, num_counters) < 0) throw std::logic_error("PAPI error " + std::to_string(PAPI_start_counters(papi_event_ids, num_counters)));
   }
   _prepare();
-  if (num_events) {
+  if (num_counters) {
     if (PAPI_stop_counters(papi_values, num_counters) < 0) throw std::logic_error("PAPI error");
   }
   auto end_prepare = std::chrono::high_resolution_clock::now();
