@@ -29,30 +29,31 @@ void AbstractOperator::execute() {
   long long papi_values[10];
 
   for (uint32_t i = 0; i < num_counters; ++i) {
-    papi_event_ids[i] = papi_events[i]["id"];
+    if (PAPI_event_name_to_code(papi_events[i], &papi_event_ids[i]) < 0) throw std::logic_error("PAPI error");
   }
 
   auto start_prepare = std::chrono::high_resolution_clock::now();
-#ifndef __APPLE__
-  PAPI_start_counters(papi_event_ids, num_counters);
-#endif
+  if (num_counters) {
+     if (PAPI_start_counters(papi_event_ids, num_counters) < 0) throw std::logic_error("PAPI error");
+  }
   _prepare();
-#ifndef __APPLE__
-  PAPI_stop_counters(papi_values, num_counters);
-#endif
+  if (num_events) {
+    if (PAPI_stop_counters(papi_values, num_counters) < 0) throw std::logic_error("PAPI error");
+  }
   auto end_prepare = std::chrono::high_resolution_clock::now();
 
   auto walltime_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(end_prepare - start_prepare).count();
   nlohmann::json op = {{"name", name()}, {"prepare", true}, {"walltime", walltime_ns / 1000.0}};
   for (uint32_t i = 0; i < num_counters; ++i) {
-    op[papi_events[i]["name"].get<std::string>()] = papi_values[i];
+    op[papi_events[i].get<std::string>()] = papi_values[i];
+    papi_values[i] = 0;
   }
   result["operators"].push_back(op);
 
   auto start = std::chrono::high_resolution_clock::now();
-#ifndef __APPLE__
-  PAPI_start_counters(papi_event_ids, num_counters);
-#endif
+  if (num_counters) {
+    if (PAPI_start_counters(papi_event_ids, num_counters) < 0) throw std::logic_error("PAPI error");
+  }
   auto transaction_context = this->transaction_context();
 
   if (transaction_context) {
@@ -74,15 +75,15 @@ void AbstractOperator::execute() {
   // release any temporary data if possible
   _on_cleanup();
 
-#ifndef __APPLE__
-  PAPI_stop_counters(papi_values, num_counters);
-#endif
+  if (num_counters) {
+    if (PAPI_stop_counters(papi_values, num_counters) < 0) throw std::logic_error("PAPI error");
+  }
   auto end = std::chrono::high_resolution_clock::now();
   walltime_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
   _performance_data.walltime_ns = walltime_ns;
   nlohmann::json op2 = {{"name", name()}, {"prepare", false}, {"walltime", walltime_ns / 1000.0}};
   for (uint32_t i = 0; i < num_counters; ++i) {
-    op2[papi_events[i]["name"].get<std::string>()] = papi_values[i];
+    op2[papi_events[i].get<std::string>()] = papi_values[i];
   }
   result["operators"].push_back(op2);
 }

@@ -21,9 +21,9 @@ void JitTableGenerator::generate_and_store() {
   add_column<int32_t>(table_scan, "D", cardinalities,
                       [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); });
   add_nullable_column<int32_t>(table_scan, "E", cardinalities,
-                               [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); }, [&](std::vector<size_t> indices) { return generator.random_number(0, 10) == 0; });
+                               [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); }, [&](std::vector<size_t> indices) { return false; });
   add_nullable_column<int32_t>(table_scan, "F", cardinalities,
-                      [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); }, [&](std::vector<size_t> indices) { return generator.random_number(0, 10) == 0; });
+                      [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); }, [&](std::vector<size_t> indices) { return false; });
 
   auto table_aggregate = std::make_shared<opossum::Table>();
   add_column<int32_t>(table_aggregate, "ID", cardinalities, [&](std::vector<size_t> indices) { return indices[0]; });
