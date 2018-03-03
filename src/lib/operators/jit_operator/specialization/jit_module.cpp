@@ -6,6 +6,7 @@
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/Utils/Cloning.h>
+#include <llvm/Transforms/IPO/ForceFunctionAttrs.h>
 
 #include "jit_evaluation_helper.hpp"
 #include "utils/llvm_utils.hpp"
@@ -13,6 +14,7 @@
 
 #include <queue>
 #include <sstream>
+#include <llvm/Analysis/GlobalsModRef.h>
 
 namespace opossum {
 
@@ -85,7 +87,7 @@ void JitModule::_resolve_virtual_calls() {
 
     auto& function = *call_site.getCalledFunction();
 
-    // std::cout << "about to inline " << function.getName().str() << std::endl;
+    //std::cerr << "about to inline " << function.getName().str() << std::endl;
     _llvm_value_map.clear();
     // map personality function
     //if (function.hasPersonalityFn()) {
@@ -130,14 +132,8 @@ void JitModule::_resolve_virtual_calls() {
     //  }
 
     call_sites.pop();
-    //llvm_utils::module_to_file("/tmp/after_" + std::to_string(counter++) + ".ll", *_module);
+//    llvm_utils::module_to_file("/tmp/after_" + std::to_string(counter++) + ".ll", *_module);
   }
-}
-
-void JitModule::_adce() {
-  llvm::legacy::PassManager pass_manager;
-  pass_manager.add(llvm::createAggressiveDCEPass());
-  pass_manager.run(*_module);
 }
 
 bool JitModule::_specialize(const JitRuntimePointer::Ptr& runtime_this) {
@@ -211,7 +207,7 @@ void JitModule::_optimize() {
 
   //  const auto before_path = "/tmp/before.ll";
   //  const auto after_path = "/tmp/after.ll";
-  const auto remarks_path = "/tmp/remarks.yml";
+  //const auto remarks_path = "/tmp/remarks.yml";
 
   //  std::cout << "Running optimization" << std::endl
   //            << "  before:  " << before_path << std::endl
@@ -222,43 +218,35 @@ void JitModule::_optimize() {
   //  llvm_utils::module_to_file(before_path, *_module);
 
   // TODO(johannes) remove later
-  std::error_code error_code;
-  llvm::raw_fd_ostream remarks_file(remarks_path, error_code, llvm::sys::fs::F_None);
-  _repository.llvm_context()->setDiagnosticsOutputFile(std::make_unique<llvm::yaml::Output>(remarks_file));
+  //std::error_code error_code;
+  //llvm::raw_fd_ostream remarks_file(remarks_path, error_code, llvm::sys::fs::F_None);
+  //_repository.llvm_context()->setDiagnosticsOutputFile(std::make_unique<llvm::yaml::Output>(remarks_file));
 
   const llvm::Triple module_triple(_module->getTargetTriple());
   const llvm::TargetLibraryInfoImpl target_lib_info(module_triple);
 
   llvm::legacy::PassManager pass_manager;
-  llvm::legacy::FunctionPassManager function_pass_manager(_module.get());
 
   pass_manager.add(new llvm::TargetLibraryInfoWrapperPass(target_lib_info));
   pass_manager.add(llvm::createTargetTransformInfoWrapperPass(_compiler.target_machine().getTargetIRAnalysis()));
-  function_pass_manager.add(
-      llvm::createTargetTransformInfoWrapperPass(_compiler.target_machine().getTargetIRAnalysis()));
-
-  // TODO(johannes) build a custom (=faster) optimization pipeline
   llvm::PassManagerBuilder pass_builder;
-  pass_builder.OptLevel = 3;
+  pass_builder.OptLevel = 1;
   pass_builder.SizeLevel = 0;
 
-  pass_builder.DisableUnitAtATime = false;
-  pass_builder.DisableUnrollLoops = false;
+  pass_builder.DisableUnitAtATime = true;
+  pass_builder.DisableUnrollLoops = true;
   pass_builder.LoopVectorize = false;
   pass_builder.SLPVectorize = false;
 
   _compiler.target_machine().adjustPassManager(pass_builder);
-  pass_builder.populateFunctionPassManager(function_pass_manager);
-  pass_builder.populateModulePassManager(pass_manager);
-
-  function_pass_manager.add(llvm::createLoopUnrollPass(3, 10000000, 0, 0, 0, 0));
-
-  function_pass_manager.doInitialization();
-  function_pass_manager.run(*_root_function);
-  function_pass_manager.doFinalization();
+  //pass_builder.populateModulePassManager(pass_manager);
+  pass_builder.addFunctionSimplificationPasses(pass_manager);
+  auto start = std::chrono::high_resolution_clock::now();
   pass_manager.run(*_module);
+  auto end = std::chrono::high_resolution_clock::now();
+  auto runtime = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+  std::cerr << "opt took" << runtime / 1000.0 << "ms" << std::endl;
 
-  //  llvm_utils::module_to_file(after_path, *_module);
   _repository.llvm_context()->setDiagnosticsOutputFile(nullptr);
 }
 
