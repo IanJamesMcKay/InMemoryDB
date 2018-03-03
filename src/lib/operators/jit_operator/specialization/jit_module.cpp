@@ -87,7 +87,7 @@ void JitModule::_resolve_virtual_calls() {
 
     auto& function = *call_site.getCalledFunction();
 
-    if (!boost::starts_with(function.getName().str(), "_ZNK7opossum")) {
+    if (!boost::starts_with(function.getName().str(), "_ZNK7opossum") && !boost::starts_with(function.getName().str(), "_ZN7opossum")) {
       call_sites.pop();
       continue;
     }
