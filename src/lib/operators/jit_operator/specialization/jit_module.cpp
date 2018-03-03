@@ -40,7 +40,7 @@ void JitModule::specialize_fast(const JitRuntimePointer::Ptr& runtime_this) {
     _optimize();
   }
 
-  //llvm_utils::module_to_file("/tmp/final.ll", *_module);
+  llvm_utils::module_to_file("/tmp/final.ll", *_module);
 }
 
 void JitModule::specialize_slow(const JitRuntimePointer::Ptr& runtime_this) {
@@ -88,6 +88,7 @@ void JitModule::_resolve_virtual_calls() {
     auto& function = *call_site.getCalledFunction();
 
     if (!boost::starts_with(function.getName().str(), "_ZNK7opossum")) {
+      _llvm_value_map[&function] = _create_function_declaration(function);
       call_sites.pop();
       continue;
     }
