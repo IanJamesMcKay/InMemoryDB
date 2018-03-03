@@ -87,7 +87,11 @@ void JitModule::_resolve_virtual_calls() {
 
     auto& function = *call_site.getCalledFunction();
 
-    //std::cerr << "about to inline " << function.getName().str() << std::endl;
+    if (!boost::starts_with(function.getName().str(), "_ZNK7opossum")) {
+      call_sites.pop();
+      continue;
+    }
+    std::cerr << "about to inline " << function.getName().str() << std::endl;
     _llvm_value_map.clear();
     // map personality function
     //if (function.hasPersonalityFn()) {
@@ -132,7 +136,7 @@ void JitModule::_resolve_virtual_calls() {
     //  }
 
     call_sites.pop();
-//    llvm_utils::module_to_file("/tmp/after_" + std::to_string(counter++) + ".ll", *_module);
+    //llvm_utils::module_to_file("/tmp/after_" + std::to_string(counter++) + ".ll", *_module);
   }
 }
 
