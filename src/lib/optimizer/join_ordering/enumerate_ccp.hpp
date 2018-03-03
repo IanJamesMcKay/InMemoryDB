@@ -9,6 +9,8 @@
 
 namespace opossum {
 
+class JoinGraph;
+
 class EnumerateCcp final {
  public:
   EnumerateCcp(size_t num_vertices, std::vector<std::pair<size_t, size_t>> edges);
@@ -28,5 +30,7 @@ class EnumerateCcp final {
                                          const boost::dynamic_bitset<>& exclusion_set) const;
   std::vector<boost::dynamic_bitset<>> _non_empty_subsets(const boost::dynamic_bitset<>& vertex_set) const;
 };
+
+std::vector<std::pair<size_t, size_t>> enumerate_ccp_edges_from_join_graph(const JoinGraph& join_graph);
 
 }  // namespace opossum

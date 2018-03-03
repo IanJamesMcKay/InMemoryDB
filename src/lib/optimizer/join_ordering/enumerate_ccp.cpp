@@ -4,6 +4,8 @@
 #include <set>
 
 #include "utils/assert.hpp"
+#include "join_graph.hpp"
+#include "join_edge.hpp"
 
 namespace opossum {
 
@@ -146,6 +148,20 @@ std::vector<boost::dynamic_bitset<>> EnumerateCcp::_non_empty_subsets(const boos
   subsets.emplace_back(vertex_set);
 
   return subsets;
+}
+
+std::vector<std::pair<size_t, size_t>> enumerate_ccp_edges_from_join_graph(const JoinGraph& join_graph) {
+  std::vector<std::pair<size_t, size_t>> enumerate_ccp_edges;
+  for (const auto& edge : join_graph.edges) {
+    if (edge->vertex_set.count() != 2) continue;
+
+    const auto first_vertex_idx = edge->vertex_set.find_first();
+    const auto second_vertex_idx = edge->vertex_set.find_next(first_vertex_idx);
+
+    enumerate_ccp_edges.emplace_back(first_vertex_idx, second_vertex_idx);
+  }
+
+  return enumerate_ccp_edges;
 }
 
 }  // namespace opossum

@@ -157,6 +157,8 @@ set(
     optimizer/column_statistics.hpp
     optimizer/join_ordering/abstract_dp_algorithm.cpp
     optimizer/join_ordering/abstract_dp_algorithm.hpp
+    optimizer/join_ordering/abstract_dp_subplan_cache.hpp
+    optimizer/join_ordering/abstract_join_ordering_algorithm.hpp
     optimizer/join_ordering/abstract_join_plan_node.cpp
     optimizer/join_ordering/abstract_join_plan_node.hpp
     optimizer/join_ordering/dp_ccp.cpp

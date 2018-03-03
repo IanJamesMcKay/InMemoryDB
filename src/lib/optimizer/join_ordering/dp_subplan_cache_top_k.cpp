@@ -20,6 +20,10 @@ std::shared_ptr<const AbstractJoinPlanNode> DpSubplanCacheTopK::get_best_plan(co
   return plans.empty() ? nullptr : *plans.begin();
 }
 
+void DpSubplanCacheTopK::clear() {
+  _plans_by_vertex_set.clear();
+}
+
 void DpSubplanCacheTopK::cache_plan(const boost::dynamic_bitset<>& vertex_set, const std::shared_ptr<const AbstractJoinPlanNode>& plan) {
   auto& plans = _plans_by_vertex_set[vertex_set];
   plans.insert(plan);

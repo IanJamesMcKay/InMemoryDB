@@ -49,7 +49,7 @@ void create_sql_pipeline_report(SQLPipeline& sql_pipeline, const std::string &na
     const auto prefix_join_graph = name + ".join_graph_" + std::to_string(lqp_idx);
     JoinGraphVisualizer{graphviz_config, graph_info, vertex_info, edge_info}.visualize(join_graph, prefix_join_graph + ".dot", prefix_join_graph + extension);
 
-    const auto join_plan = DpCcp{join_graph}();
+    const auto join_plan = DpCcp{}(join_graph);
     std::cout << "Report Join Plan" << std::endl;
     join_plan->print();
     const auto prefix_join_plan = name + ".join_plan_" + std::to_string(lqp_idx);

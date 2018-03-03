@@ -7,6 +7,7 @@
 
 #include "boost/dynamic_bitset.hpp"
 
+#include "abstract_join_ordering_algorithm.hpp"
 #include "join_graph.hpp"
 
 namespace opossum {
@@ -17,12 +18,11 @@ class AbstractJoinPlanNode;
 class JoinEdge;
 class JoinGraph;
 
-class AbstractDpAlgorithm {
+class AbstractDpAlgorithm : public AbstractJoinOrderingAlgorithm {
  public:
-  explicit AbstractDpAlgorithm(const std::shared_ptr<const JoinGraph>& join_graph, const std::shared_ptr<AbstractDpSubplanCache>& subplan_cache);
-  virtual ~AbstractDpAlgorithm() = default;
+  explicit AbstractDpAlgorithm(const std::shared_ptr<AbstractDpSubplanCache>& subplan_cache);
 
-  std::shared_ptr<const AbstractJoinPlanNode> operator()();
+  std::shared_ptr<const AbstractJoinPlanNode> operator()(const std::shared_ptr<const JoinGraph>& join_graph) override;
 
  protected:
   virtual void _on_execute() = 0;

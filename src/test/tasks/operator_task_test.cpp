@@ -29,7 +29,7 @@ class OperatorTaskTest : public BaseTest {
 
 TEST_F(OperatorTaskTest, BasicTasksFromOperatorTest) {
   auto gt = std::make_shared<GetTable>("table_a");
-  auto tasks = OperatorTask::make_tasks_from_operator(gt);
+  auto tasks = OperatorTask::make_tasks_from_pqp(gt);
 
   auto result_task = tasks.back();
   result_task->schedule();
@@ -41,7 +41,7 @@ TEST_F(OperatorTaskTest, SingleDependencyTasksFromOperatorTest) {
   auto gt = std::make_shared<GetTable>("table_a");
   auto ts = std::make_shared<TableScan>(gt, ColumnID{0}, PredicateCondition::Equals, 1234);
 
-  auto tasks = OperatorTask::make_tasks_from_operator(ts);
+  auto tasks = OperatorTask::make_tasks_from_pqp(ts);
   for (auto& task : tasks) {
     task->schedule();
   }
@@ -56,7 +56,7 @@ TEST_F(OperatorTaskTest, DoubleDependencyTasksFromOperatorTest) {
   auto join = std::make_shared<JoinHash>(gt_a, gt_b, JoinMode::Inner, ColumnIDPair(ColumnID{0}, ColumnID{0}),
                                          PredicateCondition::Equals);
 
-  auto tasks = OperatorTask::make_tasks_from_operator(join);
+  auto tasks = OperatorTask::make_tasks_from_pqp(join);
   for (auto& task : tasks) {
     task->schedule();
   }

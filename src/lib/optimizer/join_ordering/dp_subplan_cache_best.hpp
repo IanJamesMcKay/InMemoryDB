@@ -13,6 +13,8 @@ class AbstractJoinPlanNode;
 
 class DpSubplanCacheBest : public AbstractDpSubplanCache {
  public:
+  void clear() override;
+
   std::shared_ptr<const AbstractJoinPlanNode> get_best_plan(const boost::dynamic_bitset<> &vertex_set) const override;
   void cache_plan(const boost::dynamic_bitset<> &vertex_set, const std::shared_ptr<const AbstractJoinPlanNode> &plan) override;
 

@@ -10,6 +10,11 @@
 
 namespace opossum {
 
+std::shared_ptr<Optimizer> Optimizer::get_dummy_optimizer() {
+  static auto optimizer{std::make_shared<Optimizer>(0)};
+  return optimizer;
+}
+
 std::shared_ptr<Optimizer> Optimizer::create_default_optimizer() {
   auto optimizer = std::make_shared<Optimizer>(10);
 

@@ -6,12 +6,15 @@
 
 namespace opossum {
 
-AbstractDpAlgorithm::AbstractDpAlgorithm(const std::shared_ptr<const JoinGraph>& join_graph, const std::shared_ptr<AbstractDpSubplanCache>& subplan_cache)
-    : _join_graph(join_graph), _subplan_cache(subplan_cache) {
+AbstractDpAlgorithm::AbstractDpAlgorithm(const std::shared_ptr<AbstractDpSubplanCache>& subplan_cache)
+    : _subplan_cache(subplan_cache) {
 
 }
 
-std::shared_ptr<const AbstractJoinPlanNode> AbstractDpAlgorithm::operator()() {
+std::shared_ptr<const AbstractJoinPlanNode> AbstractDpAlgorithm::operator()(const std::shared_ptr<const JoinGraph>& join_graph) {
+  _subplan_cache->clear();
+  _join_graph = join_graph;
+
   /**
    * Initialize single-vertex vertex_sets with single node JoinPlans
    */

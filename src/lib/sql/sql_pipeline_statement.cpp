@@ -256,7 +256,7 @@ const std::vector<std::shared_ptr<OperatorTask>>& SQLPipelineStatement::get_task
 
   try {
     const auto& root = query_plan->tree_roots().front();
-    _tasks = OperatorTask::make_tasks_from_operator(root);
+    _tasks = OperatorTask::make_tasks_from_pqp(root);
   } catch (const std::exception& exception) {
     throw std::runtime_error("Error while creating tasks:\n  " + std::string(exception.what()));
   }

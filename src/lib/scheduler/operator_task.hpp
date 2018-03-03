@@ -19,8 +19,8 @@ class OperatorTask : public AbstractTask {
   /**
    * Create tasks recursively from result operator and set task dependencies automatically.
    */
-  static const std::vector<std::shared_ptr<OperatorTask>> make_tasks_from_operator(
-      std::shared_ptr<AbstractOperator> op);
+  static const std::vector<std::shared_ptr<OperatorTask>> make_tasks_from_pqp(
+  std::shared_ptr<AbstractOperator> op);
 
   const std::shared_ptr<AbstractOperator>& get_operator() const;
 

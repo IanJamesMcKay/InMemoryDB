@@ -21,7 +21,7 @@ std::vector<std::shared_ptr<OperatorTask>> SQLQueryPlan::create_tasks() const {
 
   for (const auto& root : _roots) {
     std::vector<std::shared_ptr<OperatorTask>> sub_list;
-    sub_list = OperatorTask::make_tasks_from_operator(root);
+    sub_list = OperatorTask::make_tasks_from_pqp(root);
     tasks.insert(tasks.end(), sub_list.begin(), sub_list.end());
   }
 

@@ -108,9 +108,9 @@ std::shared_ptr<const Table> Projection::_on_execute() {
     if (column_expression->alias()) {
       column_definition.name = *column_expression->alias();
     } else if (column_expression->type() == ExpressionType::Column) {
-      column_definition.name = "Blub";//input_table_left()->column_name(column_expression->column_id());
+      column_definition.name = input_table_left()->column_name(column_expression->column_id());
     } else if (column_expression->is_arithmetic_operator() || column_expression->type() == ExpressionType::Literal) {
-      column_definition.name = "Bla";//column_expression->to_string(input_table_left()->column_names());
+      column_definition.name = column_expression->to_string(input_table_left()->column_names());
     } else {
       Fail("Expression type is not supported.");
     }

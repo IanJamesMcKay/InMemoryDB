@@ -14,7 +14,7 @@
 
 namespace opossum {
 
-DpCcp::DpCcp(const std::shared_ptr<const JoinGraph>& join_graph) : AbstractDpAlgorithm(join_graph, std::make_shared<DpSubplanCacheBest>()) {}
+DpCcp::DpCcp() : AbstractDpAlgorithm(std::make_shared<DpSubplanCacheBest>()) {}
 
 void DpCcp::_on_execute() {
   /**

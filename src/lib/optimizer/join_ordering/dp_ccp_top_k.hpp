@@ -7,7 +7,7 @@ namespace opossum {
 
 class DpCcpTopK : public AbstractDpAlgorithm {
  public:
-  explicit DpCcpTopK(const std::shared_ptr<const JoinGraph>& join_graph, const size_t max_entry_count_per_set);
+  explicit DpCcpTopK(const size_t max_entry_count_per_set);
 
   std::shared_ptr<DpSubplanCacheTopK> subplan_cache();
   std::shared_ptr<const DpSubplanCacheTopK> subplan_cache() const;

@@ -4,6 +4,10 @@
 
 namespace opossum {
 
+void DpSubplanCacheBest::clear() {
+  _plan_by_vertex_set.clear();
+}
+
 std::shared_ptr<const AbstractJoinPlanNode> DpSubplanCacheBest::get_best_plan(
 const boost::dynamic_bitset<> &vertex_set) const {
   const auto iter = _plan_by_vertex_set.find(vertex_set);

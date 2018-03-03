@@ -20,8 +20,8 @@ std::string OperatorTask::description() const {
   return "OperatorTask with id: " + std::to_string(id()) + " for op: " + _op->description();
 }
 
-const std::vector<std::shared_ptr<OperatorTask>> OperatorTask::make_tasks_from_operator(
-    std::shared_ptr<AbstractOperator> op) {
+const std::vector<std::shared_ptr<OperatorTask>> OperatorTask::make_tasks_from_pqp(
+std::shared_ptr<AbstractOperator> op) {
   std::vector<std::shared_ptr<OperatorTask>> tasks;
   OperatorTask::_add_tasks_from_operator(op, tasks);
   return tasks;

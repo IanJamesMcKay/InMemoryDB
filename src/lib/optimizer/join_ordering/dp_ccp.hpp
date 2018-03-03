@@ -7,7 +7,7 @@ namespace opossum {
 
 class DpCcp : public AbstractDpAlgorithm {
  public:
-  explicit DpCcp(const std::shared_ptr<const JoinGraph>& join_graph);
+  DpCcp();
 
  protected:
   void _on_execute() override;

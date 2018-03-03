@@ -14,7 +14,7 @@
 
 namespace opossum {
 
-DpCcpTopK::DpCcpTopK(const std::shared_ptr<const JoinGraph>& join_graph, const size_t max_entry_count_per_set) : AbstractDpAlgorithm(join_graph, std::make_shared<DpSubplanCacheTopK>(max_entry_count_per_set)) {}
+DpCcpTopK::DpCcpTopK(const size_t max_entry_count_per_set) : AbstractDpAlgorithm(std::make_shared<DpSubplanCacheTopK>(max_entry_count_per_set)) {}
 
 std::shared_ptr<DpSubplanCacheTopK> DpCcpTopK::subplan_cache() {
   return std::static_pointer_cast<DpSubplanCacheTopK>(_subplan_cache);
