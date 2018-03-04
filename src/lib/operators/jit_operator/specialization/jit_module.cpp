@@ -102,7 +102,7 @@ void JitModule::_resolve_virtual_calls() {
 
     auto arg = call_site.arg_begin();
     std::cerr << "check: " << _get_runtime_value(arg->get())->is_valid() << std::endl;
-    if (!_get_runtime_value(arg->get())->is_valid()) {
+    if (arg->get()->getType()->isPointerTy() && !_get_runtime_value(arg->get())->is_valid()) {
       call_sites.pop();
       continue;
     }

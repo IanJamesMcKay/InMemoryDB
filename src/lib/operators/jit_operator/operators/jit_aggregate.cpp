@@ -87,9 +87,10 @@ void JitAggregate::_consume(JitRuntimeContext& context) const {
   // compute hash value
   uint64_t hash_value = 0;
 
-  const auto size = _groupby_columns.size();
+  const auto num_groupby_columns = _groupby_columns.size();
+  const auto num_aggregate_columns = _aggregate_columns.size();
 
-  for (uint32_t i = 0; i < size; ++i) {
+  for (uint32_t i = 0; i < num_groupby_columns; ++i) {
     hash_value = (hash_value << 5) ^ jit_hash(_groupby_columns[i].tuple_value, context);
   }
 
@@ -99,8 +100,9 @@ void JitAggregate::_consume(JitRuntimeContext& context) const {
   uint64_t match_index;
   for (const auto& index : hash_bucket) {
     bool all_values_equal = true;
-    for (auto& groupby_column : _groupby_columns) {
-      if (!jit_aggregate_equals(groupby_column.tuple_value, groupby_column.hashmap_value, index, context)) {
+    //for (auto& groupby_column : _groupby_columns) {
+    for (uint32_t i = 0; i < num_groupby_columns; ++i) {
+      if (!jit_aggregate_equals(_groupby_columns[i].tuple_value, _groupby_columns[i].hashmap_value, index, context)) {
         all_values_equal = false;
         break;
       }
@@ -114,32 +116,34 @@ void JitAggregate::_consume(JitRuntimeContext& context) const {
 
   if (!found_match) {
     //for (auto& groupby_column : _groupby_columns) {
-    for (uint32_t i = 0; i < size; ++i) {
+    for (uint32_t i = 0; i < num_groupby_columns; ++i) {
       match_index = jit_grow_by_one(_groupby_columns[i].hashmap_value, context);
       jit_assign(_groupby_columns[i].tuple_value, _groupby_columns[i].hashmap_value, match_index, context);
     }
-    for (auto& aggregate_column : _aggregate_columns) {
-      match_index = jit_grow_by_one(aggregate_column.hashmap_value, context);
+    for (uint32_t i = 0; i < num_aggregate_columns; ++i) {
+    //for (auto& aggregate_column : _aggregate_columns) {
+      match_index = jit_grow_by_one(_aggregate_columns[i].hashmap_value, context);
     }
     hash_bucket.push_back(match_index);
   }
 
-  for (auto& aggregate_column : _aggregate_columns) {
-    switch (aggregate_column.function) {
+  for (uint32_t i = 0; i < num_aggregate_columns; ++i) {
+  //for (auto& aggregate_column : _aggregate_columns) {
+    switch (_aggregate_columns[i].function) {
       case AggregateFunction::Sum:
-        jit_aggregate_compute(jit_addition, aggregate_column.tuple_value, aggregate_column.hashmap_value, match_index,
+        jit_aggregate_compute(jit_addition, _aggregate_columns[i].tuple_value, _aggregate_columns[i].hashmap_value, match_index,
                               context);
         break;
       case AggregateFunction::Count:
-        jit_aggregate_compute(jit_increment, aggregate_column.tuple_value, aggregate_column.hashmap_value, match_index,
+        jit_aggregate_compute(jit_increment, _aggregate_columns[i].tuple_value, _aggregate_columns[i].hashmap_value, match_index,
                               context);
         break;
       case AggregateFunction::Max:
-        jit_aggregate_compute(jit_maximum, aggregate_column.tuple_value, aggregate_column.hashmap_value, match_index,
+        jit_aggregate_compute(jit_maximum, _aggregate_columns[i].tuple_value, _aggregate_columns[i].hashmap_value, match_index,
                               context);
         break;
       case AggregateFunction::Min:
-        jit_aggregate_compute(jit_minimum, aggregate_column.tuple_value, aggregate_column.hashmap_value, match_index,
+        jit_aggregate_compute(jit_minimum, _aggregate_columns[i].tuple_value, _aggregate_columns[i].hashmap_value, match_index,
                               context);
         break;
       default:
