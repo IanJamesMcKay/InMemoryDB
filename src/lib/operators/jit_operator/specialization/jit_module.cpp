@@ -38,6 +38,12 @@ void JitModule::specialize_fast(const JitRuntimePointer::Ptr& runtime_this) {
   if (optimize) {
     _replace_loads_with_runtime_values();
     _optimize();
+    std::cerr << "in the middle" << std::endl;
+    llvm_utils::module_to_file("/tmp/mid_final.ll", *_module);
+    _runtime_values[&*_root_function->arg_begin()] = runtime_this;
+    _resolve_virtual_calls();
+    _replace_loads_with_runtime_values();
+    _optimize();
   }
 
   llvm_utils::module_to_file("/tmp/final.ll", *_module);
@@ -60,8 +66,8 @@ void JitModule::_resolve_virtual_calls() {
   std::queue<llvm::CallSite> call_sites;
   _visit<llvm::CallInst>([&](llvm::CallInst& inst) { call_sites.push(llvm::CallSite(&inst)); });
   _visit<llvm::InvokeInst>([&](llvm::InvokeInst& inst) { call_sites.push(llvm::CallSite(&inst)); });
-  //uint32_t counter = 0;
-  //llvm_utils::module_to_file("/tmp/after_" + std::to_string(counter++) + ".ll", *_module);
+  uint32_t counter = 0;
+  llvm_utils::module_to_file("/tmp/after_" + std::to_string(counter++) + ".ll", *_module);
   while (!call_sites.empty()) {
     auto& call_site = call_sites.front();
     if (call_site.isIndirectCall()) {
@@ -87,12 +93,20 @@ void JitModule::_resolve_virtual_calls() {
 
     auto& function = *call_site.getCalledFunction();
 
-    if (!boost::starts_with(function.getName().str(), "_ZNK7opossum")) {
+    if (!boost::starts_with(function.getName().str(), "_ZNK7opossum") && !boost::starts_with(function.getName().str(), "_ZN7opossum") && function.getName().str() != "__clang_call_terminate") {
       _llvm_value_map[&function] = _create_function_declaration(function);
       call_sites.pop();
       continue;
     }
     std::cerr << "about to inline " << function.getName().str() << std::endl;
+
+    auto arg = call_site.arg_begin();
+    std::cerr << "check: " << _get_runtime_value(arg->get())->is_valid() << std::endl;
+    if (!_get_runtime_value(arg->get())->is_valid()) {
+      call_sites.pop();
+      continue;
+    }
+
     _llvm_value_map.clear();
     // map personality function
     //if (function.hasPersonalityFn()) {
@@ -137,7 +151,7 @@ void JitModule::_resolve_virtual_calls() {
     //  }
 
     call_sites.pop();
-    //llvm_utils::module_to_file("/tmp/after_" + std::to_string(counter++) + ".ll", *_module);
+    llvm_utils::module_to_file("/tmp/after_" + std::to_string(counter++) + ".ll", *_module);
   }
 }
 
@@ -212,7 +226,7 @@ void JitModule::_optimize() {
 
   //  const auto before_path = "/tmp/before.ll";
   //  const auto after_path = "/tmp/after.ll";
-  //const auto remarks_path = "/tmp/remarks.yml";
+  const auto remarks_path = "/tmp/remarks.yml";
 
   //  std::cout << "Running optimization" << std::endl
   //            << "  before:  " << before_path << std::endl
@@ -223,9 +237,9 @@ void JitModule::_optimize() {
   //  llvm_utils::module_to_file(before_path, *_module);
 
   // TODO(johannes) remove later
-  //std::error_code error_code;
-  //llvm::raw_fd_ostream remarks_file(remarks_path, error_code, llvm::sys::fs::F_None);
-  //_repository.llvm_context()->setDiagnosticsOutputFile(std::make_unique<llvm::yaml::Output>(remarks_file));
+  std::error_code error_code;
+  llvm::raw_fd_ostream remarks_file(remarks_path, error_code, llvm::sys::fs::F_None);
+  _repository.llvm_context()->setDiagnosticsOutputFile(std::make_unique<llvm::yaml::Output>(remarks_file));
 
   const llvm::Triple module_triple(_module->getTargetTriple());
   const llvm::TargetLibraryInfoImpl target_lib_info(module_triple);
@@ -246,6 +260,7 @@ void JitModule::_optimize() {
   _compiler.target_machine().adjustPassManager(pass_builder);
   //pass_builder.populateModulePassManager(pass_manager);
   pass_builder.addFunctionSimplificationPasses(pass_manager);
+  pass_manager.add(llvm::createLoopUnrollPass(3, 1000000000, -1, 0));
   auto start = std::chrono::high_resolution_clock::now();
   pass_manager.run(*_module);
   auto end = std::chrono::high_resolution_clock::now();

@@ -87,8 +87,10 @@ void JitAggregate::_consume(JitRuntimeContext& context) const {
   // compute hash value
   uint64_t hash_value = 0;
 
-  for (const auto &groupby_column : _groupby_columns) {
-    hash_value = (hash_value << 5) ^ jit_hash(groupby_column.tuple_value, context);
+  const auto size = _groupby_columns.size();
+
+  for (uint32_t i = 0; i < size; ++i) {
+    hash_value = (hash_value << 5) ^ jit_hash(_groupby_columns[i].tuple_value, context);
   }
 
   auto& hash_bucket = context.hashmap.indices[hash_value];
@@ -111,9 +113,10 @@ void JitAggregate::_consume(JitRuntimeContext& context) const {
   }
 
   if (!found_match) {
-    for (auto& groupby_column : _groupby_columns) {
-      match_index = jit_grow_by_one(groupby_column.hashmap_value, context);
-      jit_assign(groupby_column.tuple_value, groupby_column.hashmap_value, match_index, context);
+    //for (auto& groupby_column : _groupby_columns) {
+    for (uint32_t i = 0; i < size; ++i) {
+      match_index = jit_grow_by_one(_groupby_columns[i].hashmap_value, context);
+      jit_assign(_groupby_columns[i].tuple_value, _groupby_columns[i].hashmap_value, match_index, context);
     }
     for (auto& aggregate_column : _aggregate_columns) {
       match_index = jit_grow_by_one(aggregate_column.hashmap_value, context);
