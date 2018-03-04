@@ -17,7 +17,7 @@ namespace {
 
 struct SqlAndPredicates {
   std::string sql;
-  std::vector<std::string> predicates;g
+  std::vector<std::string> predicates;
 };
 
 }  // namespace
@@ -139,8 +139,12 @@ TEST_P(DpCcpSqlTest, SameResult) {
 INSTANTIATE_TEST_CASE_P(DpCcpSqlTestInstances,
                         DpCcpSqlTest,
                         ::testing::Values(
+  /**
+   * Use only a selection of columns to speed up comparison!
+   */
+
   // JoinGraph has to handle 2 simple components
-  R"(SELECT * FROM t_a, t_b, int_float2 WHERE t_a.id = t_b.id AND int_float2.a < 1000;)",
+  R"(SELECT t_a.id, t_b.int_b, int_float2.b FROM t_a, t_b, int_float2 WHERE t_a.id = t_b.id AND int_float2.a < 1000;)",
 
   // JoinGraph has to handle multiple more complex components
   R"(SELECT t_a.int_a * 3, c.a
@@ -151,7 +155,7 @@ INSTANTIATE_TEST_CASE_P(DpCcpSqlTestInstances,
   )",
 
   //
-  R"(SELECT *
+  R"(SELECT t_a_a.id, t_a_a.int_c, t_a_b.*, t_b.int_b, t_c.id, t_c.int_a
      FROM
        t_a AS t_a_a, t_a AS t_a_b, t_b, t_c
      WHERE

@@ -21,6 +21,18 @@ target_link_libraries(
     hyriseBenchmarkLib
 )
 
+# Configure static cost evaluator
+add_executable(
+    hyriseStaticCostEvaluator
+
+    static_cost_evaluator.cpp
+)
+target_link_libraries(
+    hyriseStaticCostEvaluator
+    hyrise
+    hyriseBenchmarkLib
+)
+
 # Configure tpccTableGenerator
 add_executable(tpccTableGenerator tpcc_table_generator.cpp)
 target_link_libraries(tpccTableGenerator hyrise hyriseBenchmarkLib)

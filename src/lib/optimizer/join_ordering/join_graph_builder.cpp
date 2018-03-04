@@ -229,33 +229,35 @@ std::vector<std::shared_ptr<JoinEdge>> edges) {
    * different edges, say CD and EF would result in a better plan. We ignore this possibility for now.
    */
 
-  std::vector<size_t> remaining_vertex_indices(vertices.size());
-  std::iota(remaining_vertex_indices.begin(), remaining_vertex_indices.end(), 0u);
+  std::unordered_set<size_t> remaining_vertex_indices;
+  for(auto vertex_idx = size_t{0}; vertex_idx < vertices.size(); ++vertex_idx) remaining_vertex_indices.insert(vertex_idx);
 
   std::vector<size_t> one_vertex_per_component;
 
   while (!remaining_vertex_indices.empty()) {
-    one_vertex_per_component.emplace_back(remaining_vertex_indices.front());
+    const auto vertex_idx = *remaining_vertex_indices.begin();
+
+    one_vertex_per_component.emplace_back(vertex_idx);
 
     std::stack<size_t> bfs_stack;
-    bfs_stack.push(remaining_vertex_indices.front());
+    bfs_stack.push(vertex_idx);
 
     while (!bfs_stack.empty()) {
-      const auto vertex_idx = bfs_stack.top();
+      const auto vertex_idx2 = bfs_stack.top();
       bfs_stack.pop();
 
-      remaining_vertex_indices.erase(std::remove(remaining_vertex_indices.begin(), remaining_vertex_indices.end(), vertex_idx), remaining_vertex_indices.end());
+      remaining_vertex_indices.erase(vertex_idx2);
 
       for (auto iter = edges.begin(); iter != edges.end();) {
         const auto& edge = *iter;
-        if (!edge->vertex_set.test(vertex_idx)) {
+        if (!edge->vertex_set.test(vertex_idx2)) {
           ++iter;
           continue;
         }
 
         auto connected_vertex_idx = edge->vertex_set.find_first();
         while (connected_vertex_idx != JoinVertexSet::npos) {
-          if (connected_vertex_idx != vertex_idx) bfs_stack.push(connected_vertex_idx);
+          if (connected_vertex_idx != vertex_idx2) bfs_stack.push(connected_vertex_idx);
           connected_vertex_idx = edge->vertex_set.find_next(connected_vertex_idx);
         }
 

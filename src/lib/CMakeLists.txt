@@ -403,6 +403,10 @@ set(
     utils/performance_warning.hpp
     utils/print_directed_acyclic_graph.hpp
     utils/scoped_locking_ptr.hpp
+    utils/table_generator.cpp
+    utils/table_generator.hpp
+    utils/table_generator2.cpp
+    utils/table_generator2.hpp
     utils/template_type.hpp
 )
 

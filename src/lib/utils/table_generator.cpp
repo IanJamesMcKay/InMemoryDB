@@ -25,7 +25,7 @@ TableGenerator::TableGenerator(const size_t num_columns, const size_t num_rows, 
 }
 
 std::shared_ptr<Table> TableGenerator::generate_table(const ChunkOffset chunk_size,
-                                                      std::optional<EncodingType> encoding_type) {
+                                                      std::optional<EncodingType> encoding_type) const {
   std::vector<tbb::concurrent_vector<int>> value_vectors;
   auto vector_size = std::min(static_cast<size_t>(chunk_size), _num_rows);
   /*
