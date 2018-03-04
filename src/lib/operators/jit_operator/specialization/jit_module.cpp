@@ -98,6 +98,7 @@ void JitModule::_resolve_virtual_calls() {
       call_sites.pop();
       continue;
     }
+
     std::cerr << "about to inline " << function.getName().str() << std::endl;
 
     auto arg = call_site.arg_begin();
