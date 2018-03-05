@@ -76,6 +76,8 @@ class Table : private Noncopyable {
   // returns the number of chunks (cannot exceed ChunkID (uint32_t))
   ChunkID chunk_count() const;
 
+  const std::vector<std::shared_ptr<Chunk>>& chunks() const;
+
   // returns the chunk with the given id
   std::shared_ptr<Chunk> get_chunk(ChunkID chunk_id);
   std::shared_ptr<const Chunk> get_chunk(ChunkID chunk_id) const;

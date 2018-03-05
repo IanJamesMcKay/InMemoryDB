@@ -8,7 +8,12 @@
 #include "operators/product.hpp"
 #include "utils/table_generator2.hpp"
 #include "optimizer/table_statistics.hpp"
+#include "storage/storage_manager.hpp"
 #include "constant_mappings.hpp"
+#include "tpch/tpch_db_generator.hpp"
+#include "sql/sql_pipeline_statement.hpp"
+#include "tpch/tpch_queries.hpp"
+#include "planviz/sql_query_plan_visualizer.hpp"
 
 using namespace opossum; // NOLINT
 
@@ -169,29 +174,176 @@ class TableScanEvaluator : public BaseCostEvaluator {
   }
 };
 
+std::vector<std::shared_ptr<AbstractOperator>> flatten_pqp(const std::shared_ptr<AbstractOperator>& pqp) {
+  std::vector<std::shared_ptr<AbstractOperator>> operators;
+
+  if (!pqp->input_left()) return {pqp};
+
+  auto left_flattened = flatten_pqp(std::const_pointer_cast<AbstractOperator>(pqp->input_left()));
+
+  if (pqp->input_right()) {
+    auto right_flattened = flatten_pqp(std::const_pointer_cast<AbstractOperator>(pqp->input_right()));
+    left_flattened.insert(left_flattened.end(), right_flattened.begin(), right_flattened.end());
+  }
+
+  left_flattened.emplace_back(pqp);
+
+  return left_flattened;
+}
+
+struct TableScanSample final {
+  TableScanSample(const size_t input_row_count, const size_t output_row_count, const long microseconds):
+    input_row_count(input_row_count), output_row_count(output_row_count), microseconds(microseconds) {}
+
+  size_t input_row_count{0};
+  size_t output_row_count{0};
+
+  long microseconds{0};
+
+  friend std::ostream& operator<<(std::ostream& stream, const TableScanSample& sample) {
+    stream << sample.input_row_count << ";" << sample.output_row_count << ";" << sample.microseconds;
+    return stream;
+  }
+};
+
+struct JoinHashSample final {
+  JoinHashSample(const std::string& info,
+                 const size_t left_input_row_count,
+                 const size_t right_input_row_count,
+                 const DataType left_data_type,
+                 const DataType right_data_type,
+                 const size_t output_row_count,
+                 const long microseconds):
+  info(info),
+  left_input_row_count(left_input_row_count),
+  right_input_row_count(right_input_row_count),
+  left_data_type(left_data_type),
+  right_data_type(right_data_type),
+  output_row_count(output_row_count),
+  microseconds(microseconds) {}
+
+  std::string info;
+
+  size_t left_input_row_count{0};
+  size_t right_input_row_count{0};
+
+  DataType left_data_type{DataType::Int};
+  DataType right_data_type{DataType::Int};
+
+  size_t output_row_count{0};
+
+  long microseconds{0};
+
+  friend std::ostream& operator<<(std::ostream& stream, const JoinHashSample& sample) {
+    stream
+           << sample.info << ";"
+           << data_type_to_string.left.at(sample.left_data_type) << ";"
+           << data_type_to_string.left.at(sample.right_data_type) << ";"
+           << sample.left_input_row_count << ";"
+           << sample.right_input_row_count << ";"
+           << sample.output_row_count << ";"
+           << sample.microseconds;
+    return stream;
+  }
+};
+
+std::vector<TableScanSample> table_scan_samples;
+std::vector<JoinHashSample> join_hash_samples;
+
+void visit_table_scan(TableScan& table_scan) {
+  const auto row_count = table_scan.input_table_left()->row_count();
+
+  const auto duration = time_fn([&]() {table_scan.execute();});
+
+  table_scan_samples.emplace_back(row_count, table_scan.get_output()->row_count(), std::chrono::duration_cast<std::chrono::microseconds>(duration).count());
+}
+
+void visit_join_hash(JoinHash& join_hash) {
+  const auto left_row_count = join_hash.input_table_left()->row_count();
+  const auto right_row_count = join_hash.input_table_right()->row_count();
+
+  const auto duration = time_fn([&]() {join_hash.execute();});
+
+  join_hash_samples.emplace_back(join_hash.description(DescriptionMode::SingleLine),
+  left_row_count,
+                                 right_row_count,
+                                 join_hash.input_table_left()->column_data_type(join_hash.column_ids().first),
+                                 join_hash.input_table_right()->column_data_type(join_hash.column_ids().second),
+                                 join_hash.get_output()->row_count(),
+                                 std::chrono::duration_cast<std::chrono::microseconds>(duration).count());
+}
+
+void visit_op(const std::shared_ptr<AbstractOperator>& op) {
+  if (const auto table_scan = std::dynamic_pointer_cast<TableScan>(op)) {
+    visit_table_scan(*table_scan);
+  } else if (const auto join_hash = std::dynamic_pointer_cast<JoinHash>(op)) {
+    visit_join_hash(*join_hash);
+  } else {
+    op->execute();
+  }
+}
+
 int main() {
   std::cout << "-- Static Cost Evaluator" << std::endl;
 
-  TableGenerator2ColumnDefinitions column_definitions_a;
-  column_definitions_a.emplace_back(DataType::Int, 0, 1'000);
-  column_definitions_a.emplace_back(DataType::Int, 0, 50'000);
-  column_definitions_a.emplace_back(DataType::Int, 0, 1'000'000);
-  column_definitions_a.emplace_back(DataType::Float, 0.0f, 100'000.0f);
+  const auto sql_queries = std::vector<std::string>({
+//    R"(SELECT * FROM lineitem WHERE l_discount > 0.05 AND l_discount < 0.1;)",
+//    R"(SELECT * FROM customer WHERE c_acctbal > 100 AND c_nationkey = 10;)",
+//    tpch_queries[5],
+    tpch_queries[6]
+  });
 
-  TableGenerator2ColumnDefinitions column_definitions_b;
-  column_definitions_b.emplace_back(DataType::Int, 0, 1'000);
-  column_definitions_b.emplace_back(DataType::Int, 0, 1'000);
-  column_definitions_b.emplace_back(DataType::Int, 0, 1'000);
-  column_definitions_b.emplace_back(DataType::Int, 0, 50'000);
-  column_definitions_b.emplace_back(DataType::Int, 0, 50'000);
-  column_definitions_b.emplace_back(DataType::Int, 0, 1'000'000);
-  column_definitions_b.emplace_back(DataType::Int, 0, 1'000'000);
-  column_definitions_b.emplace_back(DataType::Float, 0.0f, 100'000.0f);
+  for (const auto scale_factor : {0.1f}) {
+    std::cout << "ScaleFactor: " << scale_factor << std::endl;
 
-  TableScanEvaluator table_scan_evaluator;
-  table_scan_evaluator.set_left_input_params({column_definitions_a, column_definitions_b}, {1'000, 20'000, 100'000, 500'000, 1'500'000}, {5});
-  table_scan_evaluator.set_left_column_ids({ColumnID{0}, ColumnID{3}});
-  table_scan_evaluator.set_predicate_conditions({PredicateCondition::Equals, PredicateCondition::LessThan});
-  table_scan_evaluator.set_values({AllTypeVariant(100), AllTypeVariant{10'000}, AllTypeVariant{500'000}});
-  table_scan_evaluator();
+    TpchDbGenerator{scale_factor}.generate_and_store();
+
+    for (const auto& sql_query : sql_queries) {
+      SQLPipelineStatement statement{sql_query};
+      const auto pqp = statement.get_query_plan()->tree_roots().at(0);
+      const auto operators = flatten_pqp(pqp);
+
+      for (const auto& op : operators) {
+        visit_op(op);
+      }
+
+      GraphvizConfig graphviz_config;
+      graphviz_config.format = "svg";
+
+      VizGraphInfo graph_info;
+      graph_info.bg_color = "black";
+
+      auto prefix = std::string("plan");
+      SQLQueryPlanVisualizer{graphviz_config, graph_info, {}, {}}.visualize(*statement.get_query_plan(), prefix + ".dot", prefix + ".svg");
+    }
+
+    StorageManager::reset();
+  }
+
+  for (const auto sample : join_hash_samples) {
+    std::cout << sample << std::endl;
+  }
+
+//  TableGenerator2ColumnDefinitions column_definitions_a;
+//  column_definitions_a.emplace_back(DataType::Int, 0, 1'000);
+//  column_definitions_a.emplace_back(DataType::Int, 0, 50'000);
+//  column_definitions_a.emplace_back(DataType::Int, 0, 1'000'000);
+//  column_definitions_a.emplace_back(DataType::Float, 0.0f, 100'000.0f);
+//
+//  TableGenerator2ColumnDefinitions column_definitions_b;
+//  column_definitions_b.emplace_back(DataType::Int, 0, 1'000);
+//  column_definitions_b.emplace_back(DataType::Int, 0, 1'000);
+//  column_definitions_b.emplace_back(DataType::Int, 0, 1'000);
+//  column_definitions_b.emplace_back(DataType::Int, 0, 50'000);
+//  column_definitions_b.emplace_back(DataType::Int, 0, 50'000);
+//  column_definitions_b.emplace_back(DataType::Int, 0, 1'000'000);
+//  column_definitions_b.emplace_back(DataType::Int, 0, 1'000'000);
+//  column_definitions_b.emplace_back(DataType::Float, 0.0f, 100'000.0f);
+//
+//  TableScanEvaluator table_scan_evaluator;
+//  table_scan_evaluator.set_left_input_params({column_definitions_a, column_definitions_b}, {1'000, 20'000, 100'000, 500'000, 1'500'000}, {5});
+//  table_scan_evaluator.set_left_column_ids({ColumnID{0}, ColumnID{3}});
+//  table_scan_evaluator.set_predicate_conditions({PredicateCondition::Equals, PredicateCondition::LessThan});
+//  table_scan_evaluator.set_values({AllTypeVariant(100), AllTypeVariant{10'000}, AllTypeVariant{500'000}});
+//  table_scan_evaluator();
 }

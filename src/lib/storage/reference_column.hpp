@@ -71,7 +71,7 @@ class ReferenceColumn : public BaseColumn {
 
   size_t size() const final;
 
-  const std::shared_ptr<const PosList> pos_list() const;
+  const std::shared_ptr<const PosList>& pos_list() const;
   const std::shared_ptr<const Table> referenced_table() const;
 
   ColumnID referenced_column_id() const;

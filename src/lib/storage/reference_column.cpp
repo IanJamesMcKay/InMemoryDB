@@ -30,7 +30,7 @@ const AllTypeVariant ReferenceColumn::operator[](const ChunkOffset chunk_offset)
 
 void ReferenceColumn::append(const AllTypeVariant&) { Fail("ReferenceColumn is immutable"); }
 
-const std::shared_ptr<const PosList> ReferenceColumn::pos_list() const { return _pos_list; }
+const std::shared_ptr<const PosList>& ReferenceColumn::pos_list() const { return _pos_list; }
 const std::shared_ptr<const Table> ReferenceColumn::referenced_table() const { return _referenced_table; }
 ColumnID ReferenceColumn::referenced_column_id() const { return _referenced_column_id; }
 
