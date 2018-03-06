@@ -30,12 +30,6 @@ const std::string& GetTable::table_name() const { return _name; }
 
 const std::vector<ChunkID>& GetTable::excluded_chunk_ids() const { return _excluded_chunk_ids; }
 
-std::shared_ptr<AbstractOperator> GetTable::recreate(const std::vector<AllParameterVariant>& args) const {
-  auto copy = std::make_shared<GetTable>(_name);
-  copy->set_excluded_chunk_ids(_excluded_chunk_ids);
-  return copy;
-}
-
 std::shared_ptr<const Table> GetTable::_on_execute() {
   auto original_table = StorageManager::get().get_table(_name);
   if (_excluded_chunk_ids.empty()) {
@@ -55,6 +49,14 @@ std::shared_ptr<const Table> GetTable::_on_execute() {
   }
 
   return pruned_table;
+}
+
+std::shared_ptr<AbstractOperator> GetTable::_on_recreate(
+    const std::vector<AllParameterVariant>& args, const std::shared_ptr<AbstractOperator>& recreated_input_left,
+    const std::shared_ptr<AbstractOperator>& recreated_input_right) const {
+  const auto copy = std::make_shared<GetTable>(_name);
+  copy->set_excluded_chunk_ids(_excluded_chunk_ids);
+  return copy;
 }
 
 void GetTable::set_excluded_chunk_ids(const std::vector<ChunkID>& excluded_chunk_ids) {
