@@ -126,6 +126,9 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
   // Determine correct type for hashing
   using HashedType = typename JoinHashTraits<LeftType, RightType>::HashType;
 
+  using PosLists = std::vector<std::shared_ptr<const PosList>>;
+  using PosListsByColumn = std::vector<std::shared_ptr<PosLists>>;
+
   /*
   This is how elements of the input relations are saved after materialization.
   The original value is used to detect hash collisions.
@@ -685,6 +688,29 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
     const auto t5 = std::chrono::high_resolution_clock::now();
     std::cout << "  Probe: " << std::chrono::duration_cast<std::chrono::microseconds>(t5-t4).count() << std::endl;
     std::cout << "    LeftPosLists: "<< left_pos_lists.size() << std::endl;
+
+    auto only_output_right_input = !_inputs_swapped || (_mode != JoinMode::Semi && _mode != JoinMode::Anti);
+
+    /**
+     * Two Caches to avoid redundant reference materialization for Reference input tables. As the there might be
+     *  quite a lot Partitions (>500 seen), input Chunks (>500 seen), and columns (>50 seen), this speeds up
+     *  write_output_chunks a lot()
+     *
+     * They do two things:
+     *      - Make it possible to re-use output pos lists if two columns in the input table have exactly the same
+     *          PosLists Chunk by Chunk
+     *      - Avoid creating the std::vector<const PosList*> for each Partition over and over again.
+     */
+    PosListsByColumn left_pos_lists_by_column;
+    PosListsByColumn right_pos_lists_by_column;
+
+    if (_left_in_table->type() == TableType::References && only_output_right_input) {
+      left_pos_lists_by_column = setup_pos_lists_by_column(_left_in_table);
+    }
+    if (_right_in_table->type() == TableType::References) {
+      right_pos_lists_by_column = setup_pos_lists_by_column(_right_in_table);
+    }
+
     for (size_t partition_id = 0; partition_id < left_pos_lists.size(); ++partition_id) {
       const auto t51 = std::chrono::high_resolution_clock::now();
       auto& left = left_pos_lists[partition_id];
@@ -698,17 +724,15 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
 
       // we need to swap back the inputs, so that the order of the output columns is not harmed
       if (_inputs_swapped) {
-        write_output_columns(output_columns, _right_in_table, _right_pos_lists_per_column, right);
+        write_output_columns(output_columns, _right_in_table, right_pos_lists_by_column, right);
 
         // Semi/Anti joins are always swapped but do not need the outer relation
-        if (_mode != JoinMode::Semi && _mode != JoinMode::Anti) {
-          DebugAssert(left.size() == right.size(), "Invalid PosList sizes");
-          write_output_columns(output_columns, _left_in_table, _left_pos_lists_per_column, left);
+        if (only_output_right_input) {
+          write_output_columns(output_columns, _left_in_table, left_pos_lists_by_column, left);
         }
       } else {
-        DebugAssert(left.size() == right.size(), "Invalid PosList sizes");
-        write_output_columns(output_columns, _left_in_table, _left_pos_lists_per_column, left);
-        write_output_columns(output_columns, _right_in_table, _right_pos_lists_per_column, right);
+        write_output_columns(output_columns, _left_in_table, left_pos_lists_by_column, left);
+        write_output_columns(output_columns, _right_in_table, right_pos_lists_by_column, right);
       }
 
       _output_table->append_chunk(output_columns);
@@ -721,69 +745,73 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
     return _output_table;
   }
 
-  static void write_output_columns(ChunkColumns& output_columns, const std::shared_ptr<const Table> input_table,
-                                   PosListsPerColumn& pos_lists_per_column, PosList& pos_list) {
+  // See usage in _on_execute() for doc.
+  static PosListsByColumn setup_pos_lists_by_column(const std::shared_ptr<const Table> input_table) {
+    std::map<PosLists, std::shared_ptr<PosLists>> shared_pos_lists_by_pos_lists;
 
-//    std::cout << "    NumColumns: " << input_table->column_count() << std::endl;
+    PosListsByColumn pos_lists_by_column(input_table->column_count());
+    auto pos_lists_by_column_it = pos_lists_by_column.begin();
+
+    const auto& input_chunks = input_table->chunks();
+
+    for (ColumnID column_id{0}; column_id < input_table->column_count(); ++column_id) {
+      // Get all the input pos lists so that we only have to pointer cast the columns once
+      auto pos_list_ptrs = std::make_shared<PosLists>(input_table->chunk_count());
+      auto pos_lists_iter = pos_list_ptrs->begin();
+
+      for (ChunkID chunk_id{0}; chunk_id < input_table->chunk_count(); chunk_id++) {
+        // This works because we assume that the columns have to be either all ReferenceColumns or none.
+        const auto& ref_column =
+            *static_cast<const ReferenceColumn*>(input_chunks[chunk_id]->columns()[column_id].get());
+        *pos_lists_iter = ref_column.pos_list();
+        ++pos_lists_iter;
+      }
+
+      auto iter = shared_pos_lists_by_pos_lists.emplace(*pos_list_ptrs, pos_list_ptrs).first;
+
+      *pos_lists_by_column_it = iter->second;
+      ++pos_lists_by_column_it;
+    }
+
+    return pos_lists_by_column;
+  }
+
+  static void write_output_columns(ChunkColumns& output_columns,
+                                  const std::shared_ptr<const Table> input_table,
+                                  const PosListsByColumn& input_pos_list_ptrs_sptrs_by_column, PosList& pos_list) {
+    std::map<std::shared_ptr<PosLists>, std::shared_ptr<PosList>> output_pos_list_cache;
+
     // Add columns from input table to output chunk
     for (ColumnID column_id{0}; column_id < input_table->column_count(); ++column_id) {
+      std::shared_ptr<BaseColumn> column;
+
       if (input_table->type() == TableType::References) {
-        std::unordered_map<PosListsPerColumn::value_type, std::shared_ptr<PosList>> output_pos_list_by_input_pos_lists;
         if (input_table->chunk_count() > 0) {
-//          const auto t0 = std::chrono::high_resolution_clock::now();
-          auto ref_col = std::static_pointer_cast<const ReferenceColumn>(
-              input_table->get_chunk(ChunkID{0})->get_column(column_id));
+          const auto& input_table_pos_lists = input_pos_list_ptrs_sptrs_by_column[column_id];
 
-          // Get all the input pos lists so that we only have to pointer cast the columns once
-          auto iter = pos_lists_per_column.find(column_id);
-          if (iter == pos_lists_per_column.end()) {
-            auto input_pos_lists = std::vector<const PosList*>(input_table->chunk_count());
-            auto it = input_pos_lists.begin();
+          auto iter = output_pos_list_cache.find(input_table_pos_lists);
+          if (iter == output_pos_list_cache.end()) {
+            // Get the row ids that are referenced
+            const auto& input_table_pos_lists_ref = *input_table_pos_lists;
 
-            const auto& input_table_chunks = input_table->chunks();
-            for (ChunkID chunk_id{0}; chunk_id < input_table->chunk_count(); chunk_id++) {
-              // This works because we assume that the columns have to be either all ReferenceColumns or none.
-              const auto* ref_column = static_cast<const ReferenceColumn*>(
-              input_table_chunks[chunk_id]->columns()[column_id].get());
-              *it = ref_column->pos_list().get();
-              ++it;
-            }
-
-            for (auto iter2 = pos_lists_per_column.begin(); iter2 != pos_lists_per_column.end(); ++iter2) {
-              if (iter->second == input_pos_lists) {
-                iter = pos_lists_per_column.emplace(column_id, std::make_shared<PosListsPerColumn::value_type>(std::move(input_pos_lists))).first;
-                break;
+            auto new_pos_list = std::make_shared<PosList>(pos_list.size());
+            auto new_pos_list_iter = new_pos_list->begin();
+            for (const auto& row : pos_list) {
+              if (row.chunk_offset == INVALID_CHUNK_OFFSET) {
+                *new_pos_list_iter = row;
+              } else {
+                *new_pos_list_iter = (*input_table_pos_lists_ref[row.chunk_id])[row.chunk_offset];
               }
+              ++new_pos_list_iter;
             }
 
-            if (iter == pos_lists_per_column.end()) {
-              iter = pos_lists_per_column.emplace(column_id, std::move(input_pos_lists)).first;
-            }
+            iter = output_pos_list_cache.emplace(input_table_pos_lists, new_pos_list).first;
           }
 
-          const auto& input_pos_lists = iter->second;
-
-          auto iter2 = output_pos_list_by_input_pos_lists.find(&in)
-
-//          const auto t1 = std::chrono::high_resolution_clock::now();
-          // Get the row ids that are referenced
-          auto new_pos_list = std::make_shared<PosList>(pos_list.size());
-          auto new_pos_list_it = new_pos_list->begin();
-          for (const auto& row : pos_list) {
-            if (row.chunk_offset == INVALID_CHUNK_OFFSET) {
-              *new_pos_list_it = row;
-            } else {
-              *new_pos_list_it = (*input_pos_lists[row.chunk_id])[row.chunk_offset];
-            }
-
-            ++new_pos_list_it;
-          }
-          output_columns.push_back(std::make_shared<ReferenceColumn>(ref_col->referenced_table(),
-                                                                     ref_col->referenced_column_id(), new_pos_list));
-
-//          const auto t2 = std::chrono::high_resolution_clock::now();
-//          std::cout << "      InputTableChunks: " << input_table->chunk_count() << std::endl;
-//          std::cout << "      WriteSingleOutputColumn("<<pos_list.size()<<"): " << std::chrono::duration_cast<std::chrono::microseconds>(t1-t0).count() << " " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << std::endl;
+          auto ref_col =
+              std::static_pointer_cast<const ReferenceColumn>(input_table->get_chunk(ChunkID{0})->get_column(column_id));
+          output_columns.emplace_back(std::make_shared<ReferenceColumn>(ref_col->referenced_table(), ref_col->referenced_column_id(),
+                                                     iter->second));
         } else {
           // If there are no Chunks in the input_table, we can't deduce the Table that input_table is referencING to
           // pos_list will contain only NULL_ROW_IDs anyway, so it doesn't matter which Table the ReferenceColumn that
@@ -791,7 +819,7 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
           // it.
           const auto dummy_table = Table::create_dummy_table(input_table->column_definitions());
           output_columns.push_back(
-              std::make_shared<ReferenceColumn>(dummy_table, column_id, std::make_shared<PosList>(pos_list)));
+          std::make_shared<ReferenceColumn>(dummy_table, column_id, std::make_shared<PosList>(pos_list)));
         }
       } else {
         output_columns.push_back(
