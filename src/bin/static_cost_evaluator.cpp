@@ -47,148 +47,156 @@ std::chrono::high_resolution_clock::duration time_fn(const Fn& fn) {
   const auto end = std::chrono::high_resolution_clock::now();
   return end - begin;
 }
+//
+//class BaseCostEvaluator {
+// public:
+//  virtual ~BaseCostEvaluator() = default;
+//
+//  virtual std::shared_ptr<AbstractOperator> create_operator() const = 0;
+//  virtual float estimate_cost() const = 0;
+//  virtual std::shared_ptr<TableStatistics> estimate_output() const = 0;
+//
+//  void operator()() {
+//    _iterate_left_column_ids();
+//  }
+//
+//  void set_left_input_params(const std::vector<TableGenerator2ColumnDefinitions>& column_definitions, const std::vector<size_t>& row_counts_per_chunk, const std::vector<size_t>& chunk_counts) {
+//    _left_column_definitions = column_definitions;
+//    _left_row_counts_per_chunk = row_counts_per_chunk;
+//    _left_chunk_counts = chunk_counts;
+//  }
+//
+//  void set_left_column_ids(const std::vector<ColumnID>& left_column_ids) {
+//    _left_column_ids = left_column_ids;
+//  }
+//
+//  void set_predicate_conditions(const std::vector<PredicateCondition>& predicate_conditions) {
+//    _predicate_conditions = predicate_conditions;
+//  }
+//
+//  void set_values(const std::vector<AllTypeVariant> values) {
+//    _values = values;
+//  }
+//
+// protected:
+//  void _iterate_left_column_ids() {
+//    if (_left_column_ids) {
+//      for (const auto& left_column_id : *_left_column_ids) {
+//        _left_column_id = left_column_id;
+//        _iterate_predicate_conditions();
+//      }
+//    } else {
+//      _iterate_predicate_conditions();
+//    }
+//  }
+//
+//  void _iterate_predicate_conditions() {
+//    if (_predicate_conditions) {
+//      for (const auto& predicate_condition : *_predicate_conditions) {
+//        _predicate_condition = predicate_condition;
+//        _iterate_values();
+//      }
+//    } else {
+//      _iterate_values();
+//    }
+//  }
+//
+//  void _iterate_values() {
+//    if (_values) {
+//      for (const auto& value : *_values) {
+//        _value = value;
+//        _evaluate();
+//      }
+//    } else {
+//      _evaluate();
+//    }
+//  }
+//
+//  void _evaluate() {
+//    for (const auto& left_column_definitions : _left_column_definitions) {
+//      for (const auto &left_row_count_per_chunk : _left_row_counts_per_chunk) {
+//        for (const auto &left_chunk_count : _left_chunk_counts) {
+//          std::cout << "C: " << left_column_definitions.size() << ", ";
+//          std::cout << "LCS: " << left_row_count_per_chunk << ", ";
+//          std::cout << "LCC: " << left_chunk_count << ", ";
+//          if (_left_column_id) std::cout << "LCID: " << _left_column_id.value() << ",";
+//          if (_predicate_condition)
+//            std::cout << "PC: " << predicate_condition_to_string.left.at(_predicate_condition.value()) << ",";
+//          if (_value) std::cout << "V: " << _value.value() << ",";
+//
+//          const auto left_table_generator = TableGenerator2(left_column_definitions, left_row_count_per_chunk,
+//                                                            left_chunk_count);
+//          _left_input = std::make_shared<TableWrapper>(left_table_generator.generate_table());
+//          _left_input_statistics = std::make_shared<TableStatistics>(
+//          std::const_pointer_cast<Table>(_left_input->get_output()));
+//
+//          const auto op = create_operator();
+//          const auto duration = time_fn([&]() { op->execute(); });
+//          const auto estimated_selectivity =
+//          static_cast<float>(estimate_output()->row_count()) / (left_row_count_per_chunk * left_chunk_count);
+//          const auto selectivity =
+//          static_cast<float>(op->get_output()->row_count()) / (left_row_count_per_chunk * left_chunk_count);
+//          std::cout << " -- S: " << selectivity << "; ES: " << estimated_selectivity << "; D: "
+//                    << std::chrono::duration_cast<std::chrono::microseconds>(duration).count() << "; E: "
+//                    << estimate_cost() << std::endl;
+//        }
+//      }
+//    }
+//  }
+//
+//  std::vector<TableGenerator2ColumnDefinitions> _left_column_definitions;
+//  std::vector<size_t> _left_row_counts_per_chunk;
+//  std::vector<size_t> _left_chunk_counts;
+//
+//  std::shared_ptr<AbstractOperator> _left_input;
+//  std::shared_ptr<TableStatistics> _left_input_statistics;
+//
+//  std::optional<std::vector<ColumnID>> _left_column_ids;
+//  std::optional<std::vector<PredicateCondition>> _predicate_conditions;
+//  std::optional<std::vector<AllTypeVariant>> _values;
+//
+//  std::optional<ColumnID> _left_column_id;
+//  std::optional<PredicateCondition> _predicate_condition;
+//  std::optional<AllTypeVariant> _value;
+//};
+//
+//class TableScanEvaluator : public BaseCostEvaluator {
+//  std::shared_ptr<AbstractOperator> create_operator() const {
+//    return std::make_shared<TableScan>(_left_input, _left_column_id.value(), _predicate_condition.value(), _value.value());
+//  }
+//
+//  float estimate_cost() const {
+//    return TableScanCostModel{}.estimate_cost(*_left_input_statistics, _left_column_id.value(), _predicate_condition.value(), _value.value());
+//  }
+//
+//  std::shared_ptr<TableStatistics> estimate_output() const override {
+//    return _left_input_statistics->predicate_statistics(_left_column_id.value(), _predicate_condition.value(), _value.value());
+//  }
+//};
 
-class BaseCostEvaluator {
- public:
-  virtual ~BaseCostEvaluator() = default;
+std::vector<std::shared_ptr<AbstractOperator>> flatten_pqp_impl(const std::shared_ptr<AbstractOperator>& pqp, std::unordered_set<std::shared_ptr<AbstractOperator>>& enlisted_operators) {
+  if (enlisted_operators.count(pqp) > 0) return {};
+  enlisted_operators.insert(pqp);
 
-  virtual std::shared_ptr<AbstractOperator> create_operator() const = 0;
-  virtual float estimate_cost() const = 0;
-  virtual std::shared_ptr<TableStatistics> estimate_output() const = 0;
-
-  void operator()() {
-    _iterate_left_column_ids();
-  }
-
-  void set_left_input_params(const std::vector<TableGenerator2ColumnDefinitions>& column_definitions, const std::vector<size_t>& row_counts_per_chunk, const std::vector<size_t>& chunk_counts) {
-    _left_column_definitions = column_definitions;
-    _left_row_counts_per_chunk = row_counts_per_chunk;
-    _left_chunk_counts = chunk_counts;
-  }
-
-  void set_left_column_ids(const std::vector<ColumnID>& left_column_ids) {
-    _left_column_ids = left_column_ids;
-  }
-
-  void set_predicate_conditions(const std::vector<PredicateCondition>& predicate_conditions) {
-    _predicate_conditions = predicate_conditions;
-  }
-
-  void set_values(const std::vector<AllTypeVariant> values) {
-    _values = values;
-  }
-
- protected:
-  void _iterate_left_column_ids() {
-    if (_left_column_ids) {
-      for (const auto& left_column_id : *_left_column_ids) {
-        _left_column_id = left_column_id;
-        _iterate_predicate_conditions();
-      }
-    } else {
-      _iterate_predicate_conditions();
-    }
-  }
-
-  void _iterate_predicate_conditions() {
-    if (_predicate_conditions) {
-      for (const auto& predicate_condition : *_predicate_conditions) {
-        _predicate_condition = predicate_condition;
-        _iterate_values();
-      }
-    } else {
-      _iterate_values();
-    }
-  }
-
-  void _iterate_values() {
-    if (_values) {
-      for (const auto& value : *_values) {
-        _value = value;
-        _evaluate();
-      }
-    } else {
-      _evaluate();
-    }
-  }
-
-  void _evaluate() {
-    for (const auto& left_column_definitions : _left_column_definitions) {
-      for (const auto &left_row_count_per_chunk : _left_row_counts_per_chunk) {
-        for (const auto &left_chunk_count : _left_chunk_counts) {
-          std::cout << "C: " << left_column_definitions.size() << ", ";
-          std::cout << "LCS: " << left_row_count_per_chunk << ", ";
-          std::cout << "LCC: " << left_chunk_count << ", ";
-          if (_left_column_id) std::cout << "LCID: " << _left_column_id.value() << ",";
-          if (_predicate_condition)
-            std::cout << "PC: " << predicate_condition_to_string.left.at(_predicate_condition.value()) << ",";
-          if (_value) std::cout << "V: " << _value.value() << ",";
-
-          const auto left_table_generator = TableGenerator2(left_column_definitions, left_row_count_per_chunk,
-                                                            left_chunk_count);
-          _left_input = std::make_shared<TableWrapper>(left_table_generator.generate_table());
-          _left_input_statistics = std::make_shared<TableStatistics>(
-          std::const_pointer_cast<Table>(_left_input->get_output()));
-
-          const auto op = create_operator();
-          const auto duration = time_fn([&]() { op->execute(); });
-          const auto estimated_selectivity =
-          static_cast<float>(estimate_output()->row_count()) / (left_row_count_per_chunk * left_chunk_count);
-          const auto selectivity =
-          static_cast<float>(op->get_output()->row_count()) / (left_row_count_per_chunk * left_chunk_count);
-          std::cout << " -- S: " << selectivity << "; ES: " << estimated_selectivity << "; D: "
-                    << std::chrono::duration_cast<std::chrono::microseconds>(duration).count() << "; E: "
-                    << estimate_cost() << std::endl;
-        }
-      }
-    }
-  }
-
-  std::vector<TableGenerator2ColumnDefinitions> _left_column_definitions;
-  std::vector<size_t> _left_row_counts_per_chunk;
-  std::vector<size_t> _left_chunk_counts;
-
-  std::shared_ptr<AbstractOperator> _left_input;
-  std::shared_ptr<TableStatistics> _left_input_statistics;
-
-  std::optional<std::vector<ColumnID>> _left_column_ids;
-  std::optional<std::vector<PredicateCondition>> _predicate_conditions;
-  std::optional<std::vector<AllTypeVariant>> _values;
-
-  std::optional<ColumnID> _left_column_id;
-  std::optional<PredicateCondition> _predicate_condition;
-  std::optional<AllTypeVariant> _value;
-};
-
-class TableScanEvaluator : public BaseCostEvaluator {
-  std::shared_ptr<AbstractOperator> create_operator() const {
-    return std::make_shared<TableScan>(_left_input, _left_column_id.value(), _predicate_condition.value(), _value.value());
-  }
-
-  float estimate_cost() const {
-    return TableScanCostModel{}.estimate_cost(*_left_input_statistics, _left_column_id.value(), _predicate_condition.value(), _value.value());
-  }
-
-  std::shared_ptr<TableStatistics> estimate_output() const override {
-    return _left_input_statistics->predicate_statistics(_left_column_id.value(), _predicate_condition.value(), _value.value());
-  }
-};
-
-std::vector<std::shared_ptr<AbstractOperator>> flatten_pqp(const std::shared_ptr<AbstractOperator>& pqp) {
   std::vector<std::shared_ptr<AbstractOperator>> operators;
 
   if (!pqp->input_left()) return {pqp};
 
-  auto left_flattened = flatten_pqp(std::const_pointer_cast<AbstractOperator>(pqp->input_left()));
+  auto left_flattened = flatten_pqp_impl(std::const_pointer_cast<AbstractOperator>(pqp->input_left()), enlisted_operators);
 
   if (pqp->input_right()) {
-    auto right_flattened = flatten_pqp(std::const_pointer_cast<AbstractOperator>(pqp->input_right()));
+    auto right_flattened = flatten_pqp_impl(std::const_pointer_cast<AbstractOperator>(pqp->input_right()), enlisted_operators);
     left_flattened.insert(left_flattened.end(), right_flattened.begin(), right_flattened.end());
   }
 
   left_flattened.emplace_back(pqp);
 
   return left_flattened;
+}
+
+std::vector<std::shared_ptr<AbstractOperator>> flatten_pqp(const std::shared_ptr<AbstractOperator>& pqp) {
+  std::unordered_set<std::shared_ptr<AbstractOperator>> enlisted_operators;
+  return flatten_pqp_impl(pqp, enlisted_operators);
 }
 
 struct TableScanSample final {

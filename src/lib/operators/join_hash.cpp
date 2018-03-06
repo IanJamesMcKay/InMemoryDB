@@ -43,10 +43,6 @@ std::shared_ptr<AbstractOperator> JoinHash::_on_recreate(
 }
 
 std::shared_ptr<const Table> JoinHash::_on_execute() {
-  std::cout << "JoinHash: " << description(DescriptionMode::SingleLine) << std::endl;
-
-  const auto t1 = std::chrono::high_resolution_clock::now();
-
   std::shared_ptr<const AbstractOperator> build_operator;
   std::shared_ptr<const AbstractOperator> probe_operator;
   ColumnID build_column_id;
@@ -79,9 +75,6 @@ std::shared_ptr<const Table> JoinHash::_on_execute() {
 
   auto build_input = build_operator->get_output();
   auto probe_input = probe_operator->get_output();
-
-  const auto t2 = std::chrono::high_resolution_clock::now();
-  std::cout << "  Setup: " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << std::endl;
 
   _impl = make_unique_by_data_types<AbstractReadOnlyOperatorImpl, JoinHashImpl>(
       build_input->column_data_type(build_column_id), probe_input->column_data_type(probe_column_id), build_operator,
@@ -622,7 +615,6 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
       offset_right += _right_in_table->get_chunk(i)->size();
     }
 
-    const auto t1 = std::chrono::high_resolution_clock::now();
     // Materialization phase
     std::vector<std::shared_ptr<std::vector<size_t>>> histograms_left;
     std::vector<std::shared_ptr<std::vector<size_t>>> histograms_right;
@@ -637,9 +629,6 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
     // 'keep_nulls' makes sure that the relation on the right materializes NULL values when executing an OUTER join.
     auto materialized_right =
         _materialize_input<RightType>(_right_in_table, _column_ids.second, histograms_right, keep_nulls);
-    const auto t2 = std::chrono::high_resolution_clock::now();
-
-    std::cout << "  Materialitation: " << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count() << std::endl;
 
     // Radix Partitioning phase
     /*
@@ -657,9 +646,6 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
     auto radix_right =
         _partition_radix_parallel<RightType>(materialized_right, right_chunk_offsets, histograms_right, keep_nulls);
 
-    const auto t3 = std::chrono::high_resolution_clock::now();
-    std::cout << "  Partitioning: " << std::chrono::duration_cast<std::chrono::microseconds>(t3-t2).count() << std::endl;
-
     // Build phase
     std::vector<std::shared_ptr<HashTable<HashedType>>> hashtables;
     hashtables.resize(radix_left.partition_offsets.size() - 1);
@@ -669,8 +655,6 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
     */
     _build(radix_left, hashtables);
 
-    const auto t4 = std::chrono::high_resolution_clock::now();
-    std::cout << "  Build: " << std::chrono::duration_cast<std::chrono::microseconds>(t4-t3).count() << std::endl;
     // Probe phase
     std::vector<PosList> left_pos_lists;
     std::vector<PosList> right_pos_lists;
@@ -686,10 +670,6 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
     } else {
       _probe(radix_right, hashtables, left_pos_lists, right_pos_lists);
     }
-
-    const auto t5 = std::chrono::high_resolution_clock::now();
-    std::cout << "  Probe: " << std::chrono::duration_cast<std::chrono::microseconds>(t5-t4).count() << std::endl;
-    std::cout << "    LeftPosLists: "<< left_pos_lists.size() << std::endl;
 
     auto only_output_right_input = !_inputs_swapped || (_mode != JoinMode::Semi && _mode != JoinMode::Anti);
 
@@ -714,7 +694,6 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
     }
 
     for (size_t partition_id = 0; partition_id < left_pos_lists.size(); ++partition_id) {
-      const auto t51 = std::chrono::high_resolution_clock::now();
       auto& left = left_pos_lists[partition_id];
       auto& right = right_pos_lists[partition_id];
 
@@ -738,11 +717,7 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
       }
 
       _output_table->append_chunk(output_columns);
-      const auto t52 = std::chrono::high_resolution_clock::now();
-      std::cout << "    OutputPartition: " << std::chrono::duration_cast<std::chrono::microseconds>(t52-t51).count() << std::endl;
     }
-    const auto t6 = std::chrono::high_resolution_clock::now();
-    std::cout << "  Output(" << _output_table->row_count() << "): " << std::chrono::duration_cast<std::chrono::microseconds>(t6-t5).count() << std::endl;
 
     return _output_table;
   }
