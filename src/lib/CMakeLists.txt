@@ -102,6 +102,8 @@ set(
     operators/join_hash.cpp
     operators/join_hash/hash_traits.hpp
     operators/join_hash.hpp
+    operators/join_index.cpp
+    operators/join_index.hpp
     operators/join_nested_loop.cpp
     operators/join_nested_loop.hpp
     operators/join_sort_merge/column_materializer.hpp
@@ -153,6 +155,13 @@ set(
     operators/validate.hpp
     optimizer/base_column_statistics.cpp
     optimizer/base_column_statistics.hpp
+    optimizer/chunk_statistics/abstract_filter.hpp
+    optimizer/chunk_statistics/chunk_column_statistics.cpp
+    optimizer/chunk_statistics/chunk_column_statistics.hpp
+    optimizer/chunk_statistics/chunk_statistics.cpp
+    optimizer/chunk_statistics/chunk_statistics.hpp
+    optimizer/chunk_statistics/min_max_filter.hpp
+    optimizer/chunk_statistics/range_filter.hpp
     optimizer/column_statistics.cpp
     optimizer/column_statistics.hpp
     optimizer/join_ordering/abstract_dp_algorithm.cpp
@@ -190,6 +199,8 @@ set(
     optimizer/optimizer.hpp
     optimizer/strategy/abstract_rule.cpp
     optimizer/strategy/abstract_rule.hpp
+    optimizer/strategy/chunk_pruning_rule.cpp
+    optimizer/strategy/chunk_pruning_rule.hpp
     optimizer/strategy/constant_calculation_rule.cpp
     optimizer/strategy/constant_calculation_rule.hpp
     optimizer/strategy/index_scan_rule.cpp
@@ -322,6 +333,7 @@ set(
     storage/index/group_key/variable_length_key_store.cpp
     storage/index/group_key/variable_length_key_store.hpp
     storage/index/index_info.hpp
+    storage/materialize.hpp
     storage/numa_placement_manager.cpp
     storage/numa_placement_manager.hpp
     storage/proxy_chunk.cpp
