@@ -79,6 +79,7 @@ set(
     operators/abstract_read_only_operator.hpp
     operators/abstract_read_write_operator.cpp
     operators/abstract_read_write_operator.hpp
+    operators/base_operator_performance_data.hpp
     operators/aggregate.cpp
     operators/aggregate.hpp
     operators/delete.cpp
@@ -418,6 +419,8 @@ set(
     utils/table_generator2.cpp
     utils/table_generator2.hpp
     utils/template_type.hpp
+    utils/timer.cpp
+    utils/timer.hpp
 )
 
 set(

@@ -11,6 +11,7 @@
 #include "utils/assert.hpp"
 #include "utils/format_duration.hpp"
 #include "utils/print_directed_acyclic_graph.hpp"
+#include "utils/timer.hpp"
 
 namespace opossum {
 
@@ -21,7 +22,7 @@ AbstractOperator::AbstractOperator(const std::shared_ptr<const AbstractOperator>
 void AbstractOperator::execute() {
   DebugAssert(!_output, "Operator has already been executed");
 
-  auto start = std::chrono::high_resolution_clock::now();
+  Timer timer_total;
 
   auto transaction_context = this->transaction_context();
 
@@ -44,8 +45,7 @@ void AbstractOperator::execute() {
   // release any temporary data if possible
   _on_cleanup();
 
-  auto end = std::chrono::high_resolution_clock::now();
-  _performance_data.walltime_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+  _base_performance_data.total = timer_total.lap();
 }
 
 // returns the result of the operator
@@ -105,7 +105,7 @@ std::shared_ptr<AbstractOperator> AbstractOperator::mutable_input_right() const 
   return std::const_pointer_cast<AbstractOperator>(_input_right);
 }
 
-const AbstractOperator::PerformanceData& AbstractOperator::performance_data() const { return _performance_data; }
+const BaseOperatorPerformanceData& AbstractOperator::performance_data() const { return _base_performance_data; }
 
 std::shared_ptr<const AbstractOperator> AbstractOperator::input_left() const { return _input_left; }
 

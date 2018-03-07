@@ -11,6 +11,14 @@
 
 namespace opossum {
 
+struct JoinHashPerformanceData : public BaseOperatorPerformanceData {
+  std::chrono::nanoseconds materialization;
+  std::chrono::nanoseconds partitioning;
+  std::chrono::nanoseconds build;
+  std::chrono::nanoseconds probe;
+  std::chrono::nanoseconds output;
+};
+
 /**
  * This operator joins two tables using one column of each table.
  * The output is a new table with referenced columns for all columns of the two inputs and filtered pos_lists.
@@ -29,6 +37,7 @@ class JoinHash : public AbstractJoinOperator {
            const JoinMode mode, const ColumnIDPair& column_ids, const PredicateCondition predicate_condition);
 
   const std::string name() const override;
+  const JoinHashPerformanceData& performance_data() const override;
 
  protected:
   std::shared_ptr<const Table> _on_execute() override;
@@ -38,6 +47,8 @@ class JoinHash : public AbstractJoinOperator {
   void _on_cleanup() override;
 
   std::unique_ptr<AbstractReadOnlyOperatorImpl> _impl;
+
+  JoinHashPerformanceData _performance_data;
 
   template <typename LeftType, typename RightType>
   class JoinHashImpl;

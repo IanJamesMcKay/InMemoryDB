@@ -14,6 +14,7 @@
 #include "sql/sql_pipeline_statement.hpp"
 #include "tpch/tpch_queries.hpp"
 #include "planviz/sql_query_plan_visualizer.hpp"
+#include "planviz/lqp_visualizer.hpp"
 
 using namespace opossum; // NOLINT
 
@@ -295,9 +296,6 @@ int main() {
   std::cout << "-- Static Cost Evaluator" << std::endl;
 
   const auto sql_queries = std::vector<std::string>({
-//    R"(SELECT * FROM lineitem WHERE l_discount > 0.05 AND l_discount < 0.1;)",
-//    R"(SELECT * FROM customer WHERE c_acctbal > 100 AND c_nationkey = 10;)",
-//    tpch_queries[5],
     tpch_queries[6]
   });
 
@@ -331,27 +329,4 @@ int main() {
   for (const auto sample : join_hash_samples) {
     std::cout << sample << std::endl;
   }
-
-//  TableGenerator2ColumnDefinitions column_definitions_a;
-//  column_definitions_a.emplace_back(DataType::Int, 0, 1'000);
-//  column_definitions_a.emplace_back(DataType::Int, 0, 50'000);
-//  column_definitions_a.emplace_back(DataType::Int, 0, 1'000'000);
-//  column_definitions_a.emplace_back(DataType::Float, 0.0f, 100'000.0f);
-//
-//  TableGenerator2ColumnDefinitions column_definitions_b;
-//  column_definitions_b.emplace_back(DataType::Int, 0, 1'000);
-//  column_definitions_b.emplace_back(DataType::Int, 0, 1'000);
-//  column_definitions_b.emplace_back(DataType::Int, 0, 1'000);
-//  column_definitions_b.emplace_back(DataType::Int, 0, 50'000);
-//  column_definitions_b.emplace_back(DataType::Int, 0, 50'000);
-//  column_definitions_b.emplace_back(DataType::Int, 0, 1'000'000);
-//  column_definitions_b.emplace_back(DataType::Int, 0, 1'000'000);
-//  column_definitions_b.emplace_back(DataType::Float, 0.0f, 100'000.0f);
-//
-//  TableScanEvaluator table_scan_evaluator;
-//  table_scan_evaluator.set_left_input_params({column_definitions_a, column_definitions_b}, {1'000, 20'000, 100'000, 500'000, 1'500'000}, {5});
-//  table_scan_evaluator.set_left_column_ids({ColumnID{0}, ColumnID{3}});
-//  table_scan_evaluator.set_predicate_conditions({PredicateCondition::Equals, PredicateCondition::LessThan});
-//  table_scan_evaluator.set_values({AllTypeVariant(100), AllTypeVariant{10'000}, AllTypeVariant{500'000}});
-//  table_scan_evaluator();
 }
