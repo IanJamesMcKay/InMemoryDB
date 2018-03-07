@@ -46,12 +46,6 @@ const std::string& Table::column_name(const ColumnID column_id) const {
   return _column_definitions[column_id].name;
 }
 
-<<<<<<< HEAD
-Table::Table(const uint32_t max_chunk_size)
-    : _max_chunk_size(max_chunk_size), _append_mutex(std::make_unique<std::mutex>()) {
-  Assert(max_chunk_size > 0, "Table must have a chunk size greater than 0.");
-  apply_partitioning(std::make_shared<NullPartitionSchema>());
-=======
 std::vector<std::string> Table::column_names() const {
   std::vector<std::string> names;
   names.reserve(_column_definitions.size());
@@ -59,7 +53,6 @@ std::vector<std::string> Table::column_names() const {
     names.emplace_back(column_definition.name);
   }
   return names;
->>>>>>> e439647208e88b581d7c32231341439a3b5feb97
 }
 
 DataType Table::column_data_type(const ColumnID column_id) const {
@@ -96,34 +89,6 @@ ColumnID Table::column_id_by_name(const std::string& column_name) const {
   return static_cast<ColumnID>(std::distance(_column_definitions.begin(), iter));
 }
 
-<<<<<<< HEAD
-void Table::append(const std::vector<AllTypeVariant>& values) {
-  // TODO(Anyone): Chunks should be preallocated for chunk size
-  auto partition_id = _partition_schema->get_matching_partition_for(values);
-  auto last_chunk = _partition_schema->last_chunk(partition_id);
-  if (last_chunk->size() >= max_chunk_size()) {
-    last_chunk = create_new_chunk(partition_id);
-  }
-  last_chunk->append(values);
-}
-
-std::shared_ptr<Chunk> Table::create_new_chunk(PartitionID partition_id) {
-  // Create chunk with mvcc columns
-  auto new_chunk = std::make_shared<Chunk>(UseMvcc::Yes);
-
-  for (auto column_id = 0u; column_id < _column_types.size(); ++column_id) {
-    const auto type = _column_types[column_id];
-    auto nullable = _column_nullable[column_id];
-
-    new_chunk->add_column(make_shared_by_data_type<BaseColumn, ValueColumn>(type, nullable));
-  }
-
-  new_chunk->set_id(static_cast<ChunkID>(_chunks.size()));
-  _chunks.push_back(new_chunk);
-  _partition_schema->add_new_chunk(new_chunk, partition_id);
-
-  return new_chunk;
-=======
 void Table::append(std::vector<AllTypeVariant> values) {
   if (_chunks.empty() || _chunks.back()->size() >= _max_chunk_size) {
     append_mutable_chunk();
@@ -141,7 +106,6 @@ void Table::append_mutable_chunk() {
     });
   }
   append_chunk(columns);
->>>>>>> e439647208e88b581d7c32231341439a3b5feb97
 }
 
 uint64_t Table::row_count() const {
@@ -160,32 +124,7 @@ const std::vector<std::shared_ptr<Chunk>>& Table::chunks() const { return _chunk
 
 uint32_t Table::max_chunk_size() const { return _max_chunk_size; }
 
-<<<<<<< HEAD
-const std::vector<std::string>& Table::column_names() const { return _column_names; }
-
-const std::string& Table::column_name(ColumnID column_id) const {
-  DebugAssert(column_id < _column_names.size(), "ColumnID " + std::to_string(column_id) + " out of range");
-  return _column_names[column_id];
-}
-
-DataType Table::column_type(ColumnID column_id) const {
-  DebugAssert(column_id < _column_names.size(), "ColumnID " + std::to_string(column_id) + " out of range");
-  return _column_types[column_id];
-}
-
-bool Table::column_is_nullable(ColumnID column_id) const {
-  DebugAssert(column_id < _column_names.size(), "ColumnID " + std::to_string(column_id) + " out of range");
-  return _column_nullable[column_id];
-}
-
-const std::vector<DataType>& Table::column_types() const { return _column_types; }
-
-const std::vector<bool>& Table::column_nullables() const { return _column_nullable; }
-
-std::shared_ptr<Chunk> Table::get_mutable_chunk(ChunkID chunk_id) {
-=======
 std::shared_ptr<Chunk> Table::get_chunk(ChunkID chunk_id) {
->>>>>>> e439647208e88b581d7c32231341439a3b5feb97
   DebugAssert(chunk_id < _chunks.size(), "ChunkID " + std::to_string(chunk_id) + " out of range");
   return _chunks[chunk_id];
 }
@@ -205,28 +144,9 @@ const ProxyChunk Table::get_chunk_with_access_counting(ChunkID chunk_id) const {
   return ProxyChunk(_chunks[chunk_id]);
 }
 
-<<<<<<< HEAD
-void Table::emplace_chunk(const std::shared_ptr<Chunk>& chunk, PartitionID partition_id) {
-  if (_chunks.size() == 1 && (_chunks.back()->column_count() == 0 || _chunks.back()->size() == 0)) {
-    // the initial chunk was not used yet
-    _chunks.clear();
-    _partition_schema->clear();
-  }
-  DebugAssert(chunk->column_count() > 0, "Trying to add chunk without columns.");
-  DebugAssert(chunk->column_count() == column_count(),
-              std::string("adding chunk with ") + std::to_string(chunk->column_count()) + " columns to table with " +
-                  std::to_string(column_count()) + " columns");
-  chunk->set_id(static_cast<ChunkID>(_chunks.size()));
-  _chunks.emplace_back(chunk);
-  _partition_schema->add_new_chunk(chunk, partition_id);
-}
-
-std::unique_lock<std::mutex> Table::acquire_append_mutex() { return std::unique_lock<std::mutex>(*_append_mutex); }
-=======
 void Table::append_chunk(const ChunkColumns& columns, const std::optional<PolymorphicAllocator<Chunk>>& alloc,
                          const std::shared_ptr<ChunkAccessCounter>& access_counter) {
   const auto chunk_size = columns.empty() ? 0u : columns[0]->size();
->>>>>>> e439647208e88b581d7c32231341439a3b5feb97
 
 #if IS_DEBUG
   for (const auto& column : columns) {
@@ -252,7 +172,6 @@ void Table::append_chunk(const ChunkColumns& columns, const std::optional<Polymo
   _chunks.emplace_back(std::make_shared<Chunk>(columns, mvcc_columns, alloc, access_counter));
 }
 
-<<<<<<< HEAD
 void Table::apply_partitioning(const std::shared_ptr<AbstractPartitionSchema> partition_schema) {
   if (row_count() > 0) {
     throw std::runtime_error("Unable to create partitioning on non-empty table");
@@ -261,30 +180,13 @@ void Table::apply_partitioning(const std::shared_ptr<AbstractPartitionSchema> pa
   _create_initial_chunks(static_cast<PartitionID>(partition_schema->partition_count()));
 }
 
-void Table::set_partitioning_and_clear(const std::shared_ptr<AbstractPartitionSchema> partition_schema) {
-  _partition_schema = std::move(partition_schema);
-  _chunks.clear();
-}
-
-void Table::_create_initial_chunks(PartitionID number_of_partitions) {
-  if (row_count() > 0) {
-    // the initial chunk was not used yet
-    throw std::runtime_error("Unable to create partitioning on non-empty table");
-  }
-  _chunks.clear();
-  for (auto partition_id = PartitionID{0}; partition_id < number_of_partitions; ++partition_id) {
-    create_new_chunk(partition_id);
-  }
-}
-
 bool Table::is_partitioned() const { return _partition_schema->is_partitioned(); }
 
 PartitionID Table::partition_count() const { return _partition_schema->partition_count(); }
 
 const std::shared_ptr<const AbstractPartitionSchema> Table::get_partition_schema() const { return _partition_schema; }
-=======
+
 std::unique_lock<std::mutex> Table::acquire_append_mutex() { return std::unique_lock<std::mutex>(*_append_mutex); }
->>>>>>> e439647208e88b581d7c32231341439a3b5feb97
 
 std::vector<IndexInfo> Table::get_indexes() const { return _indexes; }
 

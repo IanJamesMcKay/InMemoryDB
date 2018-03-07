@@ -10,11 +10,8 @@
 #include "chunk.hpp"
 #include "proxy_chunk.hpp"
 #include "storage/index/index_info.hpp"
-<<<<<<< HEAD
 #include "storage/partitioning/abstract_partition_schema.hpp"
-=======
 #include "storage/table_column_definition.hpp"
->>>>>>> e439647208e88b581d7c32231341439a3b5feb97
 #include "type_cast.hpp"
 #include "types.hpp"
 #include "utils/assert.hpp"
@@ -80,13 +77,8 @@ class Table : private Noncopyable {
   // returns the number of chunks (cannot exceed ChunkID (uint32_t))
   ChunkID chunk_count() const;
 
-<<<<<<< HEAD
-  // creates a new chunk and appends it
-  std::shared_ptr<Chunk> create_new_chunk(PartitionID partition_id = PartitionID{0});
-=======
   // Returns all Chunks
   const std::vector<std::shared_ptr<Chunk>>& chunks() const;
->>>>>>> e439647208e88b581d7c32231341439a3b5feb97
 
   // returns the chunk with the given id
   std::shared_ptr<Chunk> get_mutable_chunk(ChunkID chunk_id);
@@ -94,33 +86,7 @@ class Table : private Noncopyable {
   ProxyChunk get_mutable_chunk_with_access_counting(ChunkID chunk_id);
   const ProxyChunk get_chunk_with_access_counting(ChunkID chunk_id) const;
 
-<<<<<<< HEAD
-  // Adds a chunk to the table. If the first chunk is empty, it is replaced.
-  void emplace_chunk(const std::shared_ptr<Chunk>& chunk, PartitionID partition_id = PartitionID{0});
 
-  // Returns a list of all column names.
-  const std::vector<std::string>& column_names() const;
-
-  // returns the column name of the nth column
-  const std::string& column_name(ColumnID column_id) const;
-
-  // returns the data type of the nth column
-  DataType column_type(ColumnID column_id) const;
-
-  // return whether nth column is nullable
-  bool column_is_nullable(ColumnID column_id) const;
-
-  // returns the vector of column types
-  const std::vector<DataType>& column_types() const;
-
-  // returns the vector of column nullables
-  const std::vector<bool>& column_nullables() const;
-
-  // Returns the column with the given name.
-  // This method is intended for debugging purposes only.
-  // It does not verify whether a column name is unambiguous.
-  ColumnID column_id_by_name(const std::string& column_name) const;
-=======
   /**
    * Creates a new Chunk and appends it to this table.
    * Makes sure the @param columns match with the TableType (only ReferenceColumns or only data containing columns)
@@ -129,7 +95,6 @@ class Table : private Noncopyable {
    */
   void append_chunk(const ChunkColumns& columns, const std::optional<PolymorphicAllocator<Chunk>>& alloc = std::nullopt,
                     const std::shared_ptr<ChunkAccessCounter>& access_counter = nullptr);
->>>>>>> e439647208e88b581d7c32231341439a3b5feb97
 
   // Create and append a Chunk consisting of ValueColumns.
   void append_mutable_chunk();
@@ -166,11 +131,8 @@ class Table : private Noncopyable {
     Fail("Row does not exist.");
   }
 
-<<<<<<< HEAD
-=======
   /** @} */
 
->>>>>>> e439647208e88b581d7c32231341439a3b5feb97
   std::unique_lock<std::mutex> acquire_append_mutex();
 
   void set_table_statistics(std::shared_ptr<TableStatistics> table_statistics) { _table_statistics = table_statistics; }
@@ -198,8 +160,6 @@ class Table : private Noncopyable {
    * The logic behind partitioning (which tuples goes in which Partition) is handled by PartitionSchema.
    */
   void apply_partitioning(const std::shared_ptr<AbstractPartitionSchema> partition_schema);
-  // this function is needed for deserialization, it does not create a set of initial chunks
-  void set_partitioning_and_clear(const std::shared_ptr<AbstractPartitionSchema> partition_schema);
 
   bool is_partitioned() const;
   PartitionID partition_count() const;
@@ -218,13 +178,7 @@ class Table : private Noncopyable {
   std::vector<std::shared_ptr<Chunk>> _chunks;
   std::shared_ptr<TableStatistics> _table_statistics;
   std::unique_ptr<std::mutex> _append_mutex;
-<<<<<<< HEAD
-
   std::shared_ptr<AbstractPartitionSchema> _partition_schema;
-
-  void _create_initial_chunks(PartitionID number_of_partitions);
-=======
->>>>>>> e439647208e88b581d7c32231341439a3b5feb97
   std::vector<IndexInfo> _indexes;
 };
 }  // namespace opossum
