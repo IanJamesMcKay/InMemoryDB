@@ -20,7 +20,6 @@ std::shared_ptr<Optimizer> Optimizer::create_default_optimizer() {
   auto optimizer = std::make_shared<Optimizer>(10);
 
   RuleBatch main_batch(RuleBatchExecutionPolicy::Iterative);
-
   main_batch.add_rule(std::make_shared<PredicateReorderingRule>());
   main_batch.add_rule(std::make_shared<JoinDetectionRule>());
   optimizer->add_rule_batch(main_batch);

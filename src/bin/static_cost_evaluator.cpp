@@ -8,6 +8,8 @@
 #include "operators/product.hpp"
 #include "utils/table_generator2.hpp"
 #include "optimizer/table_statistics.hpp"
+#include "optimizer/strategy/join_ordering_rule.hpp"
+#include "optimizer/join_ordering/dp_ccp.hpp"
 #include "storage/storage_manager.hpp"
 #include "constant_mappings.hpp"
 #include "tpch/tpch_db_generator.hpp"
@@ -217,21 +219,23 @@ struct TableScanSample final {
 
 struct JoinHashSample final {
   JoinHashSample(const std::string& info,
+                 const JoinHashPerformanceData& performance_data,
                  const size_t left_input_row_count,
                  const size_t right_input_row_count,
                  const DataType left_data_type,
                  const DataType right_data_type,
-                 const size_t output_row_count,
-                 const long microseconds):
+                 const size_t output_row_count):
   info(info),
+  performance_data(performance_data),
   left_input_row_count(left_input_row_count),
   right_input_row_count(right_input_row_count),
   left_data_type(left_data_type),
   right_data_type(right_data_type),
-  output_row_count(output_row_count),
-  microseconds(microseconds) {}
+  output_row_count(output_row_count) {}
 
   std::string info;
+
+  JoinHashPerformanceData performance_data;
 
   size_t left_input_row_count{0};
   size_t right_input_row_count{0};
@@ -241,23 +245,61 @@ struct JoinHashSample final {
 
   size_t output_row_count{0};
 
-  long microseconds{0};
-
   friend std::ostream& operator<<(std::ostream& stream, const JoinHashSample& sample) {
     stream
-           << sample.info << ";"
            << data_type_to_string.left.at(sample.left_data_type) << ";"
            << data_type_to_string.left.at(sample.right_data_type) << ";"
            << sample.left_input_row_count << ";"
            << sample.right_input_row_count << ";"
            << sample.output_row_count << ";"
-           << sample.microseconds;
+           << sample.performance_data.materialization.count()/1000 << ";"
+           << sample.performance_data.partitioning.count()/1000 << ";"
+           << sample.performance_data.probe.count()/1000 << ";"
+           << sample.performance_data.build.count()/1000 << ";"
+           << sample.performance_data.output.count()/1000 << ";"
+           << sample.performance_data.total.count()/1000 << ";"
+           ;
+    return stream;
+  }
+};
+
+struct JoinSortMergeSample final {
+  JoinSortMergeSample(const std::string& info,
+                 const BaseOperatorPerformanceData& performance_data,
+                 const size_t left_input_row_count,
+                 const size_t right_input_row_count,
+                 const size_t output_row_count):
+  info(info),
+  performance_data(performance_data),
+  left_input_row_count(left_input_row_count),
+  right_input_row_count(right_input_row_count),
+  output_row_count(output_row_count) {}
+
+  std::string info;
+
+  BaseOperatorPerformanceData performance_data;
+
+  size_t left_input_row_count{0};
+  size_t right_input_row_count{0};
+
+  size_t output_row_count{0};
+
+  friend std::ostream& operator<<(std::ostream& stream, const JoinSortMergeSample& sample) {
+    stream
+           << sample.info << ";"
+           << sample.left_input_row_count << ";"
+           << sample.right_input_row_count << ";"
+           << sample.output_row_count << ";"
+           << "  "
+           << sample.performance_data.total.count()/1000 << ";"
+           ;
     return stream;
   }
 };
 
 std::vector<TableScanSample> table_scan_samples;
 std::vector<JoinHashSample> join_hash_samples;
+std::vector<JoinSortMergeSample> join_sort_merge_samples;
 
 void visit_table_scan(TableScan& table_scan) {
   const auto row_count = table_scan.input_table_left()->row_count();
@@ -271,15 +313,28 @@ void visit_join_hash(JoinHash& join_hash) {
   const auto left_row_count = join_hash.input_table_left()->row_count();
   const auto right_row_count = join_hash.input_table_right()->row_count();
 
-  const auto duration = time_fn([&]() {join_hash.execute();});
+  join_hash.execute();
 
   join_hash_samples.emplace_back(join_hash.description(DescriptionMode::SingleLine),
-  left_row_count,
+                                 join_hash.performance_data(),
+                                 left_row_count,
                                  right_row_count,
                                  join_hash.input_table_left()->column_data_type(join_hash.column_ids().first),
                                  join_hash.input_table_right()->column_data_type(join_hash.column_ids().second),
-                                 join_hash.get_output()->row_count(),
-                                 std::chrono::duration_cast<std::chrono::microseconds>(duration).count());
+                                 join_hash.get_output()->row_count());
+}
+
+void visit_join_sort_merge(JoinSortMerge& join_sort_merge) {
+  const auto left_row_count = join_sort_merge.input_table_left()->row_count();
+  const auto right_row_count = join_sort_merge.input_table_right()->row_count();
+
+  join_sort_merge.execute();
+
+  join_sort_merge_samples.emplace_back(join_sort_merge.description(DescriptionMode::SingleLine),
+                                       join_sort_merge.performance_data(),
+                                 left_row_count,
+                                 right_row_count,
+                                       join_sort_merge.get_output()->row_count());
 }
 
 void visit_op(const std::shared_ptr<AbstractOperator>& op) {
@@ -287,6 +342,8 @@ void visit_op(const std::shared_ptr<AbstractOperator>& op) {
     visit_table_scan(*table_scan);
   } else if (const auto join_hash = std::dynamic_pointer_cast<JoinHash>(op)) {
     visit_join_hash(*join_hash);
+  } else if (const auto join_sort_merge = std::dynamic_pointer_cast<JoinSortMerge>(op)) {
+    visit_join_sort_merge(*join_sort_merge);
   } else {
     op->execute();
   }
@@ -296,16 +353,21 @@ int main() {
   std::cout << "-- Static Cost Evaluator" << std::endl;
 
   const auto sql_queries = std::vector<std::string>({
-    tpch_queries[6]
+    tpch_queries[4], tpch_queries[6], tpch_queries[9]
   });
 
-  for (const auto scale_factor : {0.1f}) {
+//  auto optimizer = std::make_shared<Optimizer>(1);
+//  RuleBatch rule_batch(RuleBatchExecutionPolicy::Once);
+//  rule_batch.add_rule(std::make_shared<JoinOrderingRule>(std::make_shared<DpCcp>()));
+//  optimizer->add_rule_batch(rule_batch);
+
+  for (const auto scale_factor : {0.001f, 0.005f, 0.01f, 0.03f, 0.05f}) {
     std::cout << "ScaleFactor: " << scale_factor << std::endl;
 
     TpchDbGenerator{scale_factor}.generate_and_store();
 
     for (const auto& sql_query : sql_queries) {
-      SQLPipelineStatement statement{sql_query};
+      SQLPipelineStatement statement{sql_query,};
       const auto pqp = statement.get_query_plan()->tree_roots().at(0);
       const auto operators = flatten_pqp(pqp);
 

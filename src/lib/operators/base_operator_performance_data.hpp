@@ -7,7 +7,7 @@ namespace opossum {
 struct BaseOperatorPerformanceData {
   virtual ~BaseOperatorPerformanceData() = default;
 
-  std::chrono::nanoseconds total;
+  std::chrono::nanoseconds total{0};
 };
 
 }  // namespace opossum

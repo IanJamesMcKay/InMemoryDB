@@ -83,7 +83,7 @@ std::shared_ptr<const Table> JoinHash::_on_execute() {
 
   _impl = make_unique_by_data_types<AbstractReadOnlyOperatorImpl, JoinHashImpl>(
       build_input->column_data_type(build_column_id), probe_input->column_data_type(probe_column_id), build_operator,
-      probe_operator, _mode, adjusted_column_ids, _predicate_condition, inputs_swapped);
+      probe_operator, _mode, adjusted_column_ids, _predicate_condition, inputs_swapped, _performance_data);
   return _impl->_on_execute();
 }
 
@@ -287,6 +287,7 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
                                               std::shared_ptr<std::vector<size_t>> chunk_offsets,
                                               std::vector<std::shared_ptr<std::vector<size_t>>>& histograms,
                                               bool keep_nulls = false) {
+
     // fan-out
     const size_t num_partitions = 1 << _radix_bits;
 

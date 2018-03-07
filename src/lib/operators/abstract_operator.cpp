@@ -45,7 +45,7 @@ void AbstractOperator::execute() {
   // release any temporary data if possible
   _on_cleanup();
 
-  _base_performance_data.total = timer_total.lap();
+  const_cast<BaseOperatorPerformanceData&>(performance_data()).total = timer_total.lap();
 }
 
 // returns the result of the operator
@@ -129,7 +129,7 @@ void AbstractOperator::print(std::ostream& stream) const {
 
       stream << format_bytes(output->estimate_memory_usage());
       stream << "/";
-      stream << format_duration(op->performance_data().walltime_ns) << ")";
+      stream << format_duration(op->performance_data().total.count()) << ")";
     }
   };
 

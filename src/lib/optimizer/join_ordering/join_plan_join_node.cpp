@@ -137,8 +137,10 @@ std::shared_ptr<AbstractLQPNode> JoinPlanJoinNode::to_lqp() const {
     auto right_operand = boost::get<LQPColumnReference>(_primary_join_predicate->right_operand);
     auto predicate_condition = _primary_join_predicate->predicate_condition;
 
-    lqp = std::make_shared<JoinNode>(JoinMode::Inner, LQPColumnReferencePair{left_operand, right_operand},
+    const auto join_node = std::make_shared<JoinNode>(JoinMode::Inner, LQPColumnReferencePair{left_operand, right_operand},
                                      predicate_condition);
+    //join_node->set_implementation(JoinOperatorImplementation::SortMerge);
+    lqp = join_node;
   }
 
   lqp->set_left_input(_left_child->to_lqp());

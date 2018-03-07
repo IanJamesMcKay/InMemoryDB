@@ -12,11 +12,11 @@
 namespace opossum {
 
 struct JoinHashPerformanceData : public BaseOperatorPerformanceData {
-  std::chrono::nanoseconds materialization;
-  std::chrono::nanoseconds partitioning;
-  std::chrono::nanoseconds build;
-  std::chrono::nanoseconds probe;
-  std::chrono::nanoseconds output;
+  std::chrono::nanoseconds materialization{0};
+  std::chrono::nanoseconds partitioning{0};
+  std::chrono::nanoseconds build{0};
+  std::chrono::nanoseconds probe{0};
+  std::chrono::nanoseconds output{0};
 };
 
 /**
