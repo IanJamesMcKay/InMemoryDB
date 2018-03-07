@@ -46,6 +46,10 @@ class ImportBinary : public AbstractReadOnlyOperator {
    */
   std::shared_ptr<const Table> _on_execute() final;
 
+  std::shared_ptr<AbstractOperator> _on_recreate(
+      const std::vector<AllParameterVariant>& args, const std::shared_ptr<AbstractOperator>& recreated_input_left,
+      const std::shared_ptr<AbstractOperator>& recreated_input_right) const override;
+
   // Returns the name of the operator
   const std::string name() const final;
 
@@ -81,7 +85,7 @@ class ImportBinary : public AbstractReadOnlyOperator {
    *
    * ¹Number of columns is provided in the binary header
    */
-  static std::shared_ptr<Chunk> _import_chunk(std::ifstream& file, std::shared_ptr<Table>& table);
+  static void _import_chunk(std::ifstream& file, std::shared_ptr<Table>& table);
 
   /*
    * Reads the header from the given file.
@@ -162,7 +166,7 @@ class ImportBinary : public AbstractReadOnlyOperator {
                                                               bool is_nullable);
 
   /*
-   * Imports a serialized DeprecatedDictionaryColumn from the given file.
+   * Imports a serialized DictionaryColumn from the given file.
    * The file must contain data in the following format:
    *
    * Description           | Type                                  | Size in bytes

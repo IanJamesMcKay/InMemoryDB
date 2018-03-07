@@ -47,7 +47,7 @@ namespace opossum {
 
 /** We use vectors with custom allocators, e.g, to bind the data object to
  * specific NUMA nodes. This is mainly used in the data objects, i.e.,
- * Chunk, ValueColumn, DeprecatedDictionaryColumn, ReferenceColumn and attribute vectors.
+ * Chunk, ValueColumn, DictionaryColumn, ReferenceColumn and attribute vectors.
  * The PolymorphicAllocator provides an abstraction over several allocation
  * methods by adapting to subclasses of boost::container::pmr::memory_resource.
  */
@@ -66,7 +66,9 @@ template <typename T>
 class pmr_concurrent_vector : public tbb::concurrent_vector<T> {
  public:
   pmr_concurrent_vector(PolymorphicAllocator<T> alloc = {}) : pmr_concurrent_vector(0, alloc) {}  // NOLINT
-  pmr_concurrent_vector(size_t n, PolymorphicAllocator<T> alloc = {})                             // NOLINT
+  pmr_concurrent_vector(std::initializer_list<T> init_list, PolymorphicAllocator<T> alloc = {})
+      : tbb::concurrent_vector<T>(init_list), _alloc(alloc) {}         // NOLINT
+  pmr_concurrent_vector(size_t n, PolymorphicAllocator<T> alloc = {})  // NOLINT
       : pmr_concurrent_vector(n, T{}, alloc) {}
   pmr_concurrent_vector(size_t n, T val, PolymorphicAllocator<T> alloc = {})  // NOLINT
       : tbb::concurrent_vector<T>(n, val),
@@ -86,12 +88,23 @@ using pmr_ring_buffer = boost::circular_buffer<T, PolymorphicAllocator<T>>;
 
 using ChunkOffset = uint32_t;
 
-// Used to represent NULL values
 constexpr ChunkOffset INVALID_CHUNK_OFFSET{std::numeric_limits<ChunkOffset>::max()};
+constexpr ChunkID INVALID_CHUNK_ID{std::numeric_limits<ChunkID::base_type>::max()};
 
 struct RowID {
-  ChunkID chunk_id{0};
+  ChunkID chunk_id{INVALID_CHUNK_ID};
   ChunkOffset chunk_offset{INVALID_CHUNK_OFFSET};
+
+  RowID() = default;
+
+  RowID(const ChunkID chunk_id, const ChunkOffset chunk_offset) : chunk_id(chunk_id), chunk_offset(chunk_offset) {
+    DebugAssert((chunk_offset == INVALID_CHUNK_OFFSET) == (chunk_id == INVALID_CHUNK_ID),
+                "If you pass in one of the arguments as INVALID/NULL, the other has to be INVALID/NULL as well. This "
+                "makes sure there is just one value representing an invalid row id.");
+  }
+
+  // Faster than row_id == ROW_ID_NULL, since we only compare the ChunkOffset
+  bool is_null() const { return chunk_offset == INVALID_CHUNK_OFFSET; }
 
   // Joins need to use RowIDs as keys for maps.
   bool operator<(const RowID& other) const {
@@ -133,7 +146,7 @@ constexpr ColumnID INVALID_COLUMN_ID{std::numeric_limits<ColumnID::base_type>::m
 constexpr NodeID CURRENT_NODE_ID{std::numeric_limits<NodeID::base_type>::max() - 1};
 
 // ... in ReferenceColumns
-const RowID NULL_ROW_ID = RowID{ChunkID{0u}, INVALID_CHUNK_OFFSET};  // TODO(anyone): Couldn’t use constexpr here
+const RowID NULL_ROW_ID = RowID{INVALID_CHUNK_ID, INVALID_CHUNK_OFFSET};  // TODO(anyone): Couldn’t use constexpr here
 
 // ... in DictionaryColumns
 constexpr ValueID NULL_VALUE_ID{std::numeric_limits<ValueID::base_type>::max()};
@@ -176,6 +189,7 @@ enum class PredicateCondition {
   GreaterThan,
   GreaterThanEquals,
   Between,  // Currently, OpBetween is not handled by a single scan. The LQPTranslator creates two scans.
+  In,
   Like,
   NotLike,
   IsNull,
@@ -195,7 +209,7 @@ enum class ExpressionType {
   Function,
 
   /*A subselect*/
-  Select,
+  Subselect,
 
   /*Arithmetic operators*/
   Addition,

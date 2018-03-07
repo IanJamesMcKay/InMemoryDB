@@ -10,7 +10,11 @@
 #include "chunk.hpp"
 #include "proxy_chunk.hpp"
 #include "storage/index/index_info.hpp"
+<<<<<<< HEAD
 #include "storage/partitioning/abstract_partition_schema.hpp"
+=======
+#include "storage/table_column_definition.hpp"
+>>>>>>> e439647208e88b581d7c32231341439a3b5feb97
 #include "type_cast.hpp"
 #include "types.hpp"
 #include "utils/assert.hpp"
@@ -20,41 +24,69 @@ namespace opossum {
 
 class TableStatistics;
 
-// A table is partitioned horizontally into a number of chunks
+/**
+ * A Table is partitioned horizontally into a number of chunks.
+ */
 class Table : private Noncopyable {
  public:
-  // Creates a new table that has the same layout (column-{types, names}) as the input table
-  static std::shared_ptr<Table> create_with_layout_from(const std::shared_ptr<const Table>& in_table,
-                                                        const uint32_t max_chunk_size = Chunk::MAX_SIZE);
+  static std::shared_ptr<Table> create_dummy_table(const TableColumnDefinitions& column_definitions);
 
+  explicit Table(const TableColumnDefinitions& column_definitions, const TableType type,
+                 const uint32_t max_chunk_size = Chunk::MAX_SIZE, const UseMvcc use_mvcc = UseMvcc::No);
   /**
-   * @returns whether both tables contain the same columns (in name and type) in the same order
+   * @defgroup Getter and convenience functions for the column definitions
+   * @{
    */
-  static bool layouts_equal(const std::shared_ptr<const Table>& left, const std::shared_ptr<const Table>& right);
 
-  // creates a table
-  // the parameter specifies the maximum chunk size, i.e., partition size
-  // default is the maximum allowed chunk size. A table holds always at least one chunk
-  explicit Table(const uint32_t max_chunk_size = Chunk::MAX_SIZE);
+  const TableColumnDefinitions& column_definitions() const;
 
-  // we need to explicitly set the move constructor to default when
-  // we overwrite the copy constructor
-  Table(Table&&) = default;
-  Table& operator=(Table&&) = default;
+  size_t column_count() const;
 
-  // returns the number of columns (cannot exceed ColumnID (uint16_t))
-  uint16_t column_count() const;
+  const std::string& column_name(const ColumnID column_id) const;
+  std::vector<std::string> column_names() const;
+
+  DataType column_data_type(const ColumnID column_id) const;
+  std::vector<DataType> column_data_types() const;
+
+  bool column_is_nullable(const ColumnID column_id) const;
+  std::vector<bool> columns_are_nullable() const;
+
+  // Fail()s, if there is no column of that name
+  ColumnID column_id_by_name(const std::string& column_name) const;
+
+  /** @} */
+
+  TableType type() const;
+
+  UseMvcc has_mvcc() const;
+
+  // return the maximum chunk size (cannot exceed ChunkOffset (uint32_t))
+  uint32_t max_chunk_size() const;
 
   // Returns the number of rows.
   // This number includes invalidated (deleted) rows.
   // Use approx_valid_row_count() for an approximate count of valid rows instead.
   uint64_t row_count() const;
 
+  /**
+   * @return row_count() == 0
+   */
+  bool empty() const;
+
+  /**
+   * @defgroup Accessing and adding Chunks
+   * @{
+   */
   // returns the number of chunks (cannot exceed ChunkID (uint32_t))
   ChunkID chunk_count() const;
 
+<<<<<<< HEAD
   // creates a new chunk and appends it
   std::shared_ptr<Chunk> create_new_chunk(PartitionID partition_id = PartitionID{0});
+=======
+  // Returns all Chunks
+  const std::vector<std::shared_ptr<Chunk>>& chunks() const;
+>>>>>>> e439647208e88b581d7c32231341439a3b5feb97
 
   // returns the chunk with the given id
   std::shared_ptr<Chunk> get_mutable_chunk(ChunkID chunk_id);
@@ -62,6 +94,7 @@ class Table : private Noncopyable {
   ProxyChunk get_mutable_chunk_with_access_counting(ChunkID chunk_id);
   const ProxyChunk get_chunk_with_access_counting(ChunkID chunk_id) const;
 
+<<<<<<< HEAD
   // Adds a chunk to the table. If the first chunk is empty, it is replaced.
   void emplace_chunk(const std::shared_ptr<Chunk>& chunk, PartitionID partition_id = PartitionID{0});
 
@@ -87,15 +120,26 @@ class Table : private Noncopyable {
   // This method is intended for debugging purposes only.
   // It does not verify whether a column name is unambiguous.
   ColumnID column_id_by_name(const std::string& column_name) const;
+=======
+  /**
+   * Creates a new Chunk and appends it to this table.
+   * Makes sure the @param columns match with the TableType (only ReferenceColumns or only data containing columns)
+   * En/Disables MVCC for the Chunk depending on whether MVCC is enabled for the table (has_mvcc())
+   * @param alloc
+   */
+  void append_chunk(const ChunkColumns& columns, const std::optional<PolymorphicAllocator<Chunk>>& alloc = std::nullopt,
+                    const std::shared_ptr<ChunkAccessCounter>& access_counter = nullptr);
+>>>>>>> e439647208e88b581d7c32231341439a3b5feb97
 
-  // return the maximum chunk size (cannot exceed ChunkOffset (uint32_t))
-  uint32_t max_chunk_size() const;
+  // Create and append a Chunk consisting of ValueColumns.
+  void append_mutable_chunk();
 
-  // adds column definition without creating the actual columns
-  void add_column_definition(const std::string& name, DataType data_type, bool nullable = false);
+  /** @} */
 
-  // adds a column to the end, i.e., right, of the table
-  void add_column(const std::string& name, DataType data_type, bool nullable = false);
+  /**
+   * @defgroup Convenience methods for accessing/adding Table data. Slow, use only for testing!
+   * @{
+   */
 
   // inserts a row at the end of the table
   // note this is slow and not thread-safe and should be used for testing purposes only
@@ -122,19 +166,17 @@ class Table : private Noncopyable {
     Fail("Row does not exist.");
   }
 
+<<<<<<< HEAD
+=======
+  /** @} */
+
+>>>>>>> e439647208e88b581d7c32231341439a3b5feb97
   std::unique_lock<std::mutex> acquire_append_mutex();
 
   void set_table_statistics(std::shared_ptr<TableStatistics> table_statistics) { _table_statistics = table_statistics; }
 
   std::shared_ptr<TableStatistics> table_statistics() { return _table_statistics; }
   std::shared_ptr<const TableStatistics> table_statistics() const { return _table_statistics; }
-
-  /**
-   * Determines whether this table consists solely of ReferenceColumns, in which case it is a TableType::References,
-   * or contains Dictionary/ValueColumns, which makes it a TableType::Data.
-   * A table containing both ReferenceColumns and Dictionary/ValueColumns is invalid.
-   */
-  TableType get_type() const;
 
   std::vector<IndexInfo> get_indexes() const;
 
@@ -169,22 +211,20 @@ class Table : private Noncopyable {
   size_t estimate_memory_usage() const;
 
  protected:
+  const TableColumnDefinitions _column_definitions;
+  const TableType _type;
+  const UseMvcc _use_mvcc;
   const uint32_t _max_chunk_size;
   std::vector<std::shared_ptr<Chunk>> _chunks;
-
-  // these should be const strings, but having a vector of const values is a C++17 feature
-  // that is not yet completely implemented in all compilers
-  std::vector<std::string> _column_names;
-  std::vector<DataType> _column_types;
-  std::vector<bool> _column_nullable;
-
   std::shared_ptr<TableStatistics> _table_statistics;
-
   std::unique_ptr<std::mutex> _append_mutex;
+<<<<<<< HEAD
 
   std::shared_ptr<AbstractPartitionSchema> _partition_schema;
 
   void _create_initial_chunks(PartitionID number_of_partitions);
+=======
+>>>>>>> e439647208e88b581d7c32231341439a3b5feb97
   std::vector<IndexInfo> _indexes;
 };
 }  // namespace opossum

@@ -131,7 +131,7 @@ std::shared_ptr<const Table> Insert::_on_execute(std::shared_ptr<TransactionCont
 
   // These TypedColumnProcessors kind of retrieve the template parameter of the columns.
   auto typed_column_processors = std::vector<std::unique_ptr<AbstractTypedColumnProcessor>>();
-  for (const auto& column_type : _target_table->column_types()) {
+  for (const auto& column_type : _target_table->column_data_types()) {
     typed_column_processors.emplace_back(
         make_unique_by_data_type<AbstractTypedColumnProcessor, TypedColumnProcessor>(column_type));
   }
@@ -308,6 +308,12 @@ std::unordered_map<PartitionID, uint32_t> Insert::_count_rows_for_partitions(
 
 std::shared_ptr<AbstractOperator> Insert::recreate(const std::vector<AllParameterVariant>& args) const {
   return std::make_shared<Insert>(_target_table_name, _input_left->recreate(args));
+}
+
+std::shared_ptr<AbstractOperator> Insert::_on_recreate(
+    const std::vector<AllParameterVariant>& args, const std::shared_ptr<AbstractOperator>& recreated_input_left,
+    const std::shared_ptr<AbstractOperator>& recreated_input_right) const {
+  return std::make_shared<Insert>(_target_table_name, recreated_input_left);
 }
 
 }  // namespace opossum

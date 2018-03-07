@@ -15,7 +15,6 @@
 #include "import_export/binary.hpp"
 #include "resolve_type.hpp"
 #include "storage/chunk.hpp"
-#include "storage/deprecated_dictionary_column/fitted_attribute_vector.hpp"
 #include "storage/partitioning/hash_function.hpp"
 #include "storage/partitioning/hash_partition_schema.hpp"
 #include "storage/partitioning/null_partition_schema.hpp"
@@ -125,6 +124,12 @@ std::shared_ptr<const Table> ImportBinary::_on_execute() {
   return table;
 }
 
+std::shared_ptr<AbstractOperator> ImportBinary::_on_recreate(
+    const std::vector<AllParameterVariant>& args, const std::shared_ptr<AbstractOperator>& recreated_input_left,
+    const std::shared_ptr<AbstractOperator>& recreated_input_right) const {
+  return std::make_shared<ImportBinary>(_filename, _tablename);
+}
+
 std::pair<std::shared_ptr<Table>, ChunkID> ImportBinary::_read_header(std::ifstream& file) {
   const auto chunk_size = _read_value<ChunkOffset>(file);
   const auto chunk_count = _read_value<ChunkID>(file);
@@ -133,14 +138,13 @@ std::pair<std::shared_ptr<Table>, ChunkID> ImportBinary::_read_header(std::ifstr
   const auto column_nullables = _read_values<bool>(file, column_count);
   const auto column_names = _read_string_values<ColumnNameLength>(file, column_count);
 
-  auto table = std::make_shared<Table>(chunk_size);
-
-  // Add columns to table
+  TableColumnDefinitions output_column_definitions;
   for (ColumnID column_id{0}; column_id < column_count; ++column_id) {
     const auto data_type = data_type_to_string.right.at(data_types[column_id]);
-
-    table->add_column_definition(column_names[column_id], data_type, column_nullables[column_id]);
+    output_column_definitions.emplace_back(column_names[column_id], data_type, column_nullables[column_id]);
   }
+
+  auto table = std::make_shared<Table>(output_column_definitions, TableType::Data, chunk_size, UseMvcc::Yes);
 
   return std::make_pair(table, chunk_count);
 }
@@ -190,15 +194,15 @@ void ImportBinary::_import_partition(std::ifstream& file,
   }
 }
 
-std::shared_ptr<Chunk> ImportBinary::_import_chunk(std::ifstream& file, std::shared_ptr<Table>& table) {
+void ImportBinary::_import_chunk(std::ifstream& file, std::shared_ptr<Table>& table) {
   const auto row_count = _read_value<ChunkOffset>(file);
-  const auto chunk = std::make_shared<Chunk>(UseMvcc::Yes);
 
+  ChunkColumns output_columns;
   for (ColumnID column_id{0}; column_id < table->column_count(); ++column_id) {
-    chunk->add_column(
-        _import_column(file, row_count, table->column_type(column_id), table->column_is_nullable(column_id)));
+    output_columns.push_back(
+        _import_column(file, row_count, table->column_data_type(column_id), table->column_is_nullable(column_id)));
   }
-  return chunk;
+  table->append_chunk(output_columns);
 }
 
 std::shared_ptr<BaseColumn> ImportBinary::_import_column(std::ifstream& file, ChunkOffset row_count, DataType data_type,

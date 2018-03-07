@@ -5,11 +5,11 @@
 #include <utility>
 #include <vector>
 
+#include "json.hpp"
+
 #include "import_export/csv_meta.hpp"
 #include "import_export/csv_writer.hpp"
 #include "json.hpp"
-#include "storage/deprecated_dictionary_column.hpp"
-#include "storage/deprecated_dictionary_column/base_attribute_vector.hpp"
 #include "storage/materialize.hpp"
 #include "storage/reference_column.hpp"
 
@@ -30,6 +30,12 @@ std::shared_ptr<const Table> ExportCsv::_on_execute() {
   return _input_left->get_output();
 }
 
+std::shared_ptr<AbstractOperator> ExportCsv::_on_recreate(
+    const std::vector<AllParameterVariant>& args, const std::shared_ptr<AbstractOperator>& recreated_input_left,
+    const std::shared_ptr<AbstractOperator>& recreated_input_right) const {
+  return std::make_shared<ExportCsv>(recreated_input_left, _filename);
+}
+
 void ExportCsv::_generate_meta_info_file(const std::shared_ptr<const Table>& table, const std::string& meta_file_path) {
   CsvMeta meta{};
   meta.chunk_size = table->max_chunk_size();
@@ -38,7 +44,7 @@ void ExportCsv::_generate_meta_info_file(const std::shared_ptr<const Table>& tab
   for (ColumnID column_id{0}; column_id < table->column_count(); ++column_id) {
     ColumnMeta column_meta;
     column_meta.name = table->column_name(column_id);
-    column_meta.type = data_type_to_string.left.at(table->column_type(column_id));
+    column_meta.type = data_type_to_string.left.at(table->column_data_type(column_id));
     column_meta.nullable = table->column_is_nullable(column_id);
 
     meta.columns.push_back(column_meta);

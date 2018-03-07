@@ -20,8 +20,10 @@ Print::Print(const std::shared_ptr<const AbstractOperator> in, std::ostream& out
 
 const std::string Print::name() const { return "Print"; }
 
-std::shared_ptr<AbstractOperator> Print::recreate(const std::vector<AllParameterVariant>& args) const {
-  return std::make_shared<Print>(_input_left->recreate(args), _out);
+std::shared_ptr<AbstractOperator> Print::_on_recreate(
+    const std::vector<AllParameterVariant>& args, const std::shared_ptr<AbstractOperator>& recreated_input_left,
+    const std::shared_ptr<AbstractOperator>& recreated_input_right) const {
+  return std::make_shared<Print>(recreated_input_left, _out);
 }
 
 void Print::print(std::shared_ptr<const Table> table, uint32_t flags, std::ostream& out) {
@@ -37,25 +39,25 @@ void Print::print(std::shared_ptr<const AbstractOperator> in, uint32_t flags, st
 std::shared_ptr<const Table> Print::_on_execute() {
   PerformanceWarningDisabler pwd;
 
-  auto widths = _column_string_widths(8, 20, _input_table_left());
+  auto widths = _column_string_widths(8, 20, input_table_left());
 
   // print partitioning information
-  if (_input_table_left()->is_partitioned()) {
+  if (input_table_left()->is_partitioned()) {
     _out << "=== Partitioning" << std::endl;
-    _out << "Schema: " << _input_table_left()->get_partition_schema()->name() << std::endl;
+    _out << "Schema: " << input_table_left()->get_partition_schema()->name() << std::endl;
   }
 
   // print column headers
   _out << "=== Columns" << std::endl;
-  for (ColumnID col{0}; col < _input_table_left()->column_count(); ++col) {
-    _out << "|" << std::setw(widths[col]) << _input_table_left()->column_name(col) << std::setw(0);
+  for (ColumnID col{0}; col < input_table_left()->column_count(); ++col) {
+    _out << "|" << std::setw(widths[col]) << input_table_left()->column_name(col) << std::setw(0);
   }
   if (_flags & PrintMvcc) {
     _out << "||        MVCC        ";
   }
   _out << "|" << std::endl;
-  for (ColumnID col{0}; col < _input_table_left()->column_count(); ++col) {
-    const auto data_type = data_type_to_string.left.at(_input_table_left()->column_type(col));
+  for (ColumnID col{0}; col < input_table_left()->column_count(); ++col) {
+    const auto data_type = data_type_to_string.left.at(input_table_left()->column_data_type(col));
     _out << "|" << std::setw(widths[col]) << data_type << std::setw(0);
   }
   if (_flags & PrintMvcc) {
@@ -64,9 +66,9 @@ std::shared_ptr<const Table> Print::_on_execute() {
   _out << "|" << std::endl;
 
   // print each partition
-  for (PartitionID partition_id{0}; partition_id < _input_table_left()->partition_count(); ++partition_id) {
-    const auto partition = _input_table_left()->get_partition_schema()->get_partition(partition_id);
-    if (_input_table_left()->is_partitioned()) {
+  for (PartitionID partition_id{0}; partition_id < input_table_left()->partition_count(); ++partition_id) {
+    const auto partition = input_table_left()->get_partition_schema()->get_partition(partition_id);
+    if (input_table_left()->is_partitioned()) {
       _out << "=== Partition " << partition_id << std::endl;
     }
     // print each chunk
@@ -114,7 +116,7 @@ std::shared_ptr<const Table> Print::_on_execute() {
     }
   }
 
-  return _input_table_left();
+  return input_table_left();
 }
 
 // In order to print the table as an actual table, with columns being aligned, we need to calculate the
@@ -128,8 +130,8 @@ std::vector<uint16_t> Print::_column_string_widths(uint16_t min, uint16_t max, s
   }
 
   // go over all rows and find the maximum length of the printed representation of a value, up to max
-  for (ChunkID chunk_id{0}; chunk_id < _input_table_left()->chunk_count(); ++chunk_id) {
-    auto chunk = _input_table_left()->get_chunk(chunk_id);
+  for (ChunkID chunk_id{0}; chunk_id < input_table_left()->chunk_count(); ++chunk_id) {
+    auto chunk = input_table_left()->get_chunk(chunk_id);
 
     for (ColumnID col{0}; col < chunk->column_count(); ++col) {
       for (size_t row = 0; row < chunk->size(); ++row) {
