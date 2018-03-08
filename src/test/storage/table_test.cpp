@@ -43,13 +43,13 @@ TEST_F(StorageTableTest, GetChunk) {
 }
 
 TEST_F(StorageTableTest, GetModifiableChunkWithAccessCounting) {
-  t.get_chunk(ChunkID{0});
+  t->get_chunk(ChunkID{0});
   // TODO(anyone): Do we want checks here?
-  // EXPECT_THROW(t.get_chunk(ChunkID{q}), std::exception);
-  t.append({4, "Hello,"});
-  t.append({6, "world"});
-  t.append({3, "!"});
-  auto chunk = t.get_mutable_chunk_with_access_counting(ChunkID{1});
+  // EXPECT_THROW(t->get_chunk(ChunkID{q}), std::exception);
+  t->append({4, "Hello,"});
+  t->append({6, "world"});
+  t->append({3, "!"});
+  auto chunk = t->get_mutable_chunk_with_access_counting(ChunkID{1});
   EXPECT_EQ(chunk->size(), 1u);
   chunk->append({1, "Test"});
   EXPECT_EQ(chunk->size(), 2u);
@@ -109,7 +109,7 @@ TEST_F(StorageTableTest, ShrinkingMvccColumnsHasNoSideEffects) {
   t->append({4, "Hello,"});
   t->append({6, "world"});
 
-  auto chunk = t->get_chunk(ChunkID{0});
+  auto chunk = t->get_mutable_chunk(ChunkID{0});
 
   const auto values = std::vector<CommitID>{1u, 2u};
 
@@ -183,23 +183,23 @@ TEST_F(StorageTableTest, ChunkSizeZeroThrows) {
 }
 
 TEST_F(StorageTableTest, IsPartitioned) {
-  Table t0 = Table(5);
-  EXPECT_FALSE(t0.is_partitioned());
-  t0.apply_partitioning(std::make_shared<RoundRobinPartitionSchema>(PartitionID{2}));
-  EXPECT_TRUE(t0.is_partitioned());
+  const auto t0 = std::make_shared<Table>(TableColumnDefinitions{}, TableType::Data);
+  EXPECT_FALSE(t0->is_partitioned());
+  t0->apply_partitioning(std::make_shared<RoundRobinPartitionSchema>(PartitionID{2}));
+  EXPECT_TRUE(t0->is_partitioned());
 }
 
 TEST_F(StorageTableTest, CreatePartitioningOnNonEmptyTable) {
-  t.append({4, "Hello,"});
-  EXPECT_ANY_THROW(t.apply_partitioning(std::make_shared<RoundRobinPartitionSchema>(PartitionID{2})));
+  t->append({4, "Hello,"});
+  EXPECT_ANY_THROW(t->apply_partitioning(std::make_shared<RoundRobinPartitionSchema>(PartitionID{2})));
 }
 
 TEST_F(StorageTableTest, ApplyPartitioning) {
   auto p = std::make_shared<RoundRobinPartitionSchema>(PartitionID{2});
-  EXPECT_FALSE(t.is_partitioned());
-  t.apply_partitioning(p);
-  EXPECT_TRUE(t.is_partitioned());
-  EXPECT_EQ(t.chunk_count(), 2u);
+  EXPECT_FALSE(t->is_partitioned());
+  t->apply_partitioning(p);
+  EXPECT_TRUE(t->is_partitioned());
+  EXPECT_EQ(t->chunk_count(), 2u);
 }
 
 TEST_F(StorageTableTest, MemoryUsageEstimation) {

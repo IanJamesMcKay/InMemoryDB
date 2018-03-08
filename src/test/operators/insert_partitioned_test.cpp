@@ -34,7 +34,7 @@ TEST_F(OperatorsInsertPartitionedTest, InsertNullPartitioned) {
   StorageManager::get().add_table(table_name, t);
 
   auto target_table_name = "partitioned_table";
-  auto p = Table::create_with_layout_from(t, Chunk::MAX_SIZE);
+  auto p = std::make_shared<Table>(t->column_definitions(), TableType::Data, Chunk::MAX_SIZE);
   p->apply_partitioning(std::make_shared<NullPartitionSchema>());
   StorageManager::get().add_table(target_table_name, p);
 
@@ -67,7 +67,7 @@ TEST_F(OperatorsInsertPartitionedTest, InsertHashPartitioned) {
   StorageManager::get().add_table(table_name, t);
 
   auto target_table_name = "partitioned_table";
-  auto p = Table::create_with_layout_from(t, Chunk::MAX_SIZE);
+  auto p = std::make_shared<Table>(t->column_definitions(), TableType::Data, Chunk::MAX_SIZE);
   p->apply_partitioning(
       std::make_shared<HashPartitionSchema>(ColumnID{0}, std::make_unique<HashFunction>(), PartitionID{3}));
   StorageManager::get().add_table(target_table_name, p);
@@ -111,7 +111,7 @@ TEST_F(OperatorsInsertPartitionedTest, InsertRangePartitioned) {
   StorageManager::get().add_table(table_name, t);
 
   auto target_table_name = "partitioned_table";
-  auto p = Table::create_with_layout_from(t, Chunk::MAX_SIZE);
+  auto p = std::make_shared<Table>(t->column_definitions(), TableType::Data, Chunk::MAX_SIZE);
   std::vector<AllTypeVariant> bounds = {457.0f, 458.0f};
   p->apply_partitioning(std::make_shared<RangePartitionSchema>(ColumnID{0}, bounds));
   StorageManager::get().add_table(target_table_name, p);
@@ -155,7 +155,7 @@ TEST_F(OperatorsInsertPartitionedTest, InsertRoundRobinPartitioned) {
   StorageManager::get().add_table(table_name, t);
 
   auto target_table_name = "partitioned_table";
-  auto p = Table::create_with_layout_from(t, Chunk::MAX_SIZE);
+  auto p = std::make_shared<Table>(t->column_definitions(), TableType::Data, Chunk::MAX_SIZE);
   p->apply_partitioning(std::make_shared<RoundRobinPartitionSchema>(PartitionID{3}));
   StorageManager::get().add_table(target_table_name, p);
 

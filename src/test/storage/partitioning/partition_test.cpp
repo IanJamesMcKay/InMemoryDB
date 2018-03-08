@@ -18,8 +18,8 @@ class StoragePartitionTest : public BaseTest {
 
 TEST_F(StoragePartitionTest, AddAndAccessChunk) {
   Partition p0;
-  std::shared_ptr<Chunk> c0 = std::make_shared<Chunk>();
-  std::shared_ptr<Chunk> c1 = std::make_shared<Chunk>();
+  std::shared_ptr<Chunk> c0 = std::make_shared<Chunk>(ChunkColumns{});
+  std::shared_ptr<Chunk> c1 = std::make_shared<Chunk>(ChunkColumns{});
 
   p0.add_new_chunk(c0);
   EXPECT_EQ(p0.last_chunk(), c0);
@@ -30,15 +30,12 @@ TEST_F(StoragePartitionTest, AddAndAccessChunk) {
 
 TEST_F(StoragePartitionTest, Append) {
   Partition p0;
-  std::shared_ptr<Chunk> c0 = std::make_shared<Chunk>();
   std::shared_ptr<BaseColumn> vc_int = make_shared_by_data_type<BaseColumn, ValueColumn>(DataType::Int);
   std::shared_ptr<BaseColumn> vc_str = make_shared_by_data_type<BaseColumn, ValueColumn>(DataType::String);
+  std::shared_ptr<Chunk> c0 = std::make_shared<Chunk>(ChunkColumns{vc_int, vc_str});
 
   // Chunks have to be pre-configured when adding them to a Partition.
   // This is usually done by Table. Here we have to do this manually.
-  c0->add_column(vc_int);
-  c0->add_column(vc_str);
-
   p0.add_new_chunk(c0);
   p0.append({21, "Hello"});
   p0.append({42, "World"});

@@ -225,13 +225,15 @@ TEST_F(OperatorsExportBinaryTest, AllTypesMixColumn) {
 }
 
 TEST_F(OperatorsExportBinaryTest, AllTypesValueColumnRoundRobinPartitioned) {
-  auto table = std::make_shared<opossum::Table>(2);
+  TableColumnDefinitions column_definitions;
+  column_definitions.emplace_back("a", DataType::String);
+  column_definitions.emplace_back("b", DataType::Int);
+  column_definitions.emplace_back("c", DataType::Long);
+  column_definitions.emplace_back("d", DataType::Float);
+  column_definitions.emplace_back("e", DataType::Double);
+
+  auto table = std::make_shared<Table>(column_definitions, TableType::Data, 2);
   table->apply_partitioning(std::make_shared<RoundRobinPartitionSchema>(PartitionID{3}));
-  table->add_column("a", DataType::String);
-  table->add_column("b", DataType::Int);
-  table->add_column("c", DataType::Long);
-  table->add_column("d", DataType::Float);
-  table->add_column("e", DataType::Double);
   table->append({"AAAAA", 1, static_cast<int64_t>(100), 1.1f, 11.1});
   table->append({"BBBBBBBBBB", 2, static_cast<int64_t>(200), 2.2f, 22.2});
   table->append({"CCCCCCCCCCCCCCC", 3, static_cast<int64_t>(300), 3.3f, 33.3});
@@ -247,14 +249,17 @@ TEST_F(OperatorsExportBinaryTest, AllTypesValueColumnRoundRobinPartitioned) {
 }
 
 TEST_F(OperatorsExportBinaryTest, AllTypesValueColumnRangePartitioned) {
-  auto table = std::make_shared<opossum::Table>(2);
+  TableColumnDefinitions column_definitions;
+  column_definitions.emplace_back("a", DataType::String);
+  column_definitions.emplace_back("b", DataType::Int);
+  column_definitions.emplace_back("c", DataType::Long);
+  column_definitions.emplace_back("d", DataType::Float);
+  column_definitions.emplace_back("e", DataType::Double);
+
+  auto table = std::make_shared<Table>(column_definitions, TableType::Data, 2);
+
   const std::vector<AllTypeVariant> bounds = {2.5f, 4.0f};
   table->apply_partitioning(std::make_shared<RangePartitionSchema>(ColumnID{3}, bounds));
-  table->add_column("a", DataType::String);
-  table->add_column("b", DataType::Int);
-  table->add_column("c", DataType::Long);
-  table->add_column("d", DataType::Float);
-  table->add_column("e", DataType::Double);
   table->append({"AAAAA", 1, static_cast<int64_t>(100), 1.1f, 11.1});
   table->append({"BBBBBBBBBB", 2, static_cast<int64_t>(200), 2.2f, 22.2});
   table->append({"CCCCCCCCCCCCCCC", 3, static_cast<int64_t>(300), 3.3f, 33.3});
@@ -270,14 +275,17 @@ TEST_F(OperatorsExportBinaryTest, AllTypesValueColumnRangePartitioned) {
 }
 
 TEST_F(OperatorsExportBinaryTest, AllTypesValueColumnHashPartitioned) {
-  auto table = std::make_shared<opossum::Table>(2);
+  TableColumnDefinitions column_definitions;
+  column_definitions.emplace_back("a", DataType::String);
+  column_definitions.emplace_back("b", DataType::Int);
+  column_definitions.emplace_back("c", DataType::Long);
+  column_definitions.emplace_back("d", DataType::Float);
+  column_definitions.emplace_back("e", DataType::Double);
+
+  auto table = std::make_shared<Table>(column_definitions, TableType::Data, 2);
+
   auto hf = std::make_unique<HashFunction>();
   table->apply_partitioning(std::make_shared<HashPartitionSchema>(ColumnID{3}, std::move(hf), PartitionID{3}));
-  table->add_column("a", DataType::String);
-  table->add_column("b", DataType::Int);
-  table->add_column("c", DataType::Long);
-  table->add_column("d", DataType::Float);
-  table->add_column("e", DataType::Double);
   table->append({"AAAAA", 1, static_cast<int64_t>(100), 1.1f, 11.1});
   table->append({"BBBBBBBBBB", 2, static_cast<int64_t>(200), 2.2f, 22.2});
   table->append({"CCCCCCCCCCCCCCC", 3, static_cast<int64_t>(300), 3.3f, 33.3});

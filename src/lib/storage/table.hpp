@@ -94,10 +94,10 @@ class Table : private Noncopyable {
    * @param alloc
    */
   void append_chunk(const ChunkColumns& columns, const std::optional<PolymorphicAllocator<Chunk>>& alloc = std::nullopt,
-                    const std::shared_ptr<ChunkAccessCounter>& access_counter = nullptr);
+                    const std::shared_ptr<ChunkAccessCounter>& access_counter = nullptr, PartitionID partition_id = PartitionID{0});
 
   // Create and append a Chunk consisting of ValueColumns.
-  void append_mutable_chunk();
+  void append_mutable_chunk(PartitionID partition_id = PartitionID{0});
 
   /** @} */
 
@@ -160,7 +160,6 @@ class Table : private Noncopyable {
    * The logic behind partitioning (which tuples goes in which Partition) is handled by PartitionSchema.
    */
   void apply_partitioning(const std::shared_ptr<AbstractPartitionSchema> partition_schema);
-
   bool is_partitioned() const;
   PartitionID partition_count() const;
   const std::shared_ptr<const AbstractPartitionSchema> get_partition_schema() const;
@@ -171,6 +170,8 @@ class Table : private Noncopyable {
   size_t estimate_memory_usage() const;
 
  protected:
+  void _create_initial_chunks(PartitionID number_of_partitions);
+
   const TableColumnDefinitions _column_definitions;
   const TableType _type;
   const UseMvcc _use_mvcc;

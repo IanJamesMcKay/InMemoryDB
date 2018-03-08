@@ -31,6 +31,7 @@ Table::Table(const TableColumnDefinitions& column_definitions, const TableType t
       _max_chunk_size(max_chunk_size),
       _append_mutex(std::make_unique<std::mutex>()) {
   Assert(max_chunk_size > 0, "Table must have a chunk size greater than 0.");
+  if (_type == TableType::Data) apply_partitioning(std::make_shared<NullPartitionSchema>());
 }
 
 const TableColumnDefinitions& Table::column_definitions() const { return _column_definitions; }
@@ -89,7 +90,7 @@ ColumnID Table::column_id_by_name(const std::string& column_name) const {
   return static_cast<ColumnID>(std::distance(_column_definitions.begin(), iter));
 }
 
-void Table::append(std::vector<AllTypeVariant> values) {
+void Table::append(const std::vector<AllTypeVariant>& values) {
   if (_chunks.empty() || _chunks.back()->size() >= _max_chunk_size) {
     append_mutable_chunk();
   }
@@ -97,7 +98,7 @@ void Table::append(std::vector<AllTypeVariant> values) {
   _chunks.back()->append(values);
 }
 
-void Table::append_mutable_chunk() {
+void Table::append_mutable_chunk(PartitionID partition_id) {
   ChunkColumns columns;
   for (const auto& column_definition : _column_definitions) {
     resolve_data_type(column_definition.data_type, [&](auto type) {
@@ -124,12 +125,12 @@ const std::vector<std::shared_ptr<Chunk>>& Table::chunks() const { return _chunk
 
 uint32_t Table::max_chunk_size() const { return _max_chunk_size; }
 
-std::shared_ptr<Chunk> Table::get_chunk(ChunkID chunk_id) {
+std::shared_ptr<const Chunk> Table::get_chunk(ChunkID chunk_id) const {
   DebugAssert(chunk_id < _chunks.size(), "ChunkID " + std::to_string(chunk_id) + " out of range");
   return _chunks[chunk_id];
 }
 
-std::shared_ptr<const Chunk> Table::get_chunk(ChunkID chunk_id) const {
+std::shared_ptr<Chunk> Table::get_mutable_chunk(ChunkID chunk_id) {
   DebugAssert(chunk_id < _chunks.size(), "ChunkID " + std::to_string(chunk_id) + " out of range");
   return _chunks[chunk_id];
 }
@@ -145,7 +146,7 @@ const ProxyChunk Table::get_chunk_with_access_counting(ChunkID chunk_id) const {
 }
 
 void Table::append_chunk(const ChunkColumns& columns, const std::optional<PolymorphicAllocator<Chunk>>& alloc,
-                         const std::shared_ptr<ChunkAccessCounter>& access_counter) {
+                         const std::shared_ptr<ChunkAccessCounter>& access_counter, PartitionID partition_id) {
   const auto chunk_size = columns.empty() ? 0u : columns[0]->size();
 
 #if IS_DEBUG
@@ -169,7 +170,11 @@ void Table::append_chunk(const ChunkColumns& columns, const std::optional<Polymo
     mvcc_columns = std::make_shared<MvccColumns>(chunk_size);
   }
 
-  _chunks.emplace_back(std::make_shared<Chunk>(columns, mvcc_columns, alloc, access_counter));
+  const auto chunk = std::make_shared<Chunk>(columns, mvcc_columns, alloc, access_counter);
+  chunk->set_id(static_cast<ChunkID>(_chunks.size()));
+  _chunks.emplace_back(chunk);
+
+  if (_partition_schema) _partition_schema->add_new_chunk(chunk, partition_id);
 }
 
 void Table::apply_partitioning(const std::shared_ptr<AbstractPartitionSchema> partition_schema) {
@@ -178,6 +183,17 @@ void Table::apply_partitioning(const std::shared_ptr<AbstractPartitionSchema> pa
   }
   _partition_schema = partition_schema;
   _create_initial_chunks(static_cast<PartitionID>(partition_schema->partition_count()));
+}
+
+void Table::_create_initial_chunks(PartitionID number_of_partitions) {
+  if (row_count() > 0) {
+    // the initial chunk was not used yet
+    throw std::runtime_error("Unable to create partitioning on non-empty table");
+  }
+  _chunks.clear();
+  for (auto partition_id = PartitionID{0}; partition_id < number_of_partitions; ++partition_id) {
+    append_mutable_chunk(partition_id);
+  }
 }
 
 bool Table::is_partitioned() const { return _partition_schema->is_partitioned(); }

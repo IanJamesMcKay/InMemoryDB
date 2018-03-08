@@ -91,16 +91,16 @@ std::shared_ptr<const Table> ImportBinary::_on_execute() {
   std::shared_ptr<Table> table;
   ChunkID chunk_count;
   std::tie(table, chunk_count) = _read_header(file);
-  std::vector<std::shared_ptr<Chunk>> chunks;
-  chunks.reserve(chunk_count);
+  std::vector<ChunkColumns> columns_per_chunk;
+  columns_per_chunk.reserve(chunk_count);
   for (ChunkID chunk_id{0}; chunk_id < chunk_count; ++chunk_id) {
-    chunks.emplace_back(_import_chunk(file, table));
+    columns_per_chunk.emplace_back(_import_chunk(file, table));
   }
 
   try {
     // check if partitioning information is available
     const auto partition_schema = _read_partitioning_header(file);
-    table->set_partitioning_and_clear(partition_schema);
+    table->apply_partitioning(partition_schema);
 
     std::map<ChunkID, PartitionID> chunk_to_partition;
     for (PartitionID partition_id{0}; partition_id < partition_schema->partition_count(); ++partition_id) {
@@ -108,12 +108,12 @@ std::shared_ptr<const Table> ImportBinary::_on_execute() {
     }
 
     for (ChunkID chunk_id{0}; chunk_id < chunk_count; ++chunk_id) {
-      table->emplace_chunk(chunks[chunk_id], chunk_to_partition[chunk_id]);
+      table->append_chunk(columns_per_chunk[chunk_id], {}, {}, chunk_to_partition[chunk_id]);
     }
   } catch (const std::ios_base::failure& fail) {
     // unpartitioned table
-    for (auto chunk : chunks) {
-      table->emplace_chunk(chunk);
+    for (const auto& columns : columns_per_chunk) {
+      table->append_chunk(columns);
     }
   }
 
@@ -194,7 +194,7 @@ void ImportBinary::_import_partition(std::ifstream& file,
   }
 }
 
-void ImportBinary::_import_chunk(std::ifstream& file, std::shared_ptr<Table>& table) {
+ChunkColumns ImportBinary::_import_chunk(std::ifstream& file, std::shared_ptr<Table>& table) {
   const auto row_count = _read_value<ChunkOffset>(file);
 
   ChunkColumns output_columns;
@@ -202,7 +202,7 @@ void ImportBinary::_import_chunk(std::ifstream& file, std::shared_ptr<Table>& ta
     output_columns.push_back(
         _import_column(file, row_count, table->column_data_type(column_id), table->column_is_nullable(column_id)));
   }
-  table->append_chunk(output_columns);
+  return output_columns;
 }
 
 std::shared_ptr<BaseColumn> ImportBinary::_import_column(std::ifstream& file, ChunkOffset row_count, DataType data_type,

@@ -121,6 +121,12 @@ std::shared_ptr<const Table> Partitioning::_on_execute(std::shared_ptr<Transacti
   return nullptr;
 }
 
+std::shared_ptr<AbstractOperator> Partitioning::_on_recreate(
+const std::vector<AllParameterVariant>& args, const std::shared_ptr<AbstractOperator>& recreated_input_left,
+const std::shared_ptr<AbstractOperator>& recreated_input_right) const {
+  return std::make_shared<Partitioning>(_table_name, _target_partition_schema);
+}
+
 std::shared_ptr<Table> Partitioning::_get_table_to_be_partitioned() {
   return StorageManager::get().get_table(_table_name);
 }
@@ -130,8 +136,7 @@ std::unique_lock<std::mutex> Partitioning::_lock_table(std::shared_ptr<Table> ta
 }
 
 std::shared_ptr<Table> Partitioning::_create_partitioned_table_copy(std::shared_ptr<Table> table_to_be_partitioned) {
-  auto partitioned_table =
-      Table::create_with_layout_from(table_to_be_partitioned, table_to_be_partitioned->max_chunk_size());
+  auto partitioned_table = std::make_shared<Table>(table_to_be_partitioned->column_definitions(), TableType::Data, table_to_be_partitioned->max_chunk_size());
   partitioned_table->apply_partitioning(_target_partition_schema);
   return partitioned_table;
 }
@@ -143,7 +148,7 @@ void Partitioning::_copy_table_content(std::shared_ptr<Table> source, std::share
 
   // These TypedColumnProcessors kind of retrieve the template parameter of the columns.
   auto typed_column_processors = std::vector<std::unique_ptr<AbstractTypedColumnProcessor>>();
-  for (const auto& column_type : target->column_types()) {
+  for (const auto& column_type : target->column_data_types()) {
     typed_column_processors.emplace_back(
         make_unique_by_data_type<AbstractTypedColumnProcessor, TypedColumnProcessor>(column_type));
   }
@@ -177,7 +182,7 @@ void Partitioning::_copy_table_content(std::shared_ptr<Table> source, std::share
         auto rows_to_insert_this_loop = std::min(target->max_chunk_size() - current_chunk->size(), remaining_rows);
 
         // Resize MVCC vectors.
-        current_chunk->grow_mvcc_column_size_by(rows_to_insert_this_loop, Chunk::MAX_COMMIT_ID);
+        current_chunk->mvcc_columns()->grow_by(rows_to_insert_this_loop, MvccColumns::MAX_COMMIT_ID);
 
         // Resize current chunk to full size.
         auto old_size = current_chunk->size();
@@ -190,7 +195,7 @@ void Partitioning::_copy_table_content(std::shared_ptr<Table> source, std::share
 
         // Create new chunk if necessary.
         if (remaining_rows > 0) {
-          target->create_new_chunk(partitionID);
+          target->append_mutable_chunk(partitionID);
           total_chunks_inserted++;
 
           ChunkID chunk_id_to_add = partition->last_chunk()->id();

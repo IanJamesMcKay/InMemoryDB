@@ -6,11 +6,13 @@ namespace opossum {
 class StorageNullPartitionSchemaTest : public BaseTest {
  protected:
   void SetUp() override {
-    t0.add_column("int_column", opossum::DataType::Int, false);
-    t0.add_column("string_column", opossum::DataType::String, false);
+    TableColumnDefinitions column_definitions;
+    column_definitions.emplace_back("int_column", opossum::DataType::Int, false);
+    column_definitions.emplace_back("string_column", opossum::DataType::String, false);
+    t0 = std::make_shared<Table>(column_definitions, TableType::Data, 2);
   }
 
-  Table t0{2};
+  std::shared_ptr<Table> t0;
 };
 
 /*
@@ -19,27 +21,27 @@ class StorageNullPartitionSchemaTest : public BaseTest {
  */
 
 TEST_F(StorageNullPartitionSchemaTest, NullPartitioningIsDefault) {
-  EXPECT_EQ(t0.row_count(), 0u);
-  EXPECT_EQ(t0.chunk_count(), 1u);
-  EXPECT_FALSE(t0.is_partitioned());
+  EXPECT_EQ(t0->row_count(), 0u);
+  EXPECT_EQ(t0->chunk_count(), 1u);
+  EXPECT_FALSE(t0->is_partitioned());
 }
 
 TEST_F(StorageNullPartitionSchemaTest, AppendViaTable) {
-  t0.append({1, "Foo"});
-  t0.append({2, "Bar"});
-  t0.append({3, "Baz"});
-  t0.append({6, "Foo"});
-  t0.append({7, "Bar"});
-  t0.append({11, "Baz"});
+  t0->append({1, "Foo"});
+  t0->append({2, "Bar"});
+  t0->append({3, "Baz"});
+  t0->append({6, "Foo"});
+  t0->append({7, "Bar"});
+  t0->append({11, "Baz"});
 
-  EXPECT_EQ(t0.chunk_count(), 3u);
+  EXPECT_EQ(t0->chunk_count(), 3u);
 }
 
-TEST_F(StorageNullPartitionSchemaTest, Name) { EXPECT_EQ(t0.get_partition_schema()->name(), "NullPartition"); }
+TEST_F(StorageNullPartitionSchemaTest, Name) { EXPECT_EQ(t0->get_partition_schema()->name(), "NullPartition"); }
 
 TEST_F(StorageNullPartitionSchemaTest, GetChunkIDsToExclude) {
   const auto chunk_ids =
-      t0.get_partition_schema()->get_chunk_ids_to_exclude(PredicateCondition::Equals, AllTypeVariant{2});
+      t0->get_partition_schema()->get_chunk_ids_to_exclude(PredicateCondition::Equals, AllTypeVariant{2});
   EXPECT_EQ(chunk_ids.size(), 0u);
 }
 

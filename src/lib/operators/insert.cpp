@@ -126,7 +126,7 @@ std::shared_ptr<const Table> Insert::_on_execute(std::shared_ptr<TransactionCont
 
   // partitioning
   const auto target_partition_schema = _target_table->get_partition_schema();
-  auto target_partition_mapping = target_partition_schema->get_mapping_to_partitions(_input_table_left());
+  auto target_partition_mapping = target_partition_schema->get_mapping_to_partitions(input_table_left());
   const auto rows_to_add_to_partition = _count_rows_for_partitions(target_partition_mapping);
 
   // These TypedColumnProcessors kind of retrieve the template parameter of the columns.
@@ -160,7 +160,7 @@ std::shared_ptr<const Table> Insert::_on_execute(std::shared_ptr<TransactionCont
 
       // If last chunk is compressed, add a new uncompressed chunk
       if (std::dynamic_pointer_cast<const BaseEncodedColumn>(last_chunk->get_column(ColumnID{0})) != nullptr) {
-        _target_table->create_new_chunk(partitionID);
+        _target_table->append_mutable_chunk(partitionID);
         total_chunks_inserted++;
 
         ChunkID chunk_id_to_add = partition->last_chunk()->id();
@@ -175,7 +175,7 @@ std::shared_ptr<const Table> Insert::_on_execute(std::shared_ptr<TransactionCont
             std::min(_target_table->max_chunk_size() - current_chunk->size(), remaining_rows);
 
         // Resize MVCC vectors.
-        current_chunk->grow_mvcc_column_size_by(rows_to_insert_this_loop, Chunk::MAX_COMMIT_ID);
+        current_chunk->mvcc_columns()->grow_by(rows_to_insert_this_loop, MvccColumns::MAX_COMMIT_ID);
 
         // Resize current chunk to full size.
         auto old_size = current_chunk->size();
@@ -188,7 +188,7 @@ std::shared_ptr<const Table> Insert::_on_execute(std::shared_ptr<TransactionCont
 
         // Create new chunk if necessary.
         if (remaining_rows > 0) {
-          _target_table->create_new_chunk(partitionID);
+          _target_table->append_mutable_chunk(partitionID);
           total_chunks_inserted++;
 
           ChunkID chunk_id_to_add = partition->last_chunk()->id();
@@ -221,7 +221,7 @@ std::shared_ptr<const Table> Insert::_on_execute(std::shared_ptr<TransactionCont
 
       // while target chunk is not full
       while (target_start_index != target_chunk->size()) {
-        const auto source_chunk = _input_table_left()->get_chunk(source_chunk_id);
+        const auto source_chunk = input_table_left()->get_chunk(source_chunk_id);
         auto num_to_insert = std::min(source_chunk->size() - source_chunk_start_index, still_to_insert);
 
         std::vector<size_t> rows_to_copy;
@@ -304,10 +304,6 @@ std::unordered_map<PartitionID, uint32_t> Insert::_count_rows_for_partitions(
     if (!insert_result.second) insert_result.first->second++;
   }
   return rows_to_add_to_partition;
-}
-
-std::shared_ptr<AbstractOperator> Insert::recreate(const std::vector<AllParameterVariant>& args) const {
-  return std::make_shared<Insert>(_target_table_name, _input_left->recreate(args));
 }
 
 std::shared_ptr<AbstractOperator> Insert::_on_recreate(
