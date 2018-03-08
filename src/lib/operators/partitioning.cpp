@@ -168,6 +168,8 @@ void Partitioning::_copy_table_content(std::shared_ptr<Table> source, std::share
     {
       auto scoped_lock = target->acquire_append_mutex();
 
+
+
       start_chunk_id = partition->last_chunk()->id();
       chunks_to_add_in_partition.emplace_back(start_chunk_id);
       auto last_chunk = target->get_chunk(start_chunk_id);
@@ -181,8 +183,11 @@ void Partitioning::_copy_table_content(std::shared_ptr<Table> source, std::share
         auto current_chunk = target->get_mutable_chunk(current_chunk_id);
         auto rows_to_insert_this_loop = std::min(target->max_chunk_size() - current_chunk->size(), remaining_rows);
 
-        // Resize MVCC vectors.
-        current_chunk->mvcc_columns()->grow_by(rows_to_insert_this_loop, MvccColumns::MAX_COMMIT_ID);
+// Moritz: No operator other than Validate should concern itself with MVCC
+//        // Resize MVCC vectors.
+//        if (current_chunk->has_mvcc_columns()) {
+//          current_chunk->mvcc_columns()->grow_by(rows_to_insert_this_loop, MvccColumns::MAX_COMMIT_ID);
+//        }
 
         // Resize current chunk to full size.
         auto old_size = current_chunk->size();
@@ -253,16 +258,19 @@ void Partitioning::_copy_table_content(std::shared_ptr<Table> source, std::share
                                                         rows_to_copy);
         }
 
-        for (auto target_index = target_start_index, source_index = 0u;
-             target_index < target_start_index + num_to_insert && source_index < rows_to_copy.size();
-             target_index++, source_index++) {
-          target_chunk->mvcc_columns()->tids[target_index] =
-              source->get_chunk(source_chunk_id)->mvcc_columns()->tids[rows_to_copy[source_index]];
-          target_chunk->mvcc_columns()->begin_cids[target_index] =
-              source->get_chunk(source_chunk_id)->mvcc_columns()->begin_cids[rows_to_copy[source_index]];
-          target_chunk->mvcc_columns()->end_cids[target_index] =
-              source->get_chunk(source_chunk_id)->mvcc_columns()->end_cids[rows_to_copy[source_index]];
-        }
+// Moritz: No operator other than Validate should concern itself with MVCC
+//        if (source->get_chunk(source_chunk_id)->has_mvcc_columns()) {
+//          for (auto target_index = target_start_index, source_index = 0u;
+//               target_index < target_start_index + num_to_insert && source_index < rows_to_copy.size();
+//               target_index++, source_index++) {
+//            target_chunk->mvcc_columns()->tids[target_index] =
+//            source->get_chunk(source_chunk_id)->mvcc_columns()->tids[rows_to_copy[source_index]];
+//            target_chunk->mvcc_columns()->begin_cids[target_index] =
+//            source->get_chunk(source_chunk_id)->mvcc_columns()->begin_cids[rows_to_copy[source_index]];
+//            target_chunk->mvcc_columns()->end_cids[target_index] =
+//            source->get_chunk(source_chunk_id)->mvcc_columns()->end_cids[rows_to_copy[source_index]];
+//          }
+//        }
 
         still_to_insert -= num_to_insert;
         target_start_index += num_to_insert;

@@ -31,7 +31,7 @@ Table::Table(const TableColumnDefinitions& column_definitions, const TableType t
       _max_chunk_size(max_chunk_size),
       _append_mutex(std::make_unique<std::mutex>()) {
   Assert(max_chunk_size > 0, "Table must have a chunk size greater than 0.");
-  if (_type == TableType::Data) apply_partitioning(std::make_shared<NullPartitionSchema>());
+  _partition_schema = std::make_shared<NullPartitionSchema>();
 }
 
 const TableColumnDefinitions& Table::column_definitions() const { return _column_definitions; }
@@ -196,7 +196,9 @@ void Table::_create_initial_chunks(PartitionID number_of_partitions) {
   }
 }
 
-bool Table::is_partitioned() const { return _partition_schema->is_partitioned(); }
+bool Table::is_partitioned() const {
+  return _partition_schema->is_partitioned();
+}
 
 PartitionID Table::partition_count() const { return _partition_schema->partition_count(); }
 

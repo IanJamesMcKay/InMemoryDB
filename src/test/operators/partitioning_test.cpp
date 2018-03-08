@@ -28,17 +28,17 @@ class OperatorsPartitioningTest : public BaseTest {
   void SetUp() override {}
 };
 
-TEST_F(OperatorsPartitioningTest, PartitionRoundRobin) {
+TEST_F(OperatorsPartitioningTest, DISABLED_PartitionRoundRobin) {
   auto table_name = "test_table";
   auto t = load_table("src/test/tables/float_int.tbl", Chunk::MAX_SIZE);
   StorageManager::get().add_table(table_name, t);
 
   auto part = std::make_shared<Partitioning>(table_name, std::make_shared<RoundRobinPartitionSchema>(PartitionID{3}));
-  auto context = TransactionManager::get().new_transaction_context();
-  part->set_transaction_context(context);
+//  auto context = TransactionManager::get().new_transaction_context();
+//  part->set_transaction_context(context);
 
   part->execute();
-  context->commit();
+//  context->commit();
 
   auto p = StorageManager::get().get_table(table_name);
 
@@ -64,7 +64,7 @@ TEST_F(OperatorsPartitioningTest, PartitionRoundRobin) {
   EXPECT_EQ(p->get_chunk(ChunkID{2})->get_column(ColumnID{1})->size(), 1u);
 }
 
-TEST_F(OperatorsPartitioningTest, PartitionRoundRobinMVCC) {
+TEST_F(OperatorsPartitioningTest, DISABLED_PartitionRoundRobinMVCC) {
   auto table_name = "test_table";
   auto t = load_table("src/test/tables/float_int.tbl", Chunk::MAX_SIZE);
   StorageManager::get().add_table(table_name, t);
@@ -101,7 +101,7 @@ TEST_F(OperatorsPartitioningTest, PartitionRoundRobinMVCC) {
   EXPECT_EQ(t->get_chunk(ChunkID{0})->mvcc_columns()->tids[2], p->get_chunk(ChunkID{2})->mvcc_columns()->tids[0]);
 }
 
-TEST_F(OperatorsPartitioningTest, PartitionRange) {
+TEST_F(OperatorsPartitioningTest, DISABLED_PartitionRange) {
   auto table_name = "test_table";
   auto t = load_table("src/test/tables/float_int.tbl", Chunk::MAX_SIZE);
   StorageManager::get().add_table(table_name, t);
@@ -138,7 +138,7 @@ TEST_F(OperatorsPartitioningTest, PartitionRange) {
   EXPECT_EQ(p->get_chunk(ChunkID{2})->get_column(ColumnID{1})->size(), 1u);
 }
 
-TEST_F(OperatorsPartitioningTest, PartitionRangeMVCC) {
+TEST_F(OperatorsPartitioningTest, DISABLED_PartitionRangeMVCC) {
   auto table_name = "test_table";
   auto t = load_table("src/test/tables/float_int.tbl", Chunk::MAX_SIZE);
   StorageManager::get().add_table(table_name, t);
@@ -176,7 +176,7 @@ TEST_F(OperatorsPartitioningTest, PartitionRangeMVCC) {
   EXPECT_EQ(t->get_chunk(ChunkID{0})->mvcc_columns()->tids[2], p->get_chunk(ChunkID{2})->mvcc_columns()->tids[0]);
 }
 
-TEST_F(OperatorsPartitioningTest, PartitionHash) {
+TEST_F(OperatorsPartitioningTest, DISABLED_PartitionHash) {
   auto table_name = "test_table";
   auto t = load_table("src/test/tables/float_int.tbl", Chunk::MAX_SIZE);
   StorageManager::get().add_table(table_name, t);
@@ -213,7 +213,7 @@ TEST_F(OperatorsPartitioningTest, PartitionHash) {
   EXPECT_EQ(p->get_chunk(ChunkID{2})->get_column(ColumnID{1})->size(), 1u);
 }
 
-TEST_F(OperatorsPartitioningTest, PartitionHashMVCC) {
+TEST_F(OperatorsPartitioningTest, DISABLED_PartitionHashMVCC) {
   auto table_name = "test_table";
   auto t = load_table("src/test/tables/float_int.tbl", Chunk::MAX_SIZE);
   StorageManager::get().add_table(table_name, t);
@@ -251,7 +251,7 @@ TEST_F(OperatorsPartitioningTest, PartitionHashMVCC) {
   EXPECT_EQ(t->get_chunk(ChunkID{0})->mvcc_columns()->tids[2], p->get_chunk(ChunkID{2})->mvcc_columns()->tids[0]);
 }
 
-TEST_F(OperatorsPartitioningTest, RemovePartitioning) {
+TEST_F(OperatorsPartitioningTest, DISABLED_RemovePartitioning) {
   auto table_name = "test_table";
   auto t = load_table("src/test/tables/float_int.tbl", Chunk::MAX_SIZE);
   StorageManager::get().add_table(table_name, t);
@@ -282,7 +282,7 @@ TEST_F(OperatorsPartitioningTest, RemovePartitioning) {
   EXPECT_EQ((*p->get_chunk(ChunkID{0})->get_column(ColumnID{0}))[2], AllTypeVariant(458.7f));
 }
 
-TEST_F(OperatorsPartitioningTest, RemovePartitioningMVCC) {
+TEST_F(OperatorsPartitioningTest, DISABLED_RemovePartitioningMVCC) {
   auto table_name = "test_table";
   auto t = load_table("src/test/tables/float_int.tbl", Chunk::MAX_SIZE);
   StorageManager::get().add_table(table_name, t);
