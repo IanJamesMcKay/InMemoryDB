@@ -10,7 +10,8 @@ namespace opossum {
 class JoinPlanVertexNode final : public AbstractJoinPlanNode {
  public:
   explicit JoinPlanVertexNode(const std::shared_ptr<AbstractLQPNode>& vertex_node,
-                              const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates);
+                              const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates,
+                              const std::shared_ptr<TableStatistics>& statistics, const float node_cost);
 
   std::shared_ptr<AbstractLQPNode> lqp_node() const;
   const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates() const;

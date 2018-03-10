@@ -1,20 +1,16 @@
 #include "join_ordering_rule.hpp"
 
+#include "optimizer/join_ordering/abstract_join_ordering_algorithm.hpp"
+#include "optimizer/join_ordering/abstract_join_plan_node.hpp"
 #include "optimizer/join_ordering/dp_ccp.hpp"
 #include "optimizer/join_ordering/join_graph_builder.hpp"
-#include "optimizer/join_ordering/abstract_join_plan_node.hpp"
-#include "optimizer/join_ordering/abstract_join_ordering_algorithm.hpp"
 
 namespace opossum {
 
-JoinOrderingRule::JoinOrderingRule(const std::shared_ptr<AbstractJoinOrderingAlgorithm>& join_ordering_algorithm):
-  _join_ordering_algorithm(join_ordering_algorithm)
-{
-}
+JoinOrderingRule::JoinOrderingRule(const std::shared_ptr<AbstractJoinOrderingAlgorithm>& join_ordering_algorithm)
+    : _join_ordering_algorithm(join_ordering_algorithm) {}
 
-std::string JoinOrderingRule::name() const {
-  return "Join Ordering Rule";
-}
+std::string JoinOrderingRule::name() const { return "Join Ordering Rule"; }
 
 bool JoinOrderingRule::apply_to(const std::shared_ptr<AbstractLQPNode>& root) {
   if (!_applicable(root)) {

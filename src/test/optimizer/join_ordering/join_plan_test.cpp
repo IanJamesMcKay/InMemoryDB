@@ -1,22 +1,22 @@
 #include "gtest/gtest.h"
 
+#include "logical_query_plan/stored_table_node.hpp"
 #include "optimizer/join_ordering/join_plan_join_node.hpp"
 #include "optimizer/join_ordering/join_plan_vertex_node.hpp"
-#include "logical_query_plan/stored_table_node.hpp"
-#include "utils/load_table.hpp"
 #include "storage/storage_manager.hpp"
+#include "utils/load_table.hpp"
 
 using namespace std::string_literals;
 
 namespace opossum {
 
-class JoinPlanTest: public ::testing::Test {
+class JoinPlanTest : public ::testing::Test {
  protected:
   void SetUp() override {
     StorageManager::get().add_table("table_a", load_table("src/test/tables/int_int.tbl"));
     StorageManager::get().add_table("table_b", load_table("src/test/tables/int_int2.tbl"));
     StorageManager::get().add_table("table_c", load_table("src/test/tables/int.tbl"));
-    
+
     _node_a = std::make_shared<StoredTableNode>("table_a");
     _node_b = std::make_shared<StoredTableNode>("table_b");
     _node_c = std::make_shared<StoredTableNode>("table_c");
@@ -28,21 +28,25 @@ class JoinPlanTest: public ::testing::Test {
 
     _predicate_b_0 = std::make_shared<JoinPlanAtomicPredicate>(_node_b_a, PredicateCondition::Equals, 5);
     _predicate_b_1 = std::make_shared<JoinPlanAtomicPredicate>(_node_b_a, PredicateCondition::Equals, _node_b_b);
-    _predicate_ab = std::make_shared<JoinPlanAtomicPredicate>(_node_a_a, PredicateCondition::GreaterThanEquals, _node_b_b);
+    _predicate_ab =
+        std::make_shared<JoinPlanAtomicPredicate>(_node_a_a, PredicateCondition::GreaterThanEquals, _node_b_b);
 
-    _vertex_node_a = std::make_shared<JoinPlanVertexNode>(_node_a, std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>{});
-    _vertex_node_b = std::make_shared<JoinPlanVertexNode>(_node_b, std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>{_predicate_b_0, _predicate_b_1});
-    _vertex_node_c = std::make_shared<JoinPlanVertexNode>(_node_c, std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>{});
+    _vertex_node_a =
+        std::make_shared<JoinPlanVertexNode>(_node_a, std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>{});
+    _vertex_node_b = std::make_shared<JoinPlanVertexNode>(
+        _node_b, std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>{_predicate_b_0, _predicate_b_1});
+    _vertex_node_c =
+        std::make_shared<JoinPlanVertexNode>(_node_c, std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>{});
 
-    _join_node_a = std::make_shared<JoinPlanJoinNode>(_vertex_node_a, _vertex_node_b, std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>{_predicate_ab});
-    _join_node_b = std::make_shared<JoinPlanJoinNode>(_join_node_a, _vertex_node_c, std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>{});
+    _join_node_a = std::make_shared<JoinPlanJoinNode>(
+        _vertex_node_a, _vertex_node_b, std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>{_predicate_ab});
+    _join_node_b = std::make_shared<JoinPlanJoinNode>(_join_node_a, _vertex_node_c,
+                                                      std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>{});
 
     _join_plan = _join_node_b;
   }
 
-  void TearDown() override {
-    StorageManager::get().reset();
-  }
+  void TearDown() override { StorageManager::get().reset(); }
 
   std::shared_ptr<AbstractJoinPlanNode> _join_plan;
   std::shared_ptr<JoinPlanVertexNode> _vertex_node_a, _vertex_node_b, _vertex_node_c;

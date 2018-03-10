@@ -1,13 +1,13 @@
 #include "join_graph_builder.hpp"
 
-#include <stack>
 #include <numeric>
+#include <stack>
 
+#include "join_edge.hpp"
 #include "logical_query_plan/join_node.hpp"
 #include "logical_query_plan/predicate_node.hpp"
 #include "logical_query_plan/union_node.hpp"
 #include "utils/assert.hpp"
-#include "join_edge.hpp"
 
 namespace opossum {
 
@@ -179,8 +179,8 @@ bool JoinGraphBuilder::_lqp_node_type_is_vertex(const LQPNodeType node_type) con
 }
 
 std::vector<std::shared_ptr<JoinEdge>> JoinGraphBuilder::join_edges_from_predicates(
-const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices,
-const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates) {
+    const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices,
+    const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates) {
   std::unordered_map<std::shared_ptr<AbstractLQPNode>, size_t> vertex_to_index;
   std::map<JoinVertexSet, std::shared_ptr<JoinEdge>> vertices_to_edge;
   std::vector<std::shared_ptr<JoinEdge>> edges;
@@ -204,8 +204,7 @@ const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates)
 }
 
 std::vector<std::shared_ptr<JoinEdge>> JoinGraphBuilder::cross_edges_between_components(
-const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices,
-std::vector<std::shared_ptr<JoinEdge>> edges) {
+    const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices, std::vector<std::shared_ptr<JoinEdge>> edges) {
   /**
    * Create edges from the gathered JoinPlanPredicates. We can't directly create the JoinGraph from this since we want
    * the JoinGraph to be connected and there might be edges from CrossJoins still missing.
@@ -230,7 +229,8 @@ std::vector<std::shared_ptr<JoinEdge>> edges) {
    */
 
   std::unordered_set<size_t> remaining_vertex_indices;
-  for(auto vertex_idx = size_t{0}; vertex_idx < vertices.size(); ++vertex_idx) remaining_vertex_indices.insert(vertex_idx);
+  for (auto vertex_idx = size_t{0}; vertex_idx < vertices.size(); ++vertex_idx)
+    remaining_vertex_indices.insert(vertex_idx);
 
   std::vector<size_t> one_vertex_per_component;
 

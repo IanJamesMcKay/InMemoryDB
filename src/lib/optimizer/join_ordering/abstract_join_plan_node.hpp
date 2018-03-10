@@ -5,8 +5,8 @@
 #include <optional>
 #include <ostream>
 
+#include "cost.hpp"
 #include "join_graph.hpp"
-#include "join_plan_predicate_estimate.hpp"
 #include "optimizer/table_statistics.hpp"
 
 namespace opossum {
@@ -20,13 +20,16 @@ enum class JoinPlanNodeType { Vertex, Join };
 
 class AbstractJoinPlanNode : public std::enable_shared_from_this<AbstractJoinPlanNode> {
  public:
-  explicit AbstractJoinPlanNode(const JoinPlanNodeType type);
+  AbstractJoinPlanNode(const JoinPlanNodeType type, const Cost node_cost,
+                       const std::shared_ptr<TableStatistics>& statistics,
+                       const std::shared_ptr<const AbstractJoinPlanNode>& left_child = nullptr,
+                       const std::shared_ptr<const AbstractJoinPlanNode>& right_child = nullptr);
   virtual ~AbstractJoinPlanNode() = default;
 
   JoinPlanNodeType type() const;
   std::shared_ptr<TableStatistics> statistics() const;
-  float node_cost() const;
-  float plan_cost() const;
+  Cost node_cost() const;
+  Cost plan_cost() const;
   std::shared_ptr<const AbstractJoinPlanNode> left_child() const;
   std::shared_ptr<const AbstractJoinPlanNode> right_child() const;
 
@@ -39,26 +42,15 @@ class AbstractJoinPlanNode : public std::enable_shared_from_this<AbstractJoinPla
   virtual std::string description() const = 0;
 
  protected:
-  JoinPlanPredicateEstimate _estimate_predicate(const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate,
-                                                const std::shared_ptr<TableStatistics>& statistics) const;
   std::shared_ptr<AbstractLQPNode> _insert_predicate(
-      const std::shared_ptr<AbstractLQPNode>& lqp,
-      const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate) const;
+  const std::shared_ptr<AbstractLQPNode>& lqp,
+  const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate) const;
 
-  void _order_predicates(std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates, const std::shared_ptr<TableStatistics>& statistics) const;
-
-  float _node_cost{0.0f};
-  float _plan_cost{0.0f};
+  const JoinPlanNodeType _type;
+  Cost _node_cost{0.0f};
   std::shared_ptr<TableStatistics> _statistics;
   std::shared_ptr<const AbstractJoinPlanNode> _left_child;
   std::shared_ptr<const AbstractJoinPlanNode> _right_child;
-
- private:
-  void _print_impl(std::ostream& out, std::vector<bool>& levels,
-                   std::unordered_map<std::shared_ptr<const AbstractJoinPlanNode>, size_t>& id_by_node,
-                   size_t& id_counter) const;
-
-  const JoinPlanNodeType _type;
 };
 
 }  // namespace opossum

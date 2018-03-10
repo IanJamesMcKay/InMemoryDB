@@ -8,29 +8,28 @@
 
 namespace opossum {
 
-AbstractJoinPlanNode::AbstractJoinPlanNode(
-    const JoinPlanNodeType type)
-    : _type(type) {}
+AbstractJoinPlanNode::AbstractJoinPlanNode(const JoinPlanNodeType type, const Cost node_cost,
+                                           const std::shared_ptr<TableStatistics>& statistics,
+                                           const std::shared_ptr<const AbstractJoinPlanNode>& left_child,
+                                           const std::shared_ptr<const AbstractJoinPlanNode>& right_child)
+    : _type(type), _node_cost(node_cost), _statistics(statistics), _left_child(left_child), _right_child(right_child) {}
 
 JoinPlanNodeType AbstractJoinPlanNode::type() const { return _type; }
 
 std::shared_ptr<TableStatistics> AbstractJoinPlanNode::statistics() const { return _statistics; }
 
-float AbstractJoinPlanNode::node_cost() const {
-  return _node_cost;
-}
+float AbstractJoinPlanNode::node_cost() const { return _node_cost; }
 
 float AbstractJoinPlanNode::plan_cost() const {
-  return _plan_cost;
+  auto plan_cost = _node_cost;
+  plan_cost += _left_child ? _left_child->node_cost() : 0;
+  plan_cost += _right_child ? _right_child->node_cost() : 0;
+  return plan_cost;
 }
 
-std::shared_ptr<const AbstractJoinPlanNode> AbstractJoinPlanNode::left_child() const {
-  return _left_child;
-}
+std::shared_ptr<const AbstractJoinPlanNode> AbstractJoinPlanNode::left_child() const { return _left_child; }
 
-std::shared_ptr<const AbstractJoinPlanNode> AbstractJoinPlanNode::right_child() const {
-  return _right_child;
-}
+std::shared_ptr<const AbstractJoinPlanNode> AbstractJoinPlanNode::right_child() const { return _right_child; }
 
 void AbstractJoinPlanNode::print(std::ostream& stream) const {
   const auto get_children_fn = [](const auto& node) {
@@ -40,93 +39,26 @@ void AbstractJoinPlanNode::print(std::ostream& stream) const {
     return children;
   };
   const auto node_print_fn = [](const auto& node, auto& stream) {
-    stream << "NodeCost=" << node->node_cost() << "; PlanCost=" << node->plan_cost() << "; RowCount=" << node->statistics()->row_count() << "; "
-           << node->description();
+    stream << "NodeCost=" << node->node_cost() << "; PlanCost=" << node->plan_cost()
+           << "; RowCount=" << node->statistics()->row_count() << "; " << node->description();
   };
 
   print_directed_acyclic_graph<const AbstractJoinPlanNode>(shared_from_this(), get_children_fn, node_print_fn, stream);
 }
 
-JoinPlanPredicateEstimate AbstractJoinPlanNode::_estimate_predicate(
-    const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate,
-    const std::shared_ptr<TableStatistics>& statistics) const {
-  switch (predicate->type()) {
-    case JoinPlanPredicateType::Atomic: {
-      const auto atomic_predicate = std::static_pointer_cast<const JoinPlanAtomicPredicate>(predicate);
-
-      const auto left_column_id = find_column_id(atomic_predicate->left_operand);
-      DebugAssert(left_column_id, "Couldn't resolve " + atomic_predicate->left_operand.description());
-
-      std::shared_ptr<TableStatistics> table_statistics;
-
-      if (is_lqp_column_reference(atomic_predicate->right_operand)) {
-        const auto right_operand_column_reference = boost::get<LQPColumnReference>(atomic_predicate->right_operand);
-        const auto right_column_id = find_column_id(right_operand_column_reference);
-        DebugAssert(right_column_id, "Couldn't resolve " + right_operand_column_reference.description());
-
-        table_statistics =
-            statistics->predicate_statistics(*left_column_id, atomic_predicate->predicate_condition, *right_column_id);
-      } else {
-        table_statistics = statistics->predicate_statistics(*left_column_id, atomic_predicate->predicate_condition,
-                                                            atomic_predicate->right_operand);
-      }
-
-      return {statistics->row_count(), table_statistics};
-    }
-    case JoinPlanPredicateType::LogicalOperator: {
-      const auto logical_operator_predicate =
-          std::static_pointer_cast<const JoinPlanLogicalPredicate>(predicate);
-      const auto left_operand_estimate = _estimate_predicate(logical_operator_predicate->left_operand, statistics);
-
-      switch (logical_operator_predicate->logical_operator) {
-        case JoinPlanPredicateLogicalOperator::And: {
-          const auto right_operand_estimate =
-              _estimate_predicate(logical_operator_predicate->right_operand, left_operand_estimate.statistics);
-          return {left_operand_estimate.cost + right_operand_estimate.cost, right_operand_estimate.statistics};
-        }
-        case JoinPlanPredicateLogicalOperator::Or: {
-          const auto right_operand_estimate =
-              _estimate_predicate(logical_operator_predicate->right_operand, statistics);
-          const auto post_left_operand_row_count = left_operand_estimate.statistics->row_count();
-          const auto post_right_operand_row_count = right_operand_estimate.statistics->row_count();
-
-          auto union_costs = 0.0f;
-
-          if (post_left_operand_row_count > 0.0f && post_right_operand_row_count > 0.0f) {
-            // Union costs ~= sort left and sort right, then iterate over both to merge
-            // if one side has no row, the Union operator can just forward - and we avoid NaNs caused by std::log(0)
-            union_costs = post_left_operand_row_count * std::log(post_left_operand_row_count) +
-                          post_right_operand_row_count * std::log(post_right_operand_row_count) +
-                          post_left_operand_row_count + post_right_operand_row_count;
-          }
-
-          const auto union_statistics =
-              left_operand_estimate.statistics->generate_disjunction_statistics(right_operand_estimate.statistics);
-
-          return {left_operand_estimate.cost + right_operand_estimate.cost + union_costs, union_statistics};
-        }
-      }
-    }
-  }
-
-  Fail("Should be unreachable, but clang doesn't realize");
-  return {0.0f, nullptr};
-}
-
 std::shared_ptr<AbstractLQPNode> AbstractJoinPlanNode::_insert_predicate(
-    const std::shared_ptr<AbstractLQPNode>& lqp,
-    const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate) const {
+const std::shared_ptr<AbstractLQPNode>& lqp,
+const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate) const {
   switch (predicate->type()) {
     case JoinPlanPredicateType::Atomic: {
       const auto atomic_predicate = std::static_pointer_cast<const JoinPlanAtomicPredicate>(predicate);
       const auto predicate_node = std::make_shared<PredicateNode>(
-          atomic_predicate->left_operand, atomic_predicate->predicate_condition, atomic_predicate->right_operand);
+      atomic_predicate->left_operand, atomic_predicate->predicate_condition, atomic_predicate->right_operand);
       predicate_node->set_left_input(lqp);
       return predicate_node;
     }
     case JoinPlanPredicateType::LogicalOperator: {
-      const auto logical_operator_predicate =
-          std::static_pointer_cast<const JoinPlanLogicalPredicate>(predicate);
+      const auto logical_operator_predicate = std::static_pointer_cast<const JoinPlanLogicalPredicate>(predicate);
 
       switch (logical_operator_predicate->logical_operator) {
         case JoinPlanPredicateLogicalOperator::And: {
@@ -151,12 +83,5 @@ std::shared_ptr<AbstractLQPNode> AbstractJoinPlanNode::_insert_predicate(
   return nullptr;
 }
 
-void AbstractJoinPlanNode::_order_predicates(std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates, const std::shared_ptr<TableStatistics>& statistics) const {
-  const auto sort_predicate = [&](auto& left, auto& right) {
-    return _estimate_predicate(left, statistics).statistics->row_count() < _estimate_predicate(right, statistics).statistics->row_count();
-  };
-
-  std::sort(predicates.begin(), predicates.end(), sort_predicate);
-}
 
 }  // namespace opossum

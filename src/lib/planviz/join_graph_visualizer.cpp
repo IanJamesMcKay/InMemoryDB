@@ -65,7 +65,7 @@ void JoinGraphVisualizer::_build_graph(const std::shared_ptr<const JoinGraph>& g
       for (size_t predicate_idx{0}; predicate_idx < edge->predicates.size(); ++predicate_idx) {
         const auto& predicate = edge->predicates[predicate_idx];
         predicate->print(vertex_label_stream);
-        if (predicate_idx + 1 <  edge->predicates.size()) {
+        if (predicate_idx + 1 < edge->predicates.size()) {
           vertex_label_stream << "\n";
         }
       }
@@ -77,17 +77,14 @@ void JoinGraphVisualizer::_build_graph(const std::shared_ptr<const JoinGraph>& g
       vertex_info.shape = "diamond";
       _add_vertex(edge, vertex_info);
 
-      for (auto current_vertex_idx = edge->vertex_set.find_first();
-           current_vertex_idx != boost::dynamic_bitset<>::npos;
+      for (auto current_vertex_idx = edge->vertex_set.find_first(); current_vertex_idx != boost::dynamic_bitset<>::npos;
            current_vertex_idx = edge->vertex_set.find_next(current_vertex_idx)) {
-
         VizEdgeInfo edge_info;
         edge_info.dir = "none";
         edge_info.font_color = vertex_info.color;
         edge_info.color = vertex_info.color;
         _add_edge(graph->vertices[current_vertex_idx], edge, edge_info);
       }
-
     }
   }
 }

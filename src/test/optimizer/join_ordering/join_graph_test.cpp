@@ -66,7 +66,8 @@ TEST_F(JoinGraphTest, SingleVertexMultiplePredicates) {
   const auto predicate_c =
       std::make_shared<JoinPlanLogicalPredicate>(predicate_a, JoinPlanPredicateLogicalOperator::Or, predicate_b);
 
-  const auto join_graph = JoinGraph({vertex}, {}, JoinGraphBuilder::join_edges_from_predicates({vertex}, {predicate_a, predicate_b, predicate_c}));
+  const auto join_graph = JoinGraph(
+      {vertex}, {}, JoinGraphBuilder::join_edges_from_predicates({vertex}, {predicate_a, predicate_b, predicate_c}));
 
   const auto vertex_set = JoinVertexSet{1, 1};
   const auto found_predicates = join_graph.find_predicates(vertex_set);
@@ -100,7 +101,8 @@ TEST_F(JoinGraphTest, MultipleVerticesMultiplePredicates) {
       std::make_shared<JoinPlanLogicalPredicate>(predicate_a, JoinPlanPredicateLogicalOperator::And, predicate_b);
 
   const auto vertices = std::vector<std::shared_ptr<AbstractLQPNode>>({vertex_a, vertex_b, vertex_c});
-  const auto join_graph = JoinGraph(vertices, {}, JoinGraphBuilder::join_edges_from_predicates(vertices, {predicate_a, predicate_b, predicate_c, predicate_d}));
+  const auto join_graph = JoinGraph(vertices, {}, JoinGraphBuilder::join_edges_from_predicates(
+                                                      vertices, {predicate_a, predicate_b, predicate_c, predicate_d}));
 
   const auto vertex_set_a = JoinVertexSet{3, 0b001};
   const auto vertex_set_b = JoinVertexSet{3, 0b010};
@@ -164,7 +166,8 @@ TEST_F(JoinGraphTest, Print) {
       std::make_shared<JoinPlanLogicalPredicate>(predicate_a, JoinPlanPredicateLogicalOperator::Or, predicate_b);
 
   const auto vertices = std::vector<std::shared_ptr<AbstractLQPNode>>({vertex_a, vertex_b, vertex_c});
-  const auto join_graph = JoinGraph(vertices, {}, JoinGraphBuilder::join_edges_from_predicates(vertices, {predicate_a, predicate_b, predicate_c}));
+  const auto join_graph = JoinGraph(
+      vertices, {}, JoinGraphBuilder::join_edges_from_predicates(vertices, {predicate_a, predicate_b, predicate_c}));
 
   std::stringstream stream;
   join_graph.print(stream);

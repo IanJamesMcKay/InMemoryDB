@@ -23,11 +23,8 @@
 
 namespace opossum {
 
-
-TableGenerator::TableGenerator(const size_t num_columns, const size_t num_rows, const size_t max_value):
-  _num_columns(num_columns), _num_rows(num_rows), _max_different_value(max_value) {
-
-}
+TableGenerator::TableGenerator(const size_t num_columns, const size_t num_rows, const size_t max_value)
+    : _num_columns(num_columns), _num_rows(num_rows), _max_different_value(max_value) {}
 
 std::shared_ptr<Table> TableGenerator::generate_table(const ChunkOffset chunk_size,
                                                       std::optional<EncodingType> encoding_type) const {

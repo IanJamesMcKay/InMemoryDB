@@ -36,9 +36,7 @@ JoinHash::JoinHash(const std::shared_ptr<const AbstractOperator> left,
 
 const std::string JoinHash::name() const { return "JoinHash"; }
 
-const JoinHashPerformanceData& JoinHash::performance_data() const {
-  return _performance_data;
-}
+const JoinHashPerformanceData& JoinHash::performance_data() const { return _performance_data; }
 
 std::shared_ptr<AbstractOperator> JoinHash::_on_recreate(
     const std::vector<AllParameterVariant>& args, const std::shared_ptr<AbstractOperator>& recreated_input_left,
@@ -104,7 +102,8 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
         _mode(mode),
         _column_ids(column_ids),
         _predicate_condition(predicate_condition),
-        _inputs_swapped(inputs_swapped), _performance_data(performance_data) {}
+        _inputs_swapped(inputs_swapped),
+        _performance_data(performance_data) {}
 
   virtual ~JoinHashImpl() = default;
 
@@ -287,7 +286,6 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
                                               std::shared_ptr<std::vector<size_t>> chunk_offsets,
                                               std::vector<std::shared_ptr<std::vector<size_t>>>& histograms,
                                               bool keep_nulls = false) {
-
     // fan-out
     const size_t num_partitions = 1 << _radix_bits;
 
@@ -773,9 +771,8 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
     return pos_lists_by_column;
   }
 
-  static void write_output_columns(ChunkColumns& output_columns,
-                                  const std::shared_ptr<const Table> input_table,
-                                  const PosListsByColumn& input_pos_list_ptrs_sptrs_by_column, PosList& pos_list) {
+  static void write_output_columns(ChunkColumns& output_columns, const std::shared_ptr<const Table> input_table,
+                                   const PosListsByColumn& input_pos_list_ptrs_sptrs_by_column, PosList& pos_list) {
     std::map<std::shared_ptr<PosLists>, std::shared_ptr<PosList>> output_pos_list_cache;
 
     // Add columns from input table to output chunk
@@ -805,10 +802,10 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
             iter = output_pos_list_cache.emplace(input_table_pos_lists, new_pos_list).first;
           }
 
-          auto ref_col =
-              std::static_pointer_cast<const ReferenceColumn>(input_table->get_chunk(ChunkID{0})->get_column(column_id));
-          output_columns.emplace_back(std::make_shared<ReferenceColumn>(ref_col->referenced_table(), ref_col->referenced_column_id(),
-                                                     iter->second));
+          auto ref_col = std::static_pointer_cast<const ReferenceColumn>(
+              input_table->get_chunk(ChunkID{0})->get_column(column_id));
+          output_columns.emplace_back(std::make_shared<ReferenceColumn>(ref_col->referenced_table(),
+                                                                        ref_col->referenced_column_id(), iter->second));
         } else {
           // If there are no Chunks in the input_table, we can't deduce the Table that input_table is referencING to
           // pos_list will contain only NULL_ROW_IDs anyway, so it doesn't matter which Table the ReferenceColumn that
@@ -816,7 +813,7 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
           // it.
           const auto dummy_table = Table::create_dummy_table(input_table->column_definitions());
           output_columns.push_back(
-          std::make_shared<ReferenceColumn>(dummy_table, column_id, std::make_shared<PosList>(pos_list)));
+              std::make_shared<ReferenceColumn>(dummy_table, column_id, std::make_shared<PosList>(pos_list)));
         }
       } else {
         output_columns.push_back(

@@ -7,8 +7,8 @@
 #include "operators/table_wrapper.hpp"
 #include "storage/chunk.hpp"
 #include "storage/storage_manager.hpp"
-#include "utils/table_generator.hpp"
 #include "types.hpp"
+#include "utils/table_generator.hpp"
 
 namespace opossum {
 

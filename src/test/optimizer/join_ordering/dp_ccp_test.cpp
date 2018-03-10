@@ -2,16 +2,16 @@
 
 #include <string>
 
-#include "sql/sql_pipeline.hpp"
+#include "operators/print.hpp"
 #include "optimizer/join_ordering/abstract_join_plan_node.hpp"
+#include "optimizer/join_ordering/dp_ccp.hpp"
 #include "optimizer/join_ordering/join_edge.hpp"
 #include "optimizer/join_ordering/join_graph_builder.hpp"
-#include "optimizer/join_ordering/dp_ccp.hpp"
-#include "storage/storage_manager.hpp"
 #include "optimizer/strategy/join_ordering_rule.hpp"
-#include "utils/load_table.hpp"
+#include "sql/sql_pipeline.hpp"
+#include "storage/storage_manager.hpp"
 #include "testing_assert.hpp"
-#include "operators/print.hpp"
+#include "utils/load_table.hpp"
 
 namespace {
 
@@ -32,9 +32,7 @@ class DpCcpSqlToPredicatesTest : public ::testing::TestWithParam<SqlAndPredicate
     StorageManager::get().add_table("t_b", load_table("src/test/tables/sqlite/int_int_int_100.tbl"));
     StorageManager::get().add_table("t_c", load_table("src/test/tables/sqlite/int_int_int_100.tbl"));
   }
-  void TearDown() override {
-    StorageManager::reset();
-  }
+  void TearDown() override { StorageManager::reset(); }
 
   bool _join_graph_has_predicates(const JoinGraph& join_graph, const std::vector<std::string>& predicates) const {
     auto predicate_count_in_join_graph = size_t{0};
@@ -100,7 +98,7 @@ SqlAndPredicates{"SELECT * FROM t_a JOIN t_b ON t_a.int_a = t_b.int_a WHERE (t_a
 // clang-format on
 
 // Test that the same table is generated from an SQL query, with and without DpCcp
-class DpCcpSqlTest: public ::testing::TestWithParam<std::string> {
+class DpCcpSqlTest : public ::testing::TestWithParam<std::string> {
  public:
   void SetUp() override {
     StorageManager::get().add_table("t_a", load_table("src/test/tables/sqlite/int_int_int_100.tbl"));
@@ -108,11 +106,8 @@ class DpCcpSqlTest: public ::testing::TestWithParam<std::string> {
     StorageManager::get().add_table("t_c", load_table("src/test/tables/sqlite/int_int_int_100.tbl"));
     StorageManager::get().add_table("int_float2", load_table("src/test/tables/int_float2.tbl"));
   }
-  void TearDown() override {
-    StorageManager::reset();
-  }
+  void TearDown() override { StorageManager::reset(); }
 };
-
 
 TEST_P(DpCcpSqlTest, SameResult) {
   const auto sql = GetParam();

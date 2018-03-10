@@ -177,7 +177,8 @@ DataType Projection::_get_type_of_expression(const std::shared_ptr<PQPExpression
   // TODO(anybody): int + float = float etc...
   // This is currently not supported by `_evaluate_expression()` because it is only templated once.
   Assert(type_left == type_right, "Projection currently only supports expressions with same type on both sides (" +
-  data_type_to_string.left.at(type_left) + " vs " + data_type_to_string.left.at(type_right) + ")");
+                                      data_type_to_string.left.at(type_left) + " vs " +
+                                      data_type_to_string.left.at(type_right) + ")");
   return type_left;
 }
 

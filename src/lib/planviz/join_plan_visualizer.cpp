@@ -6,7 +6,7 @@
 
 namespace opossum {
 
-void JoinPlanVisualizer::_build_graph(const std::shared_ptr<const AbstractJoinPlanNode> &node) {
+void JoinPlanVisualizer::_build_graph(const std::shared_ptr<const AbstractJoinPlanNode>& node) {
   if (!node) {
     return;
   }
@@ -28,7 +28,7 @@ void JoinPlanVisualizer::_build_graph(const std::shared_ptr<const AbstractJoinPl
 
       if (!join_node->secondary_predicates().empty()) {
         auto& secondary_predicates_layout = record_layout.add_sublayout().add_label("Secondary Predicates");
-        for (const auto &secondary_predicate : join_node->secondary_predicates()) {
+        for (const auto& secondary_predicate : join_node->secondary_predicates()) {
           std::stringstream stream;
           secondary_predicate->print(stream);
           secondary_predicates_layout.add_label(stream.str());
@@ -50,7 +50,8 @@ void JoinPlanVisualizer::_build_graph(const std::shared_ptr<const AbstractJoinPl
   }
 
   std::stringstream stream;
-  stream << "Node cost: " << node->node_cost() << "; Plan cost: " << node->plan_cost() << "; Row count: " << node->statistics()->row_count();
+  stream << "Node cost: " << node->node_cost() << "; Plan cost: " << node->plan_cost()
+         << "; Row count: " << node->statistics()->row_count();
   record_layout.add_label(stream.str());
 
   VizVertexInfo viz_vertex_info;
@@ -69,8 +70,8 @@ void JoinPlanVisualizer::_build_graph(const std::shared_ptr<const AbstractJoinPl
   }
 }
 
-void JoinPlanVisualizer::_build_edge(const std::shared_ptr<const AbstractJoinPlanNode> &parent,
-                                     const std::shared_ptr<const AbstractJoinPlanNode> &child) {
+void JoinPlanVisualizer::_build_edge(const std::shared_ptr<const AbstractJoinPlanNode>& parent,
+                                     const std::shared_ptr<const AbstractJoinPlanNode>& child) {
   VizEdgeInfo viz_edge_info;
   viz_edge_info.dir = "forward";
 

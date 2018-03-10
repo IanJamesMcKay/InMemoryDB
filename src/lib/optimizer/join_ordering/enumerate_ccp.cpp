@@ -1,11 +1,11 @@
 #include "enumerate_ccp.hpp"
 
-#include <sstream>
 #include <set>
+#include <sstream>
 
-#include "utils/assert.hpp"
-#include "join_graph.hpp"
 #include "join_edge.hpp"
+#include "join_graph.hpp"
+#include "utils/assert.hpp"
 
 namespace opossum {
 
@@ -49,7 +49,9 @@ std::vector<std::pair<boost::dynamic_bitset<>, boost::dynamic_bitset<>>> Enumera
   }
 
   for (auto csg_cmp_pair : _csg_cmp_pairs) {
-    Assert(!enumerated_csg_set.emplace(csg_cmp_pair.first).second && !enumerated_csg_set.emplace(csg_cmp_pair.second).second, "CSG not yet enumerated");
+    Assert(!enumerated_csg_set.emplace(csg_cmp_pair.first).second &&
+               !enumerated_csg_set.emplace(csg_cmp_pair.second).second,
+           "CSG not yet enumerated");
     enumerated_csg_set.emplace(csg_cmp_pair.first | csg_cmp_pair.second);
 
     Assert(enumerated_ccp_set.emplace(csg_cmp_pair).second, "Duplicate CCP was generated");

@@ -105,9 +105,7 @@ const std::optional<PredicateCondition>& JoinNode::predicate_condition() const {
 
 JoinMode JoinNode::join_mode() const { return _join_mode; }
 
-std::optional<JoinOperatorImplementation> JoinNode::implementation() const {
-  return _implementation;
-}
+std::optional<JoinOperatorImplementation> JoinNode::implementation() const { return _implementation; }
 
 void JoinNode::set_implementation(const std::optional<JoinOperatorImplementation>& implementation) {
   _implementation = implementation;

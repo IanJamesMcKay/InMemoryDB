@@ -3,27 +3,12 @@
 namespace opossum {
 
 JoinPlanVertexNode::JoinPlanVertexNode(const std::shared_ptr<AbstractLQPNode>& vertex_node,
-                                       const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates)
-    : AbstractJoinPlanNode(JoinPlanNodeType::Vertex), _lqp_node(vertex_node), _predicates(predicates) {
-  _statistics = _lqp_node->get_statistics();
-
-  // TODO(moritz) Order predicates among themselves for minimal cost
-
-  _order_predicates(_predicates, _statistics);
-
-  for (const auto& predicate : _predicates) {
-    const auto predicate_estimate = _estimate_predicate(predicate, _statistics);
-
-    _node_cost += predicate_estimate.cost;
-    _statistics = predicate_estimate.statistics;
-  }
-
-  _plan_cost = _node_cost;
+                                       const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates,
+                                       const std::shared_ptr<TableStatistics>& statistics, const float node_cost)
+    : AbstractJoinPlanNode(JoinPlanNodeType::Vertex, node_cost, statistics), _lqp_node(vertex_node), _predicates(predicates) {
 }
 
-std::shared_ptr<AbstractLQPNode> JoinPlanVertexNode::lqp_node() const {
-  return _lqp_node;
-}
+std::shared_ptr<AbstractLQPNode> JoinPlanVertexNode::lqp_node() const { return _lqp_node; }
 
 const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& JoinPlanVertexNode::predicates() const {
   return _predicates;

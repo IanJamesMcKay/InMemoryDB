@@ -14,7 +14,8 @@ class AbstractJoinOrderingAlgorithm {
  public:
   virtual ~AbstractJoinOrderingAlgorithm() = default;
 
-  virtual std::shared_ptr<const AbstractJoinPlanNode> operator()(const std::shared_ptr<const JoinGraph>& join_graph) = 0;
+  virtual std::shared_ptr<const AbstractJoinPlanNode> operator()(
+      const std::shared_ptr<const JoinGraph>& join_graph) = 0;
 };
 
 }  // namespace opossum

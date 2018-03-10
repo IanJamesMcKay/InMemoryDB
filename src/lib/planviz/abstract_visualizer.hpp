@@ -187,7 +187,8 @@ class AbstractVisualizer {
 
   std::string _random_color() const {
     // Favor a hand picked list of nice-to-look-at colors over random generation for now.
-    static std::vector<std::string> colors({"#00FA9A", "#00BFFF", "#AFEEEE", "#BC8F8F", "#F0E68C", "#FFFF00", "#FFC0CB", "#FF8C00", "#FF00FF"});
+    static std::vector<std::string> colors(
+        {"#00FA9A", "#00BFFF", "#AFEEEE", "#BC8F8F", "#F0E68C", "#FFFF00", "#FFC0CB", "#FF8C00", "#FF00FF"});
     static size_t color_index;
 
     color_index = (color_index + 1) % colors.size();

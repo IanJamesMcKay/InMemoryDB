@@ -16,9 +16,7 @@ namespace opossum {
 using LQPColumnReferencePair = std::pair<LQPColumnReference, LQPColumnReference>;
 
 // The Optimizer might select a preferred Operator for this JoinNode.
-enum class JoinOperatorImplementation {
-  NestedLoop, Hash, SortMerge
-};
+enum class JoinOperatorImplementation { NestedLoop, Hash, SortMerge };
 
 /**
  * This node type is used to represent any type of Join, including cross products.

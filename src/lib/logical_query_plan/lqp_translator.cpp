@@ -22,8 +22,8 @@
 #include "operators/index_scan.hpp"
 #include "operators/insert.hpp"
 #include "operators/join_hash.hpp"
-#include "operators/join_sort_merge.hpp"
 #include "operators/join_nested_loop.hpp"
+#include "operators/join_sort_merge.hpp"
 #include "operators/limit.hpp"
 #include "operators/maintenance/create_view.hpp"
 #include "operators/maintenance/drop_view.hpp"
@@ -232,7 +232,7 @@ std::shared_ptr<AbstractOperator> LQPTranslator::_translate_join_node(
   join_column_ids.second = join_node->right_input()->get_output_column_id(join_node->join_column_references()->second);
 
   if (join_node->implementation()) {
-    switch(*join_node->implementation()) {
+    switch (*join_node->implementation()) {
       case JoinOperatorImplementation::NestedLoop:
         return std::make_shared<JoinNestedLoop>(input_left_operator, input_right_operator, join_node->join_mode(),
                                                 join_column_ids, *(join_node->predicate_condition()));

@@ -172,8 +172,12 @@ set(
     optimizer/join_ordering/abstract_join_ordering_algorithm.hpp
     optimizer/join_ordering/abstract_join_plan_node.cpp
     optimizer/join_ordering/abstract_join_plan_node.hpp
+    optimizer/join_ordering/build_join_plan.cpp
+    optimizer/join_ordering/build_join_plan.hpp
     optimizer/join_ordering/cost_model_naive.cpp
     optimizer/join_ordering/cost_model_naive.hpp
+    optimizer/join_ordering/cost_model_segmented.cpp
+    optimizer/join_ordering/cost_model_segmented.hpp
     optimizer/join_ordering/dp_ccp.cpp
     optimizer/join_ordering/dp_ccp.hpp
     optimizer/join_ordering/dp_ccp_top_k.cpp
@@ -191,15 +195,11 @@ set(
     optimizer/join_ordering/join_graph_builder.hpp
     optimizer/join_ordering/join_graph.cpp
     optimizer/join_ordering/join_graph.hpp
-    optimizer/join_ordering/join_plan_builder.cpp
-    optimizer/join_ordering/join_plan_builder.hpp
     optimizer/join_ordering/join_plan_join_node.cpp
     optimizer/join_ordering/join_plan_join_node.hpp
     optimizer/join_ordering/join_plan_vertex_node.cpp
     optimizer/join_ordering/join_plan_vertex_node.hpp
     optimizer/join_ordering/join_plan_predicate.cpp
-    optimizer/join_ordering/join_plan_predicate_estimate.cpp
-    optimizer/join_ordering/join_plan_predicate_estimate.hpp
     optimizer/join_ordering/join_plan_predicate.hpp
     optimizer/join_ordering/join_vertex_set.hpp
     optimizer/optimizer.cpp

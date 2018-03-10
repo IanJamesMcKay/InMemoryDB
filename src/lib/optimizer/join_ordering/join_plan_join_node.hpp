@@ -1,15 +1,21 @@
 #pragma once
 
 #include "abstract_join_plan_node.hpp"
+#include "cost.hpp"
 #include "join_plan_predicate.hpp"
 
 namespace opossum {
+
+class AbstractCostModel;
 
 class JoinPlanJoinNode final : public AbstractJoinPlanNode {
  public:
   JoinPlanJoinNode(const std::shared_ptr<const AbstractJoinPlanNode>& left_child,
                    const std::shared_ptr<const AbstractJoinPlanNode>& right_child,
-                   std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> _predicates);
+                   const std::shared_ptr<const TableStatistics>& statistics,
+                   const std::shared_ptr<const JoinPlanAtomicPredicate>& primary_join_predicate,
+                   const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& secondary_predicates,
+                   const Cost node_cost);
 
   std::shared_ptr<const JoinPlanAtomicPredicate> primary_join_predicate() const;
   const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& secondary_predicates() const;
@@ -21,7 +27,6 @@ class JoinPlanJoinNode final : public AbstractJoinPlanNode {
   std::string description() const override;
 
  private:
-  // The predicate, removed from AbstractJoinPlanNode::_predicates, that will be turned into a JoinNode
   std::shared_ptr<const JoinPlanAtomicPredicate> _primary_join_predicate;
   std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> _secondary_predicates;
 };
