@@ -165,12 +165,15 @@ set(
     optimizer/chunk_statistics/range_filter.hpp
     optimizer/column_statistics.cpp
     optimizer/column_statistics.hpp
+    optimizer/join_ordering/abstract_cost_model.hpp
     optimizer/join_ordering/abstract_dp_algorithm.cpp
     optimizer/join_ordering/abstract_dp_algorithm.hpp
     optimizer/join_ordering/abstract_dp_subplan_cache.hpp
     optimizer/join_ordering/abstract_join_ordering_algorithm.hpp
     optimizer/join_ordering/abstract_join_plan_node.cpp
     optimizer/join_ordering/abstract_join_plan_node.hpp
+    optimizer/join_ordering/cost_model_naive.cpp
+    optimizer/join_ordering/cost_model_naive.hpp
     optimizer/join_ordering/dp_ccp.cpp
     optimizer/join_ordering/dp_ccp.hpp
     optimizer/join_ordering/dp_ccp_top_k.cpp
@@ -179,6 +182,7 @@ set(
     optimizer/join_ordering/dp_subplan_cache_best.hpp
     optimizer/join_ordering/dp_subplan_cache_top_k.cpp
     optimizer/join_ordering/dp_subplan_cache_top_k.hpp
+    optimizer/join_ordering/cost.hpp
     optimizer/join_ordering/enumerate_ccp.cpp
     optimizer/join_ordering/enumerate_ccp.hpp
     optimizer/join_ordering/join_edge.cpp
@@ -187,6 +191,8 @@ set(
     optimizer/join_ordering/join_graph_builder.hpp
     optimizer/join_ordering/join_graph.cpp
     optimizer/join_ordering/join_graph.hpp
+    optimizer/join_ordering/join_plan_builder.cpp
+    optimizer/join_ordering/join_plan_builder.hpp
     optimizer/join_ordering/join_plan_join_node.cpp
     optimizer/join_ordering/join_plan_join_node.hpp
     optimizer/join_ordering/join_plan_vertex_node.cpp

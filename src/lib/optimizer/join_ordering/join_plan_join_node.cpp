@@ -11,8 +11,7 @@ JoinPlanJoinNode::JoinPlanJoinNode(const std::shared_ptr<const AbstractJoinPlanN
   _secondary_predicates = std::move(predicates);
 
   /**
-   * Find primary join predicate - needs to be atomic and have a column as right argument that refers to the right
-   * sub plan
+   * Find primary join predicate - needs to be atomic and have one argument in the right and one in the left sub plan
    */
   const auto iter = std::find_if(_secondary_predicates.begin(), _secondary_predicates.end(), [&](const auto& predicate) {
     if (predicate->type() != JoinPlanPredicateType::Atomic) return false;
