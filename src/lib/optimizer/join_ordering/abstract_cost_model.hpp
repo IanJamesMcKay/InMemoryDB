@@ -20,7 +20,7 @@ class AbstractCostModel {
                               const PredicateCondition predicate_condition) const = 0;
 
   virtual Cost cost_table_scan(const std::shared_ptr<TableStatistics>& table_statistics, const ColumnID column,
-                               const PredicateCondition predicate_condition, const AllTypeVariant value) const = 0;
+                               const PredicateCondition predicate_condition, const AllTypeVariant& value) const = 0;
 
   virtual Cost cost_join_sort_merge(const std::shared_ptr<TableStatistics>& table_statistics_left,
                                     const std::shared_ptr<TableStatistics>& table_statistics_right,

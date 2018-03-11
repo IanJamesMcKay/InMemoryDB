@@ -4,18 +4,19 @@
 #include <unordered_map>
 
 #include "abstract_join_plan_node.hpp"
+#include "build_join_plan.hpp"
 #include "dp_subplan_cache_top_k.hpp"
 #include "enumerate_ccp.hpp"
 #include "join_edge.hpp"
 #include "join_plan_join_node.hpp"
 #include "join_plan_vertex_node.hpp"
 
-#define VERBOSE 0
+#define VERBOSE 1
 
 namespace opossum {
 
-DpCcpTopK::DpCcpTopK(const size_t max_entry_count_per_set)
-    : AbstractDpAlgorithm(std::make_shared<DpSubplanCacheTopK>(max_entry_count_per_set)) {}
+DpCcpTopK::DpCcpTopK(const size_t max_entry_count_per_set, const std::shared_ptr<const AbstractCostModel>& cost_model)
+    : AbstractDpAlgorithm(std::make_shared<DpSubplanCacheTopK>(max_entry_count_per_set), cost_model) {}
 
 std::shared_ptr<DpSubplanCacheTopK> DpCcpTopK::subplan_cache() {
   return std::static_pointer_cast<DpSubplanCacheTopK>(_subplan_cache);
@@ -57,8 +58,8 @@ void DpCcpTopK::_on_execute() {
 
     for (const auto& plan_left : best_plans_left) {
       for (const auto& plan_right : best_plans_right) {
-        const auto plan_left_right = std::make_shared<JoinPlanJoinNode>(plan_left, plan_right, predicates);
-        const auto plan_right_left = std::make_shared<JoinPlanJoinNode>(plan_right, plan_left, predicates);
+        const auto plan_left_right = build_join_plan_join_node(*_cost_model, plan_left, plan_right, predicates);
+        const auto plan_right_left = build_join_plan_join_node(*_cost_model, plan_right, plan_left, predicates);
         //        std::cout << "  Caching plan with cost " << plan_left_right->plan_cost() << std::endl;
         //        std::cout << "  - Caching plan with cost " << plan_right_left->plan_cost() << std::endl;
         subplan_cache()->cache_plan(csg_cmp_pair.first | csg_cmp_pair.second, plan_left_right);

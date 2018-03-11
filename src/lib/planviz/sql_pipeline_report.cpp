@@ -3,6 +3,7 @@
 #include "join_graph_visualizer.hpp"
 #include "join_plan_visualizer.hpp"
 #include "lqp_visualizer.hpp"
+#include "optimizer/join_ordering/cost_model_naive.hpp"
 #include "optimizer/join_ordering/dp_ccp.hpp"
 #include "optimizer/join_ordering/join_graph_builder.hpp"
 #include "sql/sql_pipeline.hpp"
@@ -54,7 +55,7 @@ void create_sql_pipeline_report(SQLPipeline& sql_pipeline, const std::string& na
     JoinGraphVisualizer{graphviz_config, graph_info, vertex_info, edge_info}.visualize(
         join_graph, prefix_join_graph + ".dot", prefix_join_graph + extension);
 
-    const auto join_plan = DpCcp{}(join_graph);
+    const auto join_plan = DpCcp{std::make_shared<CostModelNaive>()}(join_graph);
     std::cout << "Report Join Plan" << std::endl;
     join_plan->print();
     const auto prefix_join_plan = name + ".join_plan_" + std::to_string(lqp_idx);

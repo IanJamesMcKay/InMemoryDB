@@ -45,7 +45,7 @@ Cost CostModelSegmented::cost_join_hash(const std::shared_ptr<TableStatistics>& 
 
 Cost CostModelSegmented::cost_table_scan(const std::shared_ptr<TableStatistics>& table_statistics,
                                          const ColumnID column, const PredicateCondition predicate_condition,
-                                         const AllTypeVariant value) const {
+                                         const AllTypeVariant& value) const {
   const auto left_input_row_count = table_statistics->row_count();
   const auto output_table_statistics = table_statistics->predicate_statistics(column, predicate_condition, value);
   const auto output_row_count = output_table_statistics->row_count();

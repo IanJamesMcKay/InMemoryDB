@@ -7,7 +7,7 @@ namespace opossum {
 JoinPlanJoinNode::JoinPlanJoinNode(
     const std::shared_ptr<const AbstractJoinPlanNode>& left_child,
     const std::shared_ptr<const AbstractJoinPlanNode>& right_child,
-    const std::shared_ptr<const TableStatistics>& statistics,
+    const std::shared_ptr<TableStatistics>& statistics,
     const std::shared_ptr<const JoinPlanAtomicPredicate>& primary_join_predicate,
     const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& secondary_predicates, const Cost node_cost)
     : AbstractJoinPlanNode(JoinPlanNodeType::Join, node_cost, statistics, left_child, right_child),

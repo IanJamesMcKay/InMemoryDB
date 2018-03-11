@@ -5,6 +5,7 @@
 
 #include "logical_query_plan/logical_plan_root_node.hpp"
 #include "logical_query_plan/lqp_translator.hpp"
+#include "optimizer/join_ordering/cost_model_segmented.hpp"
 #include "optimizer/join_ordering/dp_ccp.hpp"
 #include "optimizer/join_ordering/dp_ccp_top_k.hpp"
 #include "optimizer/join_ordering/join_graph_builder.hpp"
@@ -31,87 +32,62 @@ using namespace opossum;  // NOLINT
 using namespace boost::numeric;
 
 int main() {
-  ublas::matrix<int> m1(2, 3);
-  ublas::matrix<int> m2(3, 1);
+    opossum::TpchDbGenerator(0.001f, 10'000).generate_and_store();
 
-  ublas::matrix_column<ublas::matrix<int>>(m1, 0) = {1, 2};
-  m1(1, 0) = 2;
-  m1(0, 1) = 3;
-  m1(1, 1) = 4;
-  m1(0, 2) = 5;
-  m1(1, 2) = 6;
+    SQLPipeline sql_pipeline{tpch_queries[4], UseMvcc::No};
 
-  m2(0, 0) = 100;
-  m2(1, 0) = 200;
-  m2(2, 0) = 1;
+    const auto unoptimized_lqps = sql_pipeline.get_unoptimized_logical_plans();
+    const auto unoptimized_lqp = LogicalPlanRootNode::make(unoptimized_lqps.at(0));
 
-  auto result = ublas::matrix<int>(ublas::prod(m1, m2));
+    const auto join_graph = JoinGraphBuilder{}(unoptimized_lqp);
 
-  std::cout << "result " << result.size1() << " " << result.size2() << std::endl;
+    DpCcpTopK dp_ccp_top_k{DpSubplanCacheTopK::NO_ENTRY_LIMIT, std::make_shared<CostModelSegmented>()};
+    dp_ccp_top_k(join_graph);
 
-  const auto v = ublas::matrix_column<ublas::matrix<int>>(result, 0);
-  const auto s = ublas::sum(v);
+    boost::dynamic_bitset<> vertex_set(join_graph->vertices.size());
+    vertex_set.flip();
 
-  std::cout << "Sum: " << s << std::endl;
+    const auto join_plans = dp_ccp_top_k.subplan_cache()->get_best_plans(vertex_set);
 
-  //  opossum::TpchDbGenerator(0.001f, 10'000).generate_and_store();
-  //
-  //  SQLPipeline sql_pipeline{tpch_queries[4], UseMvcc::No};
-  //
-  //  const auto unoptimized_lqps = sql_pipeline.get_unoptimized_logical_plans();
-  //  const auto unoptimized_lqp = LogicalPlanRootNode::make(unoptimized_lqps.at(0));
-  //
-  //  const auto join_graph = JoinGraphBuilder{}(unoptimized_lqp);
-  //
-  //  DpCcpTopK dp_ccp_top_k{join_graph, DpSubplanCacheTopK::NO_ENTRY_LIMIT};
-  //  dp_ccp_top_k();
-  //
-  //  boost::dynamic_bitset<> vertex_set(join_graph->vertices.size());
-  //  vertex_set.flip();
-  //
-  //  const auto join_plans = dp_ccp_top_k.subplan_cache()->get_best_plans(vertex_set);
-  //
-  //  auto min_time = std::numeric_limits<long>::max();
-  //
-  //  std::cout << join_plans.size() << " plans generated" << std::endl;
-  //
-  //  size_t plan_idx = 0;
-  //  for (const auto& join_plan : join_plans) {
-  ////    std::cout << "Executing plan; Cost: " << join_plan->plan_cost() << std::endl;
-  //
-  //    auto lqp = join_plan->to_lqp();
-  //    for (const auto& output_relation : join_graph->output_relations) {
-  //      output_relation.output->set_input(output_relation.input_side, lqp);
-  //    }
-  //
-  //    auto pqp = LQPTranslator{}.translate_node(unoptimized_lqp->left_input());
-  //
-  //
-  //
-  //    SQLQueryPlan query_plan;
-  //    query_plan.add_tree_by_root(pqp);
-  //
-  //    const auto begin = std::chrono::high_resolution_clock::now();
-  //    CurrentScheduler::schedule_and_wait_for_tasks(query_plan.create_tasks());
-  //    const auto end = std::chrono::high_resolution_clock::now();
-  //    const auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
-  //
-  //    if (microseconds < min_time) {
-  //      pqp->print();
-  //      min_time = microseconds;
-  //
-  //      GraphvizConfig graphviz_config;
-  //      graphviz_config.format = "svg";
-  //
-  //      VizGraphInfo graph_info;
-  //      graph_info.bg_color = "black";
-  //
-  //      auto prefix = std::string("plan_") + std::to_string(microseconds) + "ms";
-  //      SQLQueryPlanVisualizer{graphviz_config, graph_info, {}, {}}.visualize(query_plan, prefix + ".dot", prefix + ".svg");
-  //    }
-  //
-  //    std::cout << (++plan_idx) << " - Cost: " << join_plan->plan_cost() << "; Time: " << microseconds << "; Ratio: " << (microseconds / join_plan->plan_cost()) << std::endl;
-  //
-  //  }
-  //  return 0;
+    auto min_time = std::numeric_limits<long>::max();
+
+    std::cout << join_plans.size() << " plans generated" << std::endl;
+
+    size_t plan_idx = 0;
+    for (const auto& join_plan : join_plans) {
+  //    std::cout << "Executing plan; Cost: " << join_plan->plan_cost() << std::endl;
+
+      auto lqp = join_plan->to_lqp();
+      for (const auto& output_relation : join_graph->output_relations) {
+        output_relation.output->set_input(output_relation.input_side, lqp);
+      }
+
+      auto pqp = LQPTranslator{}.translate_node(unoptimized_lqp->left_input());
+
+      SQLQueryPlan query_plan;
+      query_plan.add_tree_by_root(pqp);
+
+      const auto begin = std::chrono::high_resolution_clock::now();
+      CurrentScheduler::schedule_and_wait_for_tasks(query_plan.create_tasks());
+      const auto end = std::chrono::high_resolution_clock::now();
+      const auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+
+      if (microseconds < min_time) {
+        pqp->print();
+        min_time = microseconds;
+
+        GraphvizConfig graphviz_config;
+        graphviz_config.format = "svg";
+
+        VizGraphInfo graph_info;
+        graph_info.bg_color = "black";
+
+        auto prefix = std::string("plan_") + std::to_string(microseconds) + "ms";
+        SQLQueryPlanVisualizer{graphviz_config, graph_info, {}, {}}.visualize(query_plan, prefix + ".dot", prefix + ".svg");
+      }
+
+      std::cout << (++plan_idx) << " - Cost: " << join_plan->plan_cost() << "; Time: " << microseconds << "; Ratio: " << (microseconds / join_plan->plan_cost()) << std::endl;
+
+    }
+    return 0;
 }

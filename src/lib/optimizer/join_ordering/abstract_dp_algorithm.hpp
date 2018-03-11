@@ -12,6 +12,7 @@
 
 namespace opossum {
 
+class AbstractCostModel;
 class AbstractLQPNode;
 class AbstractDpSubplanCache;
 class AbstractJoinPlanNode;
@@ -20,7 +21,7 @@ class JoinGraph;
 
 class AbstractDpAlgorithm : public AbstractJoinOrderingAlgorithm {
  public:
-  explicit AbstractDpAlgorithm(const std::shared_ptr<AbstractDpSubplanCache>& subplan_cache);
+  explicit AbstractDpAlgorithm(const std::shared_ptr<AbstractDpSubplanCache>& subplan_cache, const std::shared_ptr<const AbstractCostModel>& cost_model);
 
   std::shared_ptr<const AbstractJoinPlanNode> operator()(const std::shared_ptr<const JoinGraph>& join_graph) override;
 
@@ -28,7 +29,8 @@ class AbstractDpAlgorithm : public AbstractJoinOrderingAlgorithm {
   virtual void _on_execute() = 0;
 
   std::shared_ptr<const JoinGraph> _join_graph;
-  std::shared_ptr<AbstractDpSubplanCache> _subplan_cache;
+  const std::shared_ptr<AbstractDpSubplanCache> _subplan_cache;
+  const std::shared_ptr<const AbstractCostModel> _cost_model;
 };
 
 }  // namespace opossum

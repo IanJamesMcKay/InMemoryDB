@@ -7,7 +7,7 @@ namespace opossum {
 
 class DpCcp : public AbstractDpAlgorithm {
  public:
-  DpCcp();
+  explicit DpCcp(const std::shared_ptr<const AbstractCostModel>& cost_model);
 
  protected:
   void _on_execute() override;

@@ -1,13 +1,14 @@
 #include "abstract_dp_algorithm.hpp"
 
 #include "abstract_dp_subplan_cache.hpp"
+#include "build_join_plan.hpp"
 #include "join_plan_vertex_node.hpp"
 #include "utils/assert.hpp"
 
 namespace opossum {
 
-AbstractDpAlgorithm::AbstractDpAlgorithm(const std::shared_ptr<AbstractDpSubplanCache>& subplan_cache)
-    : _subplan_cache(subplan_cache) {}
+AbstractDpAlgorithm::AbstractDpAlgorithm(const std::shared_ptr<AbstractDpSubplanCache>& subplan_cache, const std::shared_ptr<const AbstractCostModel>& cost_model)
+    : _subplan_cache(subplan_cache), _cost_model(cost_model) {}
 
 std::shared_ptr<const AbstractJoinPlanNode> AbstractDpAlgorithm::operator()(
     const std::shared_ptr<const JoinGraph>& join_graph) {
@@ -24,7 +25,7 @@ std::shared_ptr<const AbstractJoinPlanNode> AbstractDpAlgorithm::operator()(
     const auto vertex_predicates = _join_graph->find_predicates(vertex_bit);
 
     _subplan_cache->cache_plan(
-        vertex_bit, std::make_shared<JoinPlanVertexNode>(_join_graph->vertices[vertex_idx], vertex_predicates));
+        vertex_bit, build_join_plan_vertex_node(*_cost_model, _join_graph->vertices[vertex_idx], vertex_predicates));
   }
 
   _on_execute();
