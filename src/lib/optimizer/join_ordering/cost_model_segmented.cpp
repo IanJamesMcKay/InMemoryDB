@@ -56,6 +56,10 @@ Cost CostModelSegmented::cost_table_scan(const std::shared_ptr<TableStatistics>&
   const auto total = left_input_row_count * m[0][0] + output_row_count * m[0][1] + m[0][2];
   // clang-format on
 
+  if (total > 100'000) {
+    std::cout << "Hear, hear" << std::endl;
+  }
+
   return total;
 }
 

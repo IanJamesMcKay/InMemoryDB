@@ -169,7 +169,7 @@ std::shared_ptr<JoinPlanJoinNode> build_join_plan_join_node(
   // Compute cost&statistics of primary join predicate, if it exists. Otherwise assume a cross join.
   if (!primary_join_predicate) {
     statistics = left_statistics->generate_cross_join_statistics(right_statistics);
-    node_cost = left_statistics->row_count() * right_statistics->row_count();
+    node_cost = cost_model.cost_product(left_statistics, right_statistics);
   } else {
     const auto left_column_id = left_child->find_column_id(primary_join_predicate->left_operand);
     DebugAssert(left_column_id, "Couldn't resolve " + primary_join_predicate->left_operand.description());
