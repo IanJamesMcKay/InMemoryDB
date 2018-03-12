@@ -20,11 +20,12 @@
 namespace opossum {
 
 // singleton
-NUMAPlacementManager& NUMAPlacementManager::get() {
+NUMAPlacementManager& NUMAPlacementManager::get(const uint32_t max_num_cores) {
   // Don't even think about writing a reset method. If the NUMAPlacementManager gets deleted, so do the memory
   // resources. Without those, all destructors of all PMR vectors out there will fail.
 
-  static NUMAPlacementManager instance;
+  std::cout << "Number of cores: " << max_num_cores << std::endl;
+  static NUMAPlacementManager instance(Topology::create_numa_topology(max_num_cores));
   return instance;
 }
 

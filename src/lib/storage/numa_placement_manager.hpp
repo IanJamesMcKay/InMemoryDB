@@ -58,7 +58,7 @@ class NUMAPlacementManager {
     double imbalance_threshold = 0.1;
   };
 
-  static NUMAPlacementManager& get();
+  static NUMAPlacementManager& get(const uint32_t max_num_cores = 0);
   static int get_node_id_of(void* ptr);
 
   boost::container::pmr::memory_resource* get_memory_resource(int node_id);
@@ -75,7 +75,7 @@ class NUMAPlacementManager {
   NUMAPlacementManager(NUMAPlacementManager&&) = delete;
 
  protected:
-  explicit NUMAPlacementManager(const std::shared_ptr<Topology> topology = Topology::create_numa_topology());
+  explicit NUMAPlacementManager(const std::shared_ptr<Topology> topology);
 
   Options _options;
   std::shared_ptr<Topology> _topology;
