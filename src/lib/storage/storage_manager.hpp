@@ -27,6 +27,7 @@ class StorageManager : private Noncopyable {
 
   // returns the table instance with the given name
   std::shared_ptr<Table> get_table(const std::string& name) const;
+  const std::map<std::string, std::shared_ptr<Table>> &get_tables() const;
 
   // returns whether the storage manager holds a table with the given name
   bool has_table(const std::string& name) const;

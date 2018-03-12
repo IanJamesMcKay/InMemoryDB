@@ -44,6 +44,10 @@ std::shared_ptr<Table> StorageManager::get_table(const std::string& name) const 
   return iter->second;
 }
 
+const std::map<std::string, std::shared_ptr<Table>> &StorageManager::get_tables() const {
+  return _tables;
+}
+
 bool StorageManager::has_table(const std::string& name) const { return _tables.count(name); }
 
 std::vector<std::string> StorageManager::table_names() const {
