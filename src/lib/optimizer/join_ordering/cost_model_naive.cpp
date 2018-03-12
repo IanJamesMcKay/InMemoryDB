@@ -14,7 +14,7 @@ Cost CostModelNaive::cost_join_hash(const std::shared_ptr<TableStatistics>& tabl
 }
 
 Cost CostModelNaive::cost_table_scan(const std::shared_ptr<TableStatistics>& table_statistics, const ColumnID column,
-                                     const PredicateCondition predicate_condition, const AllTypeVariant& value) const {
+                                     const PredicateCondition predicate_condition, const AllParameterVariant& value) const {
   return table_statistics->row_count();
 }
 

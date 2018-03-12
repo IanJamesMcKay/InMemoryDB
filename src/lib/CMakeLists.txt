@@ -165,6 +165,7 @@ set(
     optimizer/chunk_statistics/range_filter.hpp
     optimizer/column_statistics.cpp
     optimizer/column_statistics.hpp
+    optimizer/join_ordering/abstract_cost_model.cpp
     optimizer/join_ordering/abstract_cost_model.hpp
     optimizer/join_ordering/abstract_dp_algorithm.cpp
     optimizer/join_ordering/abstract_dp_algorithm.hpp

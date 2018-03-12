@@ -32,7 +32,7 @@ using namespace opossum;  // NOLINT
 using namespace boost::numeric;
 
 int main() {
-  opossum::TpchDbGenerator(0.001f, 10'000).generate_and_store();
+  opossum::TpchDbGenerator(0.01f).generate_and_store();
 
   SQLPipeline sql_pipeline{tpch_queries[4], UseMvcc::No};
 
@@ -41,7 +41,9 @@ int main() {
 
   const auto join_graph = JoinGraphBuilder{}(unoptimized_lqp);
 
-  DpCcpTopK dp_ccp_top_k{DpSubplanCacheTopK::NO_ENTRY_LIMIT, std::make_shared<CostModelSegmented>()};
+  const auto cost_model = std::make_shared<CostModelSegmented>();
+
+  DpCcpTopK dp_ccp_top_k{DpSubplanCacheTopK::NO_ENTRY_LIMIT, cost_model};
   dp_ccp_top_k(join_graph);
 
   boost::dynamic_bitset<> vertex_set(join_graph->vertices.size());
@@ -82,10 +84,15 @@ int main() {
       VizGraphInfo graph_info;
       graph_info.bg_color = "black";
 
-      auto prefix_pqp = std::string("pqp_") + std::to_string(microseconds) + "ms";
-      auto prefix_join_plan = std::string("join_plan") + std::to_string(microseconds) + "ms";
+      auto prefix_pqp = std::string("viz/pqp_") + std::to_string(microseconds) + "ms";
+      auto prefix_join_plan = std::string("viz/join_plan") + std::to_string(microseconds) + "ms";
+      auto prefix_lqp = std::string("viz/lqp") + std::to_string(microseconds) + "ms";
       SQLQueryPlanVisualizer{graphviz_config, graph_info, {}, {}}.visualize(query_plan, "tmp.dot", prefix_pqp + ".svg");
       JoinPlanVisualizer{graphviz_config, graph_info, {}, {}}.visualize(join_plan, "tmp.dot", prefix_join_plan + ".svg");
+
+      LQPVisualizer lqp_visualizer{graphviz_config, graph_info, {}, {}};
+      lqp_visualizer.set_cost_model(cost_model);
+      lqp_visualizer.visualize({unoptimized_lqp->left_input()}, "tmp.dot", prefix_lqp + ".svg");
     }
 
     std::cout << (++plan_idx) << " - Cost: " << join_plan->plan_cost() << "; Time: " << microseconds << "; Ratio: " << (microseconds / join_plan->plan_cost()) << std::endl;

@@ -177,7 +177,7 @@ bool AbstractLQPNode::subplan_is_validated() const {
 
 void AbstractLQPNode::set_statistics(const std::shared_ptr<TableStatistics>& statistics) { _statistics = statistics; }
 
-const std::shared_ptr<TableStatistics> AbstractLQPNode::get_statistics() {
+const std::shared_ptr<TableStatistics> AbstractLQPNode::get_statistics() const {
   if (!_statistics) {
     _statistics = derive_statistics_from(left_input(), right_input());
   }

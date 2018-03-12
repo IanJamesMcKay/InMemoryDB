@@ -12,6 +12,7 @@
 #include "operators/table_scan.hpp"
 #include "operators/table_wrapper.hpp"
 #include "optimizer/join_ordering/abstract_join_plan_node.hpp"
+#include "optimizer/join_ordering/cost_model_naive.hpp"
 #include "optimizer/join_ordering/dp_ccp.hpp"
 #include "optimizer/join_ordering/dp_ccp_top_k.hpp"
 #include "optimizer/strategy/join_ordering_rule.hpp"
@@ -25,97 +26,6 @@
 #include "utils/table_generator2.hpp"
 
 using namespace opossum;  // NOLINT
-
-class CostModelTableScanLinear {
- public:
-  /**
-   * x Axis: LeftInputRowCount, OutputRowCount, Intercept
-   * y Axis: Total
-   */
-  using CoefficientMatrix = std::array<std::array<float, 3>, 1>;
-
-  static CoefficientMatrix default_coefficients() {
-    CoefficientMatrix m{{{{0.4391338428178249f, 0.09476596343484817f, 0.0f}}}};
-    return m;
-  }
-
-  CostModelTableScanLinear(const CoefficientMatrix& coefficient_matrix) : _coefficient_matrix(coefficient_matrix) {}
-
-  float estimate_cost(const float left_input_row_count, const float output_row_count) {
-    // clang-format off
-    const auto total = left_input_row_count * _coefficient_matrix[0][0] + output_row_count * _coefficient_matrix[0][1] + _coefficient_matrix[0][2];
-    // clang-format on
-
-    return total;
-  }
-
- private:
-  CoefficientMatrix _coefficient_matrix;
-};
-
-class CostModelProductLinear {
- public:
-  /**
-   * x Axis: RowCountProduct
-   * y Axis: Total
-   */
-  using CoefficientMatrix = std::array<std::array<float, 1>, 1>;
-
-  static CoefficientMatrix default_coefficients() {
-    CoefficientMatrix m{{{{1.0960099722478653f}}}};
-    return m;
-  }
-
-  CostModelProductLinear(const CoefficientMatrix& coefficient_matrix) : _coefficient_matrix(coefficient_matrix) {}
-
-  float estimate_cost(const float product_row_count) {
-    // clang-format off
-    const auto total = product_row_count * _coefficient_matrix[0][0];
-    // clang-format on
-
-    return total;
-  }
-
- private:
-  CoefficientMatrix _coefficient_matrix;
-};
-
-class CostModelJoinHashLinear {
- public:
-  /**
-   * x Axis: LeftInputRowCount, RightInputRowCount, OutputRowCount, Intercept
-   * y Axis: materialization, partitioning, build, probe, output
-   */
-  using CoefficientMatrix = std::array<std::array<float, 4>, 5>;
-
-  static CoefficientMatrix default_coefficients() {
-    CoefficientMatrix m{{{{0.5134497330789046f, 0.2855347312271709f, 0.03562409664220728f, 0.0f}},
-                         {{-3.568099221199f, 2.163215873463416f, 3.5492830521878886f, 0.0f}},
-                         {{0.16607179650238305f, 0.26172171946741085f, 0.08765293032708743f, 0.0f}},
-                         {{0.3460139111375513f, 0.030189513343270802f, 0.07910391143651066f, 0.0f}},
-                         {{0.5765816664702633f, 0.08757680844338467f, 1.4843440266345889f, 0.0f}}}};
-    return m;
-  }
-
-  CostModelJoinHashLinear(const CoefficientMatrix& coefficient_matrix) : _coefficient_matrix(coefficient_matrix) {}
-
-  float estimate_cost(const float left_input_row_count, const float right_input_row_count,
-                      const float output_row_count) {
-    // clang-format off
-    const auto materialization = left_input_row_count * _coefficient_matrix[0][0] + right_input_row_count * _coefficient_matrix[0][1] + output_row_count * _coefficient_matrix[0][2] + _coefficient_matrix[0][3];
-    //const auto partitioning =    left_input_row_count * _coefficient_matrix[1][0] + right_input_row_count * _coefficient_matrix[1][1] + output_row_count * _coefficient_matrix[1][2] + _coefficient_matrix[1][3];
-    const auto build =           left_input_row_count * _coefficient_matrix[2][0] + right_input_row_count * _coefficient_matrix[2][1] + output_row_count * _coefficient_matrix[2][2] + _coefficient_matrix[2][3];
-    const auto probe =           left_input_row_count * _coefficient_matrix[3][0] + right_input_row_count * _coefficient_matrix[3][1] + output_row_count * _coefficient_matrix[3][2] + _coefficient_matrix[3][3];
-    //const auto output =          left_input_row_count * _coefficient_matrix[4][0] + right_input_row_count * _coefficient_matrix[4][1] + output_row_count * _coefficient_matrix[4][2] + _coefficient_matrix[4][3];
-
-    // clang-format on
-
-    return materialization + build + probe;
-  }
-
- private:
-  CoefficientMatrix _coefficient_matrix;
-};
 
 template <typename Fn>
 std::chrono::high_resolution_clock::duration time_fn(const Fn& fn) {
@@ -263,10 +173,6 @@ void visit_table_scan(TableScan& table_scan) {
 
   table_scan_samples.emplace_back(row_count, table_scan.get_output()->row_count(),
                                   std::chrono::duration_cast<std::chrono::microseconds>(duration).count());
-
-  //  CostModelTableScanLinear model(CostModelTableScanLinear::default_coefficients());
-  //  const auto estimation = model.estimate_cost(row_count, table_scan.get_output()->row_count());
-  //  std::cout << "TableScan: " << estimation << " " << (table_scan.performance_data().total.count()/1000) << std::endl;
 }
 
 void visit_join_hash(JoinHash& join_hash) {
@@ -280,14 +186,6 @@ void visit_join_hash(JoinHash& join_hash) {
                                  join_hash.input_table_left()->column_data_type(join_hash.column_ids().first),
                                  join_hash.input_table_right()->column_data_type(join_hash.column_ids().second),
                                  join_hash.get_output()->row_count());
-
-  CostModelJoinHashLinear model(CostModelJoinHashLinear::default_coefficients());
-  const auto estimation = model.estimate_cost(left_row_count, right_row_count, join_hash.get_output()->row_count());
-  std::cout << "JoinHash: " << estimation << " "
-            << (join_hash.performance_data().total.count() - join_hash.performance_data().partitioning.count() -
-                join_hash.performance_data().output.count()) /
-                   1000
-            << std::endl;
 }
 
 void visit_join_sort_merge(JoinSortMerge& join_sort_merge) {
@@ -329,11 +227,8 @@ void visit_op(const std::shared_ptr<AbstractOperator>& op) {
 int main() {
   std::cout << "-- Static Cost Evaluator" << std::endl;
 
-  const auto product_q0 = R"(SELECT * FROM customer AS a, customer AS b;)";
-  const auto product_q2 = R"(SELECT * FROM supplier AS a, supplier AS b;)";
-
   const auto sql_queries =
-      std::vector<std::string>({product_q0, product_q2, tpch_queries[4], tpch_queries[6], tpch_queries[9]});
+      std::vector<std::string>({tpch_queries[4], tpch_queries[5], tpch_queries[6], tpch_queries[8], tpch_queries[9]});
 
   //  auto optimizer = std::make_shared<Optimizer>(1);
   //  RuleBatch rule_batch(RuleBatchExecutionPolicy::Once);
@@ -351,7 +246,7 @@ int main() {
       const auto lqp = LogicalPlanRootNode::make(statement.get_optimized_logical_plan());
       const auto join_graph = JoinGraph::from_lqp(lqp->left_input());
 
-      DpCcpTopK dp_ccp_top_k{8};
+      DpCcpTopK dp_ccp_top_k{8, std::make_shared<CostModelNaive>()};
 
       dp_ccp_top_k(join_graph);
 

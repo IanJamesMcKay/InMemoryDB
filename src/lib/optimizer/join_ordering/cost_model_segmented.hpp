@@ -43,7 +43,7 @@ class CostModelSegmented : public AbstractCostModel {
                       const ColumnIDPair& join_column_ids, const PredicateCondition predicate_condition) const override;
 
   Cost cost_table_scan(const std::shared_ptr<TableStatistics>& table_statistics, const ColumnID column,
-                       const PredicateCondition predicate_condition, const AllTypeVariant& value) const override;
+                       const PredicateCondition predicate_condition, const AllParameterVariant& value) const override;
 
   Cost cost_join_sort_merge(const std::shared_ptr<TableStatistics>& table_statistics_left,
                             const std::shared_ptr<TableStatistics>& table_statistics_right, const JoinMode join_mode,

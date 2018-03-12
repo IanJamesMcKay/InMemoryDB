@@ -22,8 +22,8 @@ float AbstractJoinPlanNode::node_cost() const { return _node_cost; }
 
 float AbstractJoinPlanNode::plan_cost() const {
   auto plan_cost = _node_cost;
-  plan_cost += _left_child ? _left_child->node_cost() : 0;
-  plan_cost += _right_child ? _right_child->node_cost() : 0;
+  plan_cost += _left_child ? _left_child->plan_cost() : 0;
+  plan_cost += _right_child ? _right_child->plan_cost() : 0;
   return plan_cost;
 }
 

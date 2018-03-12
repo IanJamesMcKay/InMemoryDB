@@ -7,6 +7,9 @@
 #include <utility>
 #include <vector>
 
+#include "optimizer/join_ordering/abstract_cost_model.hpp"
+#include "planviz/viz_record_layout.hpp"
+
 namespace opossum {
 
 LQPVisualizer::LQPVisualizer() : AbstractVisualizer() {
@@ -18,6 +21,10 @@ LQPVisualizer::LQPVisualizer(GraphvizConfig graphviz_config, VizGraphInfo graph_
                              VizEdgeInfo edge_info)
     : AbstractVisualizer(std::move(graphviz_config), std::move(graph_info), std::move(vertex_info),
                          std::move(edge_info)) {}
+
+void LQPVisualizer::set_cost_model(const std::shared_ptr<AbstractCostModel>& cost_model) {
+  _cost_model = cost_model;
+}
 
 void LQPVisualizer::_build_graph(const std::vector<std::shared_ptr<AbstractLQPNode>>& lqp_roots) {
   std::unordered_set<std::shared_ptr<const AbstractLQPNode>> visualized_nodes;
@@ -33,7 +40,23 @@ void LQPVisualizer::_build_subtree(const std::shared_ptr<AbstractLQPNode>& node,
   if (visualized_nodes.find(node) != visualized_nodes.end()) return;
   visualized_nodes.insert(node);
 
-  _add_vertex(node, node->description());
+  VizRecordLayout record_layout;
+
+  record_layout.add_label(node->description());
+
+  if (_cost_model) {
+    const auto cost = _cost_model->get_node_cost(*node);
+    if (cost) {
+      std::stringstream stream;
+      stream << "Cost: " << std::fixed << std::setprecision(1) << *cost;
+      record_layout.add_label(stream.str());
+    }
+  }
+
+  VizVertexInfo viz_vertex_info;
+  viz_vertex_info.shape = "record";
+  viz_vertex_info.label = record_layout.to_label_string();
+  _add_vertex(node, viz_vertex_info);
 
   if (node->left_input()) {
     auto left_input = node->left_input();

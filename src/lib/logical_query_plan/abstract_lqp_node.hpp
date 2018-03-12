@@ -161,7 +161,7 @@ class AbstractLQPNode : public std::enable_shared_from_this<AbstractLQPNode>, pr
    * Inheriting nodes are free to override AbstractLQPNode::derive_statistics_from().
    */
   void set_statistics(const std::shared_ptr<TableStatistics>& statistics);
-  const std::shared_ptr<TableStatistics> get_statistics();
+  const std::shared_ptr<TableStatistics> get_statistics() const;
   virtual std::shared_ptr<TableStatistics> derive_statistics_from(
       const std::shared_ptr<AbstractLQPNode>& left_input,
       const std::shared_ptr<AbstractLQPNode>& right_input = nullptr) const;
@@ -369,7 +369,7 @@ class AbstractLQPNode : public std::enable_shared_from_this<AbstractLQPNode>, pr
  private:
   std::vector<std::weak_ptr<AbstractLQPNode>> _outputs;
   std::array<std::shared_ptr<AbstractLQPNode>, 2> _inputs;
-  std::shared_ptr<TableStatistics> _statistics;
+  mutable std::shared_ptr<TableStatistics> _statistics;
 
   /**
    * Reset statistics, call _on_input_changed() for node specific behaviour and call _input_changed() on outputs

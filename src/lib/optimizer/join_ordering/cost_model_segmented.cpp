@@ -12,7 +12,7 @@ CostModelSegmented::CostModelSegmented() {
                                  {{0.3460139111375513f, 0.030189513343270802f, 0.07910391143651066f, 0.0f}},
                                  {{0.5765816664702633f, 0.08757680844338467f, 1.4843440266345889f, 0.0f}}}};
 
-  _table_scan_coefficients = TableScanCoefficientMatrix{{{{0.4391338428178249f, 0.09476596343484817f, 0.0f}}}};
+  _table_scan_coefficients = TableScanCoefficientMatrix{{{{0.05616368950028376f, 0.001f, 0.0f}}}};
 
   _join_sort_merge_coefficients = JoinSortMergeCoefficientMatrix{{{{0.4391338428178249f, 0.09476596343484817f, 0.0f}}}};
 
@@ -45,7 +45,7 @@ Cost CostModelSegmented::cost_join_hash(const std::shared_ptr<TableStatistics>& 
 
 Cost CostModelSegmented::cost_table_scan(const std::shared_ptr<TableStatistics>& table_statistics,
                                          const ColumnID column, const PredicateCondition predicate_condition,
-                                         const AllTypeVariant& value) const {
+                                         const AllParameterVariant& value) const {
   const auto left_input_row_count = table_statistics->row_count();
   const auto output_table_statistics = table_statistics->predicate_statistics(column, predicate_condition, value);
   const auto output_row_count = output_table_statistics->row_count();
@@ -55,10 +55,6 @@ Cost CostModelSegmented::cost_table_scan(const std::shared_ptr<TableStatistics>&
   // clang-format off
   const auto total = left_input_row_count * m[0][0] + output_row_count * m[0][1] + m[0][2];
   // clang-format on
-
-  if (total > 100'000) {
-    std::cout << "Hear, hear" << std::endl;
-  }
 
   return total;
 }
