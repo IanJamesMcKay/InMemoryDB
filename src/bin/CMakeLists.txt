@@ -21,6 +21,18 @@ target_link_libraries(
     hyriseBenchmarkLib
 )
 
+# Configure static tablescan benchmark
+add_executable(
+    staticTableScanBenchmark
+
+    static_table_scan_benchmark.cpp
+)
+target_link_libraries(
+    staticTableScanBenchmark
+    hyrise
+    hyriseBenchmarkLib
+)
+
 # Configure tpccTableGenerator
 add_executable(tpccTableGenerator tpcc_table_generator.cpp)
 target_link_libraries(tpccTableGenerator hyrise hyriseBenchmarkLib)
