@@ -88,7 +88,7 @@ void SingleColumnTableScanImpl::handle_column(const BaseEncodedColumn& base_colu
 
     resolve_encoded_column_type<Type>(base_column, [&](const auto& typed_column) {
       auto left_column_iterable = create_iterable_from_column(typed_column);
-      auto right_value_iterable = ConstantValueIterable<Type>{_right_value};
+      auto right_value_iterable = ConstantValueItgerable<Type>{_right_value};
 
       left_column_iterable.with_iterators(mapped_chunk_offsets.get(), [&](auto left_it, auto left_end) {
         right_value_iterable.with_iterators([&](auto right_it, auto right_end) {

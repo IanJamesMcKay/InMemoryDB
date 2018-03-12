@@ -121,6 +121,7 @@ set(
     operators/maintenance/show_columns.hpp
     operators/maintenance/show_tables.cpp
     operators/maintenance/show_tables.hpp
+    operators/post_operator_callback.hpp
     operators/pqp_expression.cpp
     operators/pqp_expression.hpp
     operators/print.cpp
@@ -162,6 +163,7 @@ set(
     optimizer/chunk_statistics/chunk_statistics.cpp
     optimizer/chunk_statistics/chunk_statistics.hpp
     optimizer/chunk_statistics/min_max_filter.hpp
+    optimizer/chunk_statistics/range_filter.hpp
     optimizer/chunk_statistics/range_filter.hpp
     optimizer/column_statistics.cpp
     optimizer/column_statistics.hpp
@@ -288,6 +290,8 @@ set(
     storage/chunk.hpp
     storage/chunk_access_counter.cpp
     storage/chunk_access_counter.hpp
+    storage/defragment_reference_table.cpp
+    storage/defragment_reference_table.hpp
     storage/column_encoding_utils.cpp
     storage/column_encoding_utils.hpp
     storage/column_iterables.hpp

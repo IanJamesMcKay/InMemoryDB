@@ -46,6 +46,10 @@ void AbstractOperator::execute() {
   _on_cleanup();
 
   const_cast<BaseOperatorPerformanceData&>(performance_data()).total = timer_total.lap();
+
+  for (auto& callback : _post_operator_callbacks) {
+    callback(shared_from_this());
+  }
 }
 
 // returns the result of the operator
@@ -134,6 +138,10 @@ void AbstractOperator::print(std::ostream& stream) const {
   };
 
   print_directed_acyclic_graph<const AbstractOperator>(shared_from_this(), get_children_fn, node_print_fn, stream);
+}
+
+void AbstractOperator::set_post_callbacks(const std::vector<PostOperatorCallback>& post_operator_callbacks) {
+  _post_operator_callbacks = post_operator_callbacks;
 }
 
 void AbstractOperator::_on_cleanup() {}

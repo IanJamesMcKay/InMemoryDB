@@ -76,8 +76,15 @@ std::shared_ptr<AbstractOperator> LQPTranslator::translate_node(const std::share
   }
 
   const auto pqp = _translate_by_node_type(node->type(), node);
+
+  pqp->set_post_callbacks(_post_operator_callbacks);
+
   _operator_by_lqp_node.emplace(node, pqp);
   return pqp;
+}
+
+void LQPTranslator::add_post_operator_callback(const PostOperatorCallback& callback) {
+  _post_operator_callbacks.emplace_back(callback);
 }
 
 std::shared_ptr<AbstractOperator> LQPTranslator::_translate_stored_table_node(

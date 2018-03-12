@@ -7,6 +7,7 @@
 
 #include "all_parameter_variant.hpp"
 #include "base_operator_performance_data.hpp"
+#include "post_operator_callback.hpp"
 #include "types.hpp"
 
 namespace opossum {
@@ -77,6 +78,8 @@ class AbstractOperator : public std::enable_shared_from_this<AbstractOperator>, 
 
   void print(std::ostream& stream = std::cout) const;
 
+  void set_post_callbacks(const std::vector<PostOperatorCallback>& post_operator_callbacks);
+
  protected:
   // abstract method to actually execute the operator
   // execute and get_output are split into two methods to allow for easier
@@ -111,6 +114,8 @@ class AbstractOperator : public std::enable_shared_from_this<AbstractOperator>, 
   std::optional<std::weak_ptr<TransactionContext>> _transaction_context;
 
   std::weak_ptr<OperatorTask> _operator_task;
+
+  std::vector<PostOperatorCallback> _post_operator_callbacks;
 
  private:
   BaseOperatorPerformanceData _base_performance_data;

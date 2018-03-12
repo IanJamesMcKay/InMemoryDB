@@ -7,6 +7,7 @@
 
 #include "constant_mappings.hpp"
 #include "utils/assert.hpp"
+#include "optimizer/table_statistics.hpp"
 
 namespace opossum {
 
@@ -56,7 +57,7 @@ const std::vector<LQPColumnReference>& UnionNode::output_column_references() con
 
 std::shared_ptr<TableStatistics> UnionNode::derive_statistics_from(
     const std::shared_ptr<AbstractLQPNode>& left_input, const std::shared_ptr<AbstractLQPNode>& right_input) const {
-  Fail("Statistics for UNION not yet implemented");
+  return left_input->get_statistics()->generate_disjunction_statistics(right_input->get_statistics());
 }
 
 bool UnionNode::shallow_equals(const AbstractLQPNode& rhs) const {

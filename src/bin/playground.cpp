@@ -32,9 +32,9 @@ using namespace opossum;  // NOLINT
 using namespace boost::numeric;
 
 int main() {
-  opossum::TpchDbGenerator(0.01f).generate_and_store();
+  opossum::TpchDbGenerator(0.1f).generate_and_store();
 
-  SQLPipeline sql_pipeline{tpch_queries[4], UseMvcc::No};
+  SQLPipeline sql_pipeline{tpch_queries[6], UseMvcc::No};
 
   const auto unoptimized_lqps = sql_pipeline.get_unoptimized_logical_plans();
   const auto unoptimized_lqp = LogicalPlanRootNode::make(unoptimized_lqps.at(0));
