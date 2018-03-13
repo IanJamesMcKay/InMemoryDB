@@ -8,7 +8,7 @@
 #include "storage/chunk.hpp"
 #include "storage/index/adaptive_radix_tree/adaptive_radix_tree_index.hpp"
 #include "storage/storage_manager.hpp"
-#include "table_generator.hpp"
+#include "utils/table_generator.hpp"
 #include "types.hpp"
 
 namespace opossum {

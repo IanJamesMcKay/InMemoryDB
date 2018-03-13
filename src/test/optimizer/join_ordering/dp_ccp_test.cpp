@@ -8,6 +8,7 @@
 #include "optimizer/join_ordering/join_edge.hpp"
 #include "optimizer/join_ordering/join_graph_builder.hpp"
 #include "optimizer/strategy/join_ordering_rule.hpp"
+#include "sql/sql.hpp"
 #include "sql/sql_pipeline.hpp"
 #include "storage/storage_manager.hpp"
 #include "testing_assert.hpp"
@@ -64,7 +65,7 @@ class DpCcpSqlToPredicatesTest : public ::testing::TestWithParam<SqlAndPredicate
 TEST_P(DpCcpSqlToPredicatesTest, PreservesPredicates) {
   const auto sql_and_predicates = GetParam();
 
-  SQLPipeline sql_pipeline{sql_and_predicates.sql};
+  auto sql_pipeline = SQL{sql_and_predicates.sql}.pipeline();
 
   ASSERT_EQ(sql_pipeline.get_unoptimized_logical_plans().size(), 1u);
   const auto unoptimized_lqp = sql_pipeline.get_unoptimized_logical_plans().at(0);
