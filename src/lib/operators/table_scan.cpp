@@ -26,6 +26,7 @@
 #include "type_cast.hpp"
 #include "utils/assert.hpp"
 #include "utils/performance_warning.hpp"
+#include "utils/timer.hpp"
 
 namespace opossum {
 
@@ -60,6 +61,10 @@ const std::string TableScan::description(DescriptionMode description_mode) const
          " " + predicate_string + ")";
 }
 
+const TableScanPerformanceData& TableScan::performance_data() const {
+  return _performance_data;
+}
+
 std::shared_ptr<AbstractOperator> TableScan::_on_recreate(
     const std::vector<AllParameterVariant>& args, const std::shared_ptr<AbstractOperator>& recreated_input_left,
     const std::shared_ptr<AbstractOperator>& recreated_input_right) const {
@@ -87,13 +92,21 @@ std::shared_ptr<const Table> TableScan::_on_execute() {
   auto jobs = std::vector<std::shared_ptr<AbstractTask>>{};
   jobs.reserve(_in_table->chunk_count() - excluded_chunk_set.size());
 
+  std::atomic<std::chrono::nanoseconds> accumulated_scan_duration{0};
+  std::atomic<std::chrono::nanoseconds> accumulated_output_duration{0};
+
   for (ChunkID chunk_id{0u}; chunk_id < _in_table->chunk_count(); ++chunk_id) {
     if (excluded_chunk_set.count(chunk_id)) continue;
 
     auto job_task = std::make_shared<JobTask>([=, &output_mutex]() {
       const auto chunk_guard = _in_table->get_chunk_with_access_counting(chunk_id);
+
+      Timer performance_timer;
+
       // The actual scan happens in the sub classes of BaseTableScanImpl
       const auto matches_out = std::make_shared<PosList>(_impl->scan_chunk(chunk_id));
+      accumulated_scan_duration += performance_timer.lap();
+
       if (matches_out->empty()) return;
 
       // The ChunkAccessCounter is reused to track accesses of the output chunk. Accesses of derived chunks are counted
@@ -150,6 +163,8 @@ std::shared_ptr<const Table> TableScan::_on_execute() {
 
       std::lock_guard<std::mutex> lock(output_mutex);
       _output_table->append_chunk(out_columns, chunk_guard->get_allocator(), chunk_guard->access_counter());
+
+      accumulated_output_duration += performance_timer.lap();
     });
 
     jobs.push_back(job_task);
@@ -157,6 +172,9 @@ std::shared_ptr<const Table> TableScan::_on_execute() {
   }
 
   CurrentScheduler::wait_for_tasks(jobs);
+
+  _performance_data.scan = accumulated_scan_duration.load();
+  _performance_data.output = accumulated_output_duration.load();
 
   return _output_table;
 }

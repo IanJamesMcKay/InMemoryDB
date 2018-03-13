@@ -22,7 +22,11 @@ class PQPExpression;
  */
 class LQPTranslator final : private Noncopyable {
  public:
+  using SubPQPCache = std::unordered_map<std::shared_ptr<const AbstractLQPNode>, std::shared_ptr<AbstractOperator>>;
+
   std::shared_ptr<AbstractOperator> translate_node(const std::shared_ptr<AbstractLQPNode>& node) const;
+
+  const SubPQPCache& sub_pqp_cache() const;
 
   void add_post_operator_callback(const PostOperatorCallback& callback);
 
@@ -61,8 +65,7 @@ class LQPTranslator final : private Noncopyable {
   std::shared_ptr<AbstractOperator> _translate_drop_view_node(const std::shared_ptr<AbstractLQPNode>& node) const;
 
   // Cache operator subtrees by LQP node to avoid executing operators below a diamond shape multiple times
-  mutable std::unordered_map<std::shared_ptr<const AbstractLQPNode>, std::shared_ptr<AbstractOperator>>
-      _operator_by_lqp_node;
+  mutable SubPQPCache _sub_pqp_cache;
 
   std::vector<PostOperatorCallback> _post_operator_callbacks;
 };

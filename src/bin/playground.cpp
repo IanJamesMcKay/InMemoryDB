@@ -5,6 +5,7 @@
 
 #include "logical_query_plan/logical_plan_root_node.hpp"
 #include "logical_query_plan/lqp_translator.hpp"
+#include "optimizer/join_ordering/cost_model_segmented_sampler.hpp"
 #include "optimizer/join_ordering/cost_model_segmented.hpp"
 #include "optimizer/join_ordering/dp_ccp.hpp"
 #include "optimizer/join_ordering/dp_ccp_top_k.hpp"
@@ -34,7 +35,7 @@ using namespace boost::numeric;
 int main() {
   opossum::TpchDbGenerator(0.1f).generate_and_store();
 
-  SQLPipeline sql_pipeline{tpch_queries[6], UseMvcc::No};
+  SQLPipeline sql_pipeline{tpch_queries[4], UseMvcc::No};
 
   const auto unoptimized_lqps = sql_pipeline.get_unoptimized_logical_plans();
   const auto unoptimized_lqp = LogicalPlanRootNode::make(unoptimized_lqps.at(0));
@@ -55,6 +56,8 @@ int main() {
 
   std::cout << join_plans.size() << " plans generated" << std::endl;
 
+  CostModelSegmentedSampler cost_model_sampler;
+
   size_t plan_idx = 0;
   for (const auto& join_plan : join_plans) {
 //    std::cout << "Executing plan; Cost: " << join_plan->plan_cost() << std::endl;
@@ -71,6 +74,9 @@ int main() {
 
     const auto begin = std::chrono::high_resolution_clock::now();
     CurrentScheduler::schedule_and_wait_for_tasks(query_plan.create_tasks());
+
+    cost_model_sampler.sample(*query_plan.tree_roots().at(0));
+
     const auto end = std::chrono::high_resolution_clock::now();
     const auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
 
@@ -97,6 +103,7 @@ int main() {
 
     std::cout << (++plan_idx) << " - Cost: " << join_plan->plan_cost() << "; Time: " << microseconds << "; Ratio: " << (microseconds / join_plan->plan_cost()) << std::endl;
 
+    cost_model_sampler.write_samples();
   }
   return 0;
 }

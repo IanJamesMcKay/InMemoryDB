@@ -12,6 +12,8 @@
 
 namespace opossum {
 
+class LQPTranslator;
+
 using PreparedStatementCache = std::shared_ptr<SQLQueryCache<SQLQueryPlan>>;
 
 /**

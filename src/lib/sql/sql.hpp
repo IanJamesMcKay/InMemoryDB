@@ -11,6 +11,7 @@
 namespace opossum {
 
 class Optimizer;
+class LQPTranslator;
 
 /**
  * Interface for the configured execution of SQL.
@@ -40,6 +41,7 @@ class SQL final {
   SQL& set_optimizer(const std::shared_ptr<Optimizer>& optimizer);
   SQL& set_prepared_statement_cache(const PreparedStatementCache& prepared_statements);
   SQL& set_transaction_context(const std::shared_ptr<TransactionContext>& transaction_context);
+  SQL& set_lqp_translator(const std::shared_ptr<LQPTranslator>& lqp_translator);
 
   /**
    * Short for set_use_mvcc(UseMvcc::No)
@@ -61,6 +63,7 @@ class SQL final {
   std::shared_ptr<TransactionContext> _transaction_context;
   std::shared_ptr<Optimizer> _optimizer;
   PreparedStatementCache _prepared_statements;
+  std::shared_ptr<LQPTranslator> _lqp_translator;
 };
 
 }  // namespace opossum

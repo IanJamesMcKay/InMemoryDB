@@ -153,6 +153,8 @@ set(
     operators/union_positions.hpp
     operators/update.cpp
     operators/update.hpp
+    operators/utils/flatten_pqp.cpp
+    operators/utils/flatten_pqp.hpp
     operators/validate.cpp
     operators/validate.hpp
     optimizer/base_column_statistics.cpp
@@ -169,6 +171,8 @@ set(
     optimizer/column_statistics.hpp
     optimizer/join_ordering/abstract_cost_model.cpp
     optimizer/join_ordering/abstract_cost_model.hpp
+    optimizer/join_ordering/abstract_cost_model_sampler.cpp
+    optimizer/join_ordering/abstract_cost_model_sampler.hpp
     optimizer/join_ordering/abstract_dp_algorithm.cpp
     optimizer/join_ordering/abstract_dp_algorithm.hpp
     optimizer/join_ordering/abstract_dp_subplan_cache.hpp
@@ -181,6 +185,8 @@ set(
     optimizer/join_ordering/cost_model_naive.hpp
     optimizer/join_ordering/cost_model_segmented.cpp
     optimizer/join_ordering/cost_model_segmented.hpp
+    optimizer/join_ordering/cost_model_segmented_sampler.cpp
+    optimizer/join_ordering/cost_model_segmented_sampler.hpp
     optimizer/join_ordering/dp_ccp.cpp
     optimizer/join_ordering/dp_ccp.hpp
     optimizer/join_ordering/dp_ccp_top_k.cpp

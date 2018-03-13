@@ -14,6 +14,8 @@
 
 namespace opossum {
 
+class LQPTranslator;
+
 /**
  * This is the unified interface to handle SQL queries and related operations.
  * This should be preferred over using SQLPipelineStatement directly, unless you really know why you need it.
@@ -34,7 +36,7 @@ class SQLPipeline : public Noncopyable {
  public:
   // Prefer using the SQL builder interface for constructing SQLPipelines conveniently
   SQLPipeline(const std::string& sql, std::shared_ptr<TransactionContext> transaction_context, const UseMvcc use_mvcc,
-              const std::shared_ptr<Optimizer>& optimizer, const PreparedStatementCache& prepared_statements);
+              const std::shared_ptr<Optimizer>& optimizer, const PreparedStatementCache& prepared_statements, const std::shared_ptr<LQPTranslator>& lqp_translator);
 
   // Returns the SQL string for each statement.
   const std::vector<std::string>& get_sql_strings();
