@@ -14,6 +14,9 @@
 #include "utils/assert.hpp"
 #include "logical_query_plan/stored_table_node.hpp"
 #include "logical_query_plan/predicate_node.hpp"
+#include "logical_query_plan/projection_node.hpp"
+#include "logical_query_plan/aggregate_node.hpp"
+#include "logical_query_plan/sort_node.hpp"
 #include "logical_query_plan/join_node.hpp"
 
 #if HYRISE_JIT_SUPPORT
@@ -124,7 +127,40 @@ const std::shared_ptr<AbstractLQPNode>& SQLPipelineStatement::get_unoptimized_lo
   auto join_3 = JoinNode::make(JoinMode::Inner, LQPColumnReferencePair{customer_nationkey, nation_nationkey}, PredicateCondition::Equals);
   join_3->set_left_child(join_2);
   join_3->set_right_child(nation_table);
-  _unoptimized_logical_plan = join_3;
+
+  auto params = std::vector<std::shared_ptr<LQPExpression>>({
+                                                                    LQPExpression::create_binary_operator(
+                                                                            ExpressionType::Multiplication,
+                                                                            LQPExpression::create_column(LQPColumnReference{lineitem_table, ColumnID{5}}),
+                                                                            LQPExpression::create_binary_operator(
+                                                                                    ExpressionType::Subtraction,
+                                                                                    LQPExpression::create_literal(1.0),
+                                                                                    LQPExpression::create_column(LQPColumnReference{lineitem_table, ColumnID{6}})
+                                                                            )
+                                                                    )
+                                                            });
+  auto aggregates = std::vector<std::shared_ptr<LQPExpression>>({
+                                                                        LQPExpression::create_aggregate_function(AggregateFunction::Sum, params, "revenue")
+                                                                });
+  auto groupby_columns = std::vector<LQPColumnReference>({
+                                                                 LQPColumnReference{customer_table, ColumnID{0}},
+                                                                 LQPColumnReference{customer_table, ColumnID{1}},
+                                                                 LQPColumnReference{customer_table, ColumnID{5}},
+                                                                 LQPColumnReference{nation_table, ColumnID{1}},
+                                                                 LQPColumnReference{customer_table, ColumnID{2}},
+                                                                 LQPColumnReference{customer_table, ColumnID{4}},
+                                                                 LQPColumnReference{customer_table, ColumnID{7}}
+                                                         });
+
+  auto aggregate = std::make_shared<AggregateNode>(aggregates, groupby_columns);
+  aggregate->set_left_child(join_3);
+
+  auto order_defs = std::vector<OrderByDefinition>({
+                                                           OrderByDefinition(LQPColumnReference(aggregate, ColumnID{7}), OrderByMode::Descending)
+                                                   });
+  auto sort = std::make_shared<SortNode>(order_defs);
+  sort->set_left_child(aggregate);
+  _unoptimized_logical_plan = sort;
 
 /*  auto customer_table = StoredTableNode::make("customer");
   auto orders_table = StoredTableNode::make("orders");
@@ -157,6 +193,7 @@ const std::shared_ptr<AbstractLQPNode>& SQLPipelineStatement::get_unoptimized_lo
   predicate_3->set_left_child(predicate_2);
   _unoptimized_logical_plan = predicate_3;
 */
+
 /*  const auto& parsed_sql = get_parsed_sql_statement();
   try {
     const auto lqp_roots = SQLTranslator{_use_mvcc == UseMvcc::Yes}.translate_parse_result(*parsed_sql);
