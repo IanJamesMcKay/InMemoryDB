@@ -12,7 +12,10 @@ CostModelSegmented::CostModelSegmented() {
                                  {{0.3460139111375513f, 0.030189513343270802f, 0.07910391143651066f, 0.0f}},
                                  {{0.5765816664702633f, 0.08757680844338467f, 1.4843440266345889f, 0.0f}}}};
 
-  _table_scan_coefficients = TableScanCoefficientMatrix{{{{0.05616368950028376f, 0.001f, 0.0f}}}};
+  _table_scan_column_value_numeric = TableScanCoefficientMatrix{{{{0.143470961207f,0.212471537509f,0.107160515551f}}}};
+  _table_scan_column_column_numeric = TableScanCoefficientMatrix{{{{0.30762516144f,0.61525032288f,-1.0277178954f}}}};
+  _table_scan_column_value_string = TableScanCoefficientMatrix{{{{0.37348066254f,0.18510574601f,0.132287638358f}}}};
+  _table_scan_uncategorized = TableScanCoefficientMatrix{{{{0.143470961207f,0.212471537509f,0.107160515551f}}}};
 
   _join_sort_merge_coefficients = JoinSortMergeCoefficientMatrix{{{{0.4391338428178249f, 0.09476596343484817f, 0.0f}}}};
 
@@ -50,13 +53,21 @@ Cost CostModelSegmented::cost_table_scan(const std::shared_ptr<TableStatistics>&
   const auto output_table_statistics = table_statistics->predicate_statistics(column, predicate_condition, value);
   const auto output_row_count = output_table_statistics->row_count();
 
-  const auto& m = _table_scan_coefficients;
+  return 0.0f;
 
-  // clang-format off
-  const auto total = left_input_row_count * m[0][0] + output_row_count * m[0][1] + m[0][2];
-  // clang-format on
+//  const auto is_string_scan = table_statistics.g
+//
+//  const TableScanCoefficientMatrix * m = {nullptr};
+//
+//  if
 
-  return total;
+//  const auto& m = _table_scan_coefficients;
+
+//  // clang-format off
+//  const auto total = left_input_row_count * m[0][0] + output_row_count * m[0][1] + m[0][2];
+//  // clang-format on
+
+//  return total;
 }
 
 Cost CostModelSegmented::cost_join_sort_merge(const std::shared_ptr<TableStatistics>& table_statistics_left,

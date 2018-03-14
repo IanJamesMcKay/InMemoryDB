@@ -24,8 +24,8 @@ class CostModelSegmented : public AbstractCostModel {
 
   /**
    * TableScanCoefficientMatrix 1x3
-   * x Axis: LeftInputRowCount, OutputRowCount, Intercept
-   * y Axis: Total
+   * Features: InputRowCount, InputReferenceCount, OutputRowCount
+   * Targets: Total
    */
   using TableScanCoefficientMatrix = std::array<std::array<float, 3>, 1>;
 
@@ -55,7 +55,10 @@ class CostModelSegmented : public AbstractCostModel {
 
  private:
   JoinHashCoefficientMatrix _join_hash_coefficients;
-  TableScanCoefficientMatrix _table_scan_coefficients;
+  TableScanCoefficientMatrix _table_scan_column_value_numeric;
+  TableScanCoefficientMatrix _table_scan_column_column_numeric;
+  TableScanCoefficientMatrix _table_scan_column_value_string;
+  TableScanCoefficientMatrix _table_scan_uncategorized;
   JoinSortMergeCoefficientMatrix _join_sort_merge_coefficients;
   ProductCoefficientMatrix _product_coefficients;
 };

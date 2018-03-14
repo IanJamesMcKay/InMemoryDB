@@ -36,6 +36,7 @@ using namespace boost::numeric;
 int main() {
 
   std::vector<std::string> queries = {
+    // Column-Value Scans
     R"(SELECT * FROM "part" WHERE p_size > 50;)",
     R"(SELECT * FROM "part" WHERE p_size > 0 AND p_size < 30;)",
     R"(SELECT * FROM "part" WHERE p_size > 10 AND p_size < 40;)",
@@ -52,11 +53,13 @@ int main() {
     R"(SELECT * FROM lineitem WHERE l_shipdate > '1996-01-01' AND l_shipdate < '1996-12-31';)",
     R"(SELECT * FROM lineitem WHERE l_shipdate > '1996-05-01' AND l_shipdate < '1996-07-31';)",
     R"(SELECT * FROM lineitem WHERE l_shipdate = '1996-12-31';)",
+
+    // Joins and Column-Column Scans
     R"(SELECT * FROM supplier AS s1, supplier AS s2 WHERE s1.s_nationkey = s2.s_nationkey AND s1.s_acctbal > s2.s_acctbal;)",
     R"(SELECT * FROM "part" AS a, "part" AS b WHERE a.p_type = b.p_type AND a.p_retailsize > b.p_retailsize AND a.p_size > b.p_size;)"
   };
 
-  std::vector<float> scale_factors = {0.005f, 0.01f, 0.05f, 0.1f, 0.2f};
+  std::vector<float> scale_factors = {0.001f, 0.005f, 0.01f, 0.05f, 0.1f, 0.2f};
 
   CostModelSegmentedSampler cost_model_sampler;
 
