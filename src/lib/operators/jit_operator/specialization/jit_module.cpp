@@ -34,7 +34,7 @@ void JitModule::specialize(const JitRuntimePointer::Ptr& runtime_this) {
   const auto second_pass = JitEvaluationHelper::get().experiment().at("jit_second_pass").get<bool>();
 
   _runtime_values[&*_root_function->arg_begin()] = runtime_this;
-  _resolve_virtual_calls();
+  _resolve_virtual_calls(false);
   _replace_loads_with_runtime_values();
 
   _optimize(second_pass);
@@ -43,7 +43,7 @@ void JitModule::specialize(const JitRuntimePointer::Ptr& runtime_this) {
     //llvm_utils::module_to_file("/tmp/middle.ll", *_module);
     //std::cerr << "second pass" << std::endl;
     _runtime_values[&*_root_function->arg_begin()] = runtime_this;
-    _resolve_virtual_calls(second_pass);
+    _resolve_virtual_calls(true);
     _replace_loads_with_runtime_values();
     _optimize(false);
   }
