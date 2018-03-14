@@ -8,7 +8,7 @@ JitTableGenerator::JitTableGenerator(const float scale_factor, const opossum::Ch
 void JitTableGenerator::generate_and_store() {
   benchmark_utilities::RandomGenerator generator;
   auto cardinalities =
-      std::make_shared<std::vector<size_t>>(std::initializer_list<size_t>{static_cast<size_t>(_scale_factor * 1000)});
+      std::make_shared<std::vector<size_t>>(std::initializer_list<size_t>{static_cast<size_t>(_scale_factor * 1000000)});
 
   auto table_scan = std::make_shared<opossum::Table>();
   add_column<int32_t>(table_scan, "ID", cardinalities, [&](std::vector<size_t> indices) { return indices[0]; });
