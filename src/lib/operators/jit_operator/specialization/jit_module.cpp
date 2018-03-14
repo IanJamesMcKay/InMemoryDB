@@ -39,16 +39,16 @@ void JitModule::specialize(const JitRuntimePointer::Ptr& runtime_this) {
 
   _optimize(second_pass);
 
-
   if (second_pass) {
-    // llvm_utils::module_to_file("/tmp/mid_final.ll", *_module);
+    //llvm_utils::module_to_file("/tmp/middle.ll", *_module);
+    //std::cerr << "second pass" << std::endl;
     _runtime_values[&*_root_function->arg_begin()] = runtime_this;
     _resolve_virtual_calls();
     _replace_loads_with_runtime_values();
     _optimize(false);
   }
 
-  // llvm_utils::module_to_file("/tmp/final.ll", *_module);
+  //llvm_utils::module_to_file("/tmp/final.ll", *_module);
 }
 
 void JitModule::_resolve_virtual_calls() {
@@ -81,8 +81,11 @@ void JitModule::_resolve_virtual_calls() {
     }
 
     auto& function = *call_site.getCalledFunction();
-    std::cerr << "name: " << function.getName().str() << std::endl;
-    if (!boost::starts_with(function.getName().str(), "_ZNK7opossum") && !boost::starts_with(function.getName().str(), "_ZN7opossum")) {
+    auto function_name = function.getName().str();
+    //std::cerr << "name: " << function_name << std::endl;
+    auto x = !boost::starts_with(function.getName().str(), "_ZNK7opossum") && !boost::starts_with(function.getName().str(), "_ZN7opossum") && function.getName().str() != "__clang_call_terminate";
+    //std::cerr << "X: " << x << std::endl;
+    if (x) {
       _llvm_value_map[&function] = _create_function_declaration(function);
       call_sites.pop();
       continue;
@@ -91,8 +94,9 @@ void JitModule::_resolve_virtual_calls() {
     //std::cerr << "about to inline " << function.getName().str() << std::endl;
 
     auto arg = call_site.arg_begin();
-    //std::cerr << "check: " << _get_runtime_value(arg->get())->is_valid() << std::endl;
-    if (arg->get()->getType()->isPointerTy() && !_get_runtime_value(arg->get())->is_valid()) {
+    auto y = arg->get()->getType()->isPointerTy() && !_get_runtime_value(arg->get())->is_valid() && function.getName().str() != "__clang_call_terminate";
+    //std::cerr << "Y: " << y << std::endl;
+    if (y) {
       call_sites.pop();
       continue;
     }
@@ -130,6 +134,7 @@ void JitModule::_resolve_virtual_calls() {
 
     llvm::InlineFunctionInfo info;
     InlineContext ctx{_module.get(), _runtime_values, _llvm_value_map};
+    //std::cerr << "inlining: " << function.getName().str() << std::endl;
     if (llvm::MyInlineFunction(call_site, info, nullptr, false, ctx)) {
       for (const auto& new_call_site : info.InlinedCallSites) {
         call_sites.push(new_call_site);
