@@ -11,7 +11,7 @@
 #include "join_plan_join_node.hpp"
 #include "join_plan_vertex_node.hpp"
 
-#define VERBOSE 1
+#define VERBOSE 0
 
 namespace opossum {
 

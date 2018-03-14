@@ -1,13 +1,14 @@
 #include "abstract_cost_model_sampler.hpp"
 
 #include "operators/utils/flatten_pqp.hpp"
+#include "operators/table_scan.hpp"
 #include "sql/sql.hpp"
 #include "sql/sql_pipeline.hpp"
 #include "sql/sql_query_plan.hpp"
 
 namespace opossum {
 
-void AbstractCostModelSampler::sample(const AbstractOperator& pqp) {
+void AbstractCostModelSampler::sample(const std::shared_ptr<AbstractOperator>& pqp) {
   const auto operators = flatten_pqp(pqp);
 
   for (const auto& op : operators) {

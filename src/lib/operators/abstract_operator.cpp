@@ -133,7 +133,7 @@ void AbstractOperator::print(std::ostream& stream) const {
 
       stream << format_bytes(output->estimate_memory_usage());
       stream << "/";
-      stream << format_duration(op->performance_data().total.count()) << ")";
+      stream << format_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(op->performance_data().total)) << ")";
     }
   };
 

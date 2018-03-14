@@ -16,8 +16,8 @@ class BaseTableScanImpl;
 class Table;
 
 struct TableScanPerformanceData : public BaseOperatorPerformanceData {
-  std::chrono::nanoseconds scan{0};
-  std::chrono::nanoseconds output{0};
+  std::chrono::microseconds scan{0};
+  std::chrono::microseconds output{0};
 };
 
 class TableScan : public AbstractReadOnlyOperator {

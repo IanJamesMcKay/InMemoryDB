@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 
 namespace opossum {
@@ -11,7 +12,7 @@ class AbstractCostModelSampler {
  public:
   virtual ~AbstractCostModelSampler() = default;
 
-  void sample(const AbstractOperator& pqp);
+  void sample(const std::shared_ptr<AbstractOperator>& pqp);
 
   virtual void write_samples() const = 0;
 

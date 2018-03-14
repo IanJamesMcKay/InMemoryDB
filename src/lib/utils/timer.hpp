@@ -11,7 +11,7 @@ class Timer final {
  public:
   Timer();
 
-  std::chrono::nanoseconds lap();
+  std::chrono::microseconds lap();
 
  private:
   std::chrono::high_resolution_clock::time_point _begin;
