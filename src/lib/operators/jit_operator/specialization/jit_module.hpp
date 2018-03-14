@@ -37,7 +37,7 @@ class JitModule {
  private:
   void _optimize(bool with_unroll);
 
-  void _resolve_virtual_calls();
+  void _resolve_virtual_calls(const bool second_pass);
 
   void _replace_loads_with_runtime_values();
 

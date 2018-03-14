@@ -34,7 +34,7 @@ void JitModule::specialize(const JitRuntimePointer::Ptr& runtime_this) {
   const auto second_pass = JitEvaluationHelper::get().experiment().at("jit_second_pass").get<bool>();
 
   _runtime_values[&*_root_function->arg_begin()] = runtime_this;
-  _resolve_virtual_calls();
+  _resolve_virtual_calls(false);
   _replace_loads_with_runtime_values();
 
   _optimize(second_pass);
@@ -43,7 +43,7 @@ void JitModule::specialize(const JitRuntimePointer::Ptr& runtime_this) {
     //llvm_utils::module_to_file("/tmp/middle.ll", *_module);
     //std::cerr << "second pass" << std::endl;
     _runtime_values[&*_root_function->arg_begin()] = runtime_this;
-    _resolve_virtual_calls();
+    _resolve_virtual_calls(true);
     _replace_loads_with_runtime_values();
     _optimize(false);
   }
@@ -51,7 +51,7 @@ void JitModule::specialize(const JitRuntimePointer::Ptr& runtime_this) {
   //llvm_utils::module_to_file("/tmp/final.ll", *_module);
 }
 
-void JitModule::_resolve_virtual_calls() {
+void JitModule::_resolve_virtual_calls(const bool second_pass) {
   std::queue<llvm::CallSite> call_sites;
   _visit<llvm::CallInst>([&](llvm::CallInst& inst) { call_sites.push(llvm::CallSite(&inst)); });
   _visit<llvm::InvokeInst>([&](llvm::InvokeInst& inst) { call_sites.push(llvm::CallSite(&inst)); });
@@ -96,7 +96,7 @@ void JitModule::_resolve_virtual_calls() {
     auto arg = call_site.arg_begin();
     auto y = arg->get()->getType()->isPointerTy() && !_get_runtime_value(arg->get())->is_valid() && function.getName().str() != "__clang_call_terminate";
     //std::cerr << "Y: " << y << std::endl;
-    if (y) {
+    if (y && !second_pass) {
       call_sites.pop();
       continue;
     }

@@ -12,6 +12,12 @@
 #include "sql/sql_query_plan.hpp"
 #include "sql/sql_translator.hpp"
 #include "utils/assert.hpp"
+#include "logical_query_plan/stored_table_node.hpp"
+#include "logical_query_plan/predicate_node.hpp"
+#include "logical_query_plan/projection_node.hpp"
+#include "logical_query_plan/aggregate_node.hpp"
+#include "logical_query_plan/sort_node.hpp"
+#include "logical_query_plan/join_node.hpp"
 
 #if HYRISE_JIT_SUPPORT
 #include "logical_query_plan/jit_aware_lqp_translator.hpp"
@@ -91,7 +97,104 @@ const std::shared_ptr<AbstractLQPNode>& SQLPipelineStatement::get_unoptimized_lo
     return _unoptimized_logical_plan;
   }
 
-  const auto& parsed_sql = get_parsed_sql_statement();
+  auto customer_table = StoredTableNode::make("customer");
+  auto orders_table = StoredTableNode::make("orders");
+  auto lineitem_table = StoredTableNode::make("lineitem");
+  auto nation_table = StoredTableNode::make("nation");
+
+  auto predicate_1 = PredicateNode::make(LQPColumnReference{lineitem_table, ColumnID{8}}, PredicateCondition::Equals, "R");
+  predicate_1->set_left_child(lineitem_table);
+
+  auto predicate_2 = PredicateNode::make(LQPColumnReference{orders_table, ColumnID{4}}, PredicateCondition::GreaterThanEquals, "1993-10-01");
+  predicate_2->set_left_child(orders_table);
+  auto predicate_3 = PredicateNode::make(LQPColumnReference{orders_table, ColumnID{4}}, PredicateCondition::LessThan, "1994-01-01");
+  predicate_3->set_left_child(predicate_2);
+
+  auto customer_custkey = LQPColumnReference{customer_table, ColumnID{0}};
+  auto order_custkey = LQPColumnReference{orders_table, ColumnID{1}};
+  auto join_1 = JoinNode::make(JoinMode::Inner, LQPColumnReferencePair{customer_custkey, order_custkey}, PredicateCondition::Equals);
+  join_1->set_left_child(customer_table);
+  join_1->set_right_child(predicate_3);
+
+  auto lineitem_orderkey = LQPColumnReference{lineitem_table, ColumnID{0}};
+  auto order_orderkey = LQPColumnReference{orders_table, ColumnID{0}};
+  auto join_2 = JoinNode::make(JoinMode::Inner, LQPColumnReferencePair{order_orderkey, lineitem_orderkey}, PredicateCondition::Equals);
+  join_2->set_left_child(join_1);
+  join_2->set_right_child(predicate_1);
+
+  auto customer_nationkey = LQPColumnReference{customer_table, ColumnID{3}};
+  auto nation_nationkey = LQPColumnReference{nation_table, ColumnID{0}};
+  auto join_3 = JoinNode::make(JoinMode::Inner, LQPColumnReferencePair{customer_nationkey, nation_nationkey}, PredicateCondition::Equals);
+  join_3->set_left_child(join_2);
+  join_3->set_right_child(nation_table);
+
+  auto params = std::vector<std::shared_ptr<LQPExpression>>({
+                                                                    LQPExpression::create_binary_operator(
+                                                                            ExpressionType::Multiplication,
+                                                                            LQPExpression::create_column(LQPColumnReference{lineitem_table, ColumnID{5}}),
+                                                                            LQPExpression::create_binary_operator(
+                                                                                    ExpressionType::Subtraction,
+                                                                                    LQPExpression::create_literal(1.0f),
+                                                                                    LQPExpression::create_column(LQPColumnReference{lineitem_table, ColumnID{6}})
+                                                                            )
+                                                                    )
+                                                            });
+  auto aggregates = std::vector<std::shared_ptr<LQPExpression>>({
+                                                                        LQPExpression::create_aggregate_function(AggregateFunction::Sum, params, "revenue")
+                                                                });
+  auto groupby_columns = std::vector<LQPColumnReference>({
+                                                                 LQPColumnReference{customer_table, ColumnID{0}},
+                                                                 LQPColumnReference{customer_table, ColumnID{1}},
+                                                                 LQPColumnReference{customer_table, ColumnID{5}},
+                                                                 LQPColumnReference{nation_table, ColumnID{1}},
+                                                                 LQPColumnReference{customer_table, ColumnID{2}},
+                                                                 LQPColumnReference{customer_table, ColumnID{4}},
+                                                                 LQPColumnReference{customer_table, ColumnID{7}}
+                                                         });
+
+  auto aggregate = std::make_shared<AggregateNode>(aggregates, groupby_columns);
+  aggregate->set_left_child(join_3);
+
+  auto order_defs = std::vector<OrderByDefinition>({
+                                                           OrderByDefinition(LQPColumnReference(aggregate, ColumnID{7}), OrderByMode::Descending)
+                                                   });
+  auto sort = std::make_shared<SortNode>(order_defs);
+  sort->set_left_child(aggregate);
+  _unoptimized_logical_plan = sort;
+
+/*  auto customer_table = StoredTableNode::make("customer");
+  auto orders_table = StoredTableNode::make("orders");
+  auto lineitem_table = StoredTableNode::make("lineitem");
+  auto nation_table = StoredTableNode::make("nation");
+
+  auto customer_custkey = LQPColumnReference{customer_table, ColumnID{0}};
+  auto order_custkey = LQPColumnReference{orders_table, ColumnID{1}};
+  auto join_1 = JoinNode::make(JoinMode::Inner, LQPColumnReferencePair{customer_custkey, order_custkey}, PredicateCondition::Equals);
+  join_1->set_left_child(customer_table);
+  join_1->set_right_child(orders_table);
+
+  auto lineitem_orderkey = LQPColumnReference{lineitem_table, ColumnID{0}};
+  auto order_orderkey = LQPColumnReference{orders_table, ColumnID{0}};
+  auto join_2 = JoinNode::make(JoinMode::Inner, LQPColumnReferencePair{order_orderkey, lineitem_orderkey}, PredicateCondition::Equals);
+  join_2->set_left_child(join_1);
+  join_2->set_right_child(lineitem_table);
+
+  auto customer_nationkey = LQPColumnReference{customer_table, ColumnID{3}};
+  auto nation_nationkey = LQPColumnReference{nation_table, ColumnID{0}};
+  auto join_3 = JoinNode::make(JoinMode::Inner, LQPColumnReferencePair{customer_nationkey, nation_nationkey}, PredicateCondition::Equals);
+  join_3->set_left_child(join_2);
+  join_3->set_right_child(nation_table);
+
+  auto predicate_1 = PredicateNode::make(LQPColumnReference{lineitem_table, ColumnID{8}}, PredicateCondition::Equals, "R");
+  predicate_1->set_left_child(join_3);
+  auto predicate_2 = PredicateNode::make(LQPColumnReference{orders_table, ColumnID{4}}, PredicateCondition::GreaterThanEquals, "1993-10-01");
+  predicate_2->set_left_child(predicate_1);
+  auto predicate_3 = PredicateNode::make(LQPColumnReference{orders_table, ColumnID{4}}, PredicateCondition::LessThan, "1994-01-01");
+  predicate_3->set_left_child(predicate_2);
+  _unoptimized_logical_plan = predicate_3;
+*/
+
+/*  const auto& parsed_sql = get_parsed_sql_statement();
   try {
     const auto lqp_roots = SQLTranslator{_use_mvcc == UseMvcc::Yes}.translate_parse_result(*parsed_sql);
     DebugAssert(lqp_roots.size() == 1, "LQP translation returned no or more than one LQP root for a single statement.");
@@ -99,6 +202,7 @@ const std::shared_ptr<AbstractLQPNode>& SQLPipelineStatement::get_unoptimized_lo
   } catch (const std::exception& exception) {
     throw std::runtime_error("Error while compiling query plan:\n  " + std::string(exception.what()));
   }
+*/
 
   return _unoptimized_logical_plan;
 }
