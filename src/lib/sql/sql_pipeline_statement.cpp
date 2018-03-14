@@ -134,7 +134,7 @@ const std::shared_ptr<AbstractLQPNode>& SQLPipelineStatement::get_unoptimized_lo
                                                                             LQPExpression::create_column(LQPColumnReference{lineitem_table, ColumnID{5}}),
                                                                             LQPExpression::create_binary_operator(
                                                                                     ExpressionType::Subtraction,
-                                                                                    LQPExpression::create_literal(1.0),
+                                                                                    LQPExpression::create_literal(1.0f),
                                                                                     LQPExpression::create_column(LQPColumnReference{lineitem_table, ColumnID{6}})
                                                                             )
                                                                     )
