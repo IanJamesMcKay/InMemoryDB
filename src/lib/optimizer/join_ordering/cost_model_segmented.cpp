@@ -1,5 +1,6 @@
 #include "cost_model_segmented.hpp"
 
+#include "operators/table_scan.hpp"
 #include "optimizer/table_statistics.hpp"
 
 namespace opossum {
@@ -94,6 +95,15 @@ Cost CostModelSegmented::cost_product(const std::shared_ptr<TableStatistics>& ta
   // clang-format on
 
   return total;
+}
+
+std::optional<Cost> CostModelSegmented::cost_table_scan_op(const TableScan& table_scan) {
+  DebugAssert(table_scan.has_finished_execution(), "Operator needs to have finished");
+
+  const auto input_table = table_scan.input_table_left()
+  const auto input_row_count = input_table->row_count();
+  const auto output_row_count = output_table_statistics->row_count();
+
 }
 
 }  // namespace opossum

@@ -53,6 +53,8 @@ class CostModelSegmented : public AbstractCostModel {
   Cost cost_product(const std::shared_ptr<TableStatistics>& table_statistics_left,
                     const std::shared_ptr<TableStatistics>& table_statistics_right) const override;
 
+  std::optional<Cost> cost_table_scan_op(const TableScan& table_scan) const override;
+
  private:
   JoinHashCoefficientMatrix _join_hash_coefficients;
   TableScanCoefficientMatrix _table_scan_column_value_numeric;

@@ -3,8 +3,13 @@
 #include "logical_query_plan/abstract_lqp_node.hpp"
 #include "logical_query_plan/join_node.hpp"
 #include "logical_query_plan/predicate_node.hpp"
+#include "operators/table_scan.hpp"
 
 namespace opossum {
+
+std::optional<Cost> AbstractCostModel::cost_table_scan_op(const TableScan& table_scan) const {
+  return std::nullopt;
+}
 
 std::optional<Cost> AbstractCostModel::get_node_cost(const AbstractLQPNode& node) const {
   switch (node.type()) {
@@ -45,8 +50,14 @@ std::optional<Cost> AbstractCostModel::get_node_cost(const AbstractLQPNode& node
   }
 }
 
-std::optional<Cost> AbstractCostModel::get_operator_cost(const AbstractOperator& node) const {
-  switch (node.typ)
+std::optional<Cost> AbstractCostModel::get_operator_cost(const AbstractOperator& op) const {
+  switch (op.type()) {
+    case OperatorType::TableScan:
+      return cost_table_scan_op(static_cast<const TableScan&>(op));
+
+    default:
+      return std::nullopt;
+  }
 }
 
 }

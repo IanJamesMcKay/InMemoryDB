@@ -11,6 +11,7 @@ namespace opossum {
 class AbstractLQPNode;
 class AbstractOperator;
 class TableStatistics;
+class TableScan;
 
 class AbstractCostModel {
  public:
@@ -32,8 +33,19 @@ class AbstractCostModel {
   virtual Cost cost_product(const std::shared_ptr<TableStatistics>& table_statistics_left,
                             const std::shared_ptr<TableStatistics>& table_statistics_right) const = 0;
 
+  /**
+   * @defgroup Operator Costing
+   * Deriving Cost Models don't necessarily need to implement these, they are used for debugging/visualiuation
+   *
+   * @{
+   */
+
+  virtual std::optional<Cost> cost_table_scan_op(const TableScan& table_scan) const;
+
+  /**@}*/
+
   std::optional<Cost> get_node_cost(const AbstractLQPNode& node) const;
-  std::optional<Cost> get_operator_cost(const AbstractOperator& node) const;
+  std::optional<Cost> get_operator_cost(const AbstractOperator& op) const;
 };
 
 }  // namespace opossum
