@@ -45,4 +45,8 @@ std::optional<Cost> AbstractCostModel::get_node_cost(const AbstractLQPNode& node
   }
 }
 
+std::optional<Cost> AbstractCostModel::get_operator_cost(const AbstractOperator& node) const {
+  switch (node.typ)
+}
+
 }

@@ -283,7 +283,7 @@ std::shared_ptr<TableStatistics> TableStatistics::generate_disjunction_statistic
         _column_statistics[column_idx]->estimate_disjunction(right_table_stats->column_statistics()[column_idx]));
   }
 
-  return std::make_shared<TableStatistics>(_row_count + right_table_stats->row_count(), column_statistics);
+  return std::make_shared<TableStatistics>(TableType::References, _row_count + right_table_stats->row_count(), column_statistics);
 }
 
 void TableStatistics::increment_invalid_row_count(uint64_t count) { _approx_invalid_row_count += count; }

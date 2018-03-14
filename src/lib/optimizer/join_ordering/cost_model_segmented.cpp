@@ -49,25 +49,31 @@ Cost CostModelSegmented::cost_join_hash(const std::shared_ptr<TableStatistics>& 
 Cost CostModelSegmented::cost_table_scan(const std::shared_ptr<TableStatistics>& table_statistics,
                                          const ColumnID column, const PredicateCondition predicate_condition,
                                          const AllParameterVariant& value) const {
-  const auto left_input_row_count = table_statistics->row_count();
+  const auto input_row_count = table_statistics->row_count();
+  auto input_reference_count = 0.0f;
   const auto output_table_statistics = table_statistics->predicate_statistics(column, predicate_condition, value);
   const auto output_row_count = output_table_statistics->row_count();
+  const auto value_is_column = value.type() == typeid(LQPColumnReference);
+  const auto data_type = table_statistics->column_statistics()[column]->data_type();
 
-  return 0.0f;
+  const TableScanCoefficientMatrix * m = {nullptr};
 
-//  const auto is_string_scan = table_statistics.g
-//
-//  const TableScanCoefficientMatrix * m = {nullptr};
-//
-//  if
+  if (table_statistics->table_type() == TableType::References) {
+      input_reference_count = value_is_column ? 2 * input_row_count : input_row_count;
+  }
 
-//  const auto& m = _table_scan_coefficients;
+  if (data_type == DataType::String) {
+    m = &_table_scan_column_value_string; // TODO(moritz) different model for column-column-string
+  } else {
+    m = value_is_column ? &_table_scan_column_column_numeric : &_table_scan_column_value_numeric;
+  }
 
-//  // clang-format off
-//  const auto total = left_input_row_count * m[0][0] + output_row_count * m[0][1] + m[0][2];
-//  // clang-format on
 
-//  return total;
+  // clang-format off
+  const auto cost = input_row_count * (*m)[0][0] + input_reference_count * (*m)[0][1] + output_row_count * (*m)[0][2];
+  // clang-format on
+
+  return cost;
 }
 
 Cost CostModelSegmented::cost_join_sort_merge(const std::shared_ptr<TableStatistics>& table_statistics_left,

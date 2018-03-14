@@ -4,6 +4,7 @@
 
 #include "operators/print.hpp"
 #include "optimizer/join_ordering/abstract_join_plan_node.hpp"
+#include "optimizer/join_ordering/cost_model_naive.hpp"
 #include "optimizer/join_ordering/dp_ccp.hpp"
 #include "optimizer/join_ordering/join_edge.hpp"
 #include "optimizer/join_ordering/join_graph_builder.hpp"
@@ -73,7 +74,7 @@ TEST_P(DpCcpSqlToPredicatesTest, PreservesPredicates) {
 
   EXPECT_TRUE(_join_graph_has_predicates(*unoptimized_join_graph, sql_and_predicates.predicates));
 
-  const auto join_plan = DpCcp{}(unoptimized_join_graph);
+  const auto join_plan = DpCcp{std::make_shared<CostModelNaive>()}(unoptimized_join_graph);
 
   const auto optimized_lqp = join_plan->to_lqp();
   const auto optimized_join_graph = JoinGraphBuilder{}(unoptimized_lqp);

@@ -9,6 +9,7 @@
 namespace opossum {
 
 class AbstractLQPNode;
+class AbstractOperator;
 class TableStatistics;
 
 class AbstractCostModel {
@@ -32,6 +33,7 @@ class AbstractCostModel {
                             const std::shared_ptr<TableStatistics>& table_statistics_right) const = 0;
 
   std::optional<Cost> get_node_cost(const AbstractLQPNode& node) const;
+  std::optional<Cost> get_operator_cost(const AbstractOperator& node) const;
 };
 
 }  // namespace opossum
