@@ -43,24 +43,15 @@ void JitOperator::_prepare() {
   DebugAssert(_source(), "JitOperator does not have a valid source node.");
   DebugAssert(_sink(), "JitOperator does not have a valid sink node.");
 
-  if (JitEvaluationHelper::get().experiment().at("jit_engine") == "none") {
-    _execute_func = &JitReadTuple::execute;
-  } else if (JitEvaluationHelper::get().experiment().at("jit_engine") == "slow") {
+  if (JitEvaluationHelper::get().experiment().at("jit_use_jit")) {
     auto start = std::chrono::high_resolution_clock::now();
-    _module.specialize_slow(std::make_shared<JitConstantRuntimePointer>(_source().get()));
+    _module.specialize(std::make_shared<JitConstantRuntimePointer>(_source().get()));
     auto runtime = std::round(
             std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
     _execute_func = _module.compile<void(const JitReadTuple*, JitRuntimeContext&)>();
-    std::cerr << "slow jitting took " << runtime / 1000.0 << "ms" << std::endl;
-  } else if (JitEvaluationHelper::get().experiment().at("jit_engine") == "fast") {
-    auto start = std::chrono::high_resolution_clock::now();
-    _module.specialize_fast(std::make_shared<JitConstantRuntimePointer>(_source().get()));
-    auto runtime = std::round(
-            std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - start).count());
-    _execute_func = _module.compile<void(const JitReadTuple*, JitRuntimeContext&)>();
-    std::cerr << "fast jitting took " << runtime / 1000.0 << "ms" << std::endl;
+    std::cerr << "jitting took " << runtime / 1000.0 << "ms" << std::endl;
   } else {
-    Fail("unknown jet engine");
+    _execute_func = &JitReadTuple::execute;
   }
 }
 

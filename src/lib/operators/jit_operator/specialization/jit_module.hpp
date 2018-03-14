@@ -21,8 +21,7 @@ class JitModule {
  public:
   explicit JitModule(const std::string& root_function_name);
 
-  void specialize_fast(const JitRuntimePointer::Ptr& runtime_this);
-  void specialize_slow(const JitRuntimePointer::Ptr& runtime_this);
+  void specialize(const JitRuntimePointer::Ptr& runtime_this);
 
   template <typename T>
   std::function<T> compile() {
@@ -36,13 +35,9 @@ class JitModule {
   }
 
  private:
-  bool _specialize(const JitRuntimePointer::Ptr& runtime_this);
-
-  void _optimize();
+  void _optimize(bool with_unroll);
 
   void _resolve_virtual_calls();
-
-  void _adce();
 
   void _replace_loads_with_runtime_values();
 
