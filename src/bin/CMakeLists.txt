@@ -23,12 +23,12 @@ target_link_libraries(
 
 # Configure static cost evaluator
 add_executable(
-    hyriseStaticCostEvaluator
+    hyriseJoinOrderingEvaluator
 
-    static_cost_evaluator.cpp
+    join_ordering_evaluator.cpp
 )
 target_link_libraries(
-    hyriseStaticCostEvaluator
+    hyriseJoinOrderingEvaluator
     hyrise
     hyriseBenchmarkLib
 )

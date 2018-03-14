@@ -4,8 +4,10 @@
 
 #include "planviz/abstract_visualizer.hpp"
 #include "planviz/sql_query_plan_visualizer.hpp"
+#include "optimizer/join_ordering/abstract_cost_model.hpp"
 #include "sql/sql_query_plan.hpp"
 #include "utils/format_duration.hpp"
+#include "viz_record_layout.hpp"
 
 namespace opossum {
 
@@ -15,6 +17,10 @@ SQLQueryPlanVisualizer::SQLQueryPlanVisualizer(GraphvizConfig graphviz_config, V
                                                VizVertexInfo vertex_info, VizEdgeInfo edge_info)
     : AbstractVisualizer(std::move(graphviz_config), std::move(graph_info), std::move(vertex_info),
                          std::move(edge_info)) {}
+
+void SQLQueryPlanVisualizer::set_cost_model(const std::shared_ptr<AbstractCostModel>& cost_model) {
+  _cost_model = cost_model;
+}
 
 void SQLQueryPlanVisualizer::_build_graph(const SQLQueryPlan& plan) {
   std::unordered_set<std::shared_ptr<const AbstractOperator>> visualized_ops;
@@ -66,6 +72,7 @@ void SQLQueryPlanVisualizer::_build_dataflow(const std::shared_ptr<const Abstrac
 
 void SQLQueryPlanVisualizer::_add_operator(const std::shared_ptr<const AbstractOperator>& op) {
   VizVertexInfo info = _default_vertex;
+  info.shape = "record";
   auto label = op->description(DescriptionMode::MultiLine);
 
   if (op->get_output()) {
@@ -74,7 +81,17 @@ void SQLQueryPlanVisualizer::_add_operator(const std::shared_ptr<const AbstractO
     info.pen_width = std::fmax(1, std::ceil(std::log10(wall_time_ns.count()) / 2));
   }
 
-  info.label = label;
+  VizRecordLayout layout;
+  layout.add_label(label);
+
+  if (_cost_model) {
+    const auto cost = _cost_model->get_operator_cost(*op);
+    if (cost) {
+      layout.add_label("Estimated Cost: " + std::to_string(static_cast<int>(*cost)));
+    }
+  }
+
+  info.label = layout.to_label_string();
   _add_vertex(op, info);
 }
 

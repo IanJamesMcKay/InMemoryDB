@@ -2,10 +2,87 @@
 
 #include "operators/table_scan.hpp"
 #include "optimizer/table_statistics.hpp"
+#include "types.hpp"
+#include "resolve_type.hpp"
 
 namespace opossum {
 
+CostModelSegmented::TableScanSubModel CostModelSegmented::table_scan_sub_model(const CostModelSegmented::TableScanFeatures& features) {
+  if (features.predicate_condition == PredicateCondition::Like || features.predicate_condition == PredicateCondition::NotLike) {
+    DebugAssert(features.left_data_type == DataType::String && features.right_data_type == DataType::String, "Expected string");
+    return TableScanSubModel::Like;
+  } else {
+    if (features.left_data_type == DataType::String) {
+      if (features.right_operand_is_column) {
+        return TableScanSubModel::ColumnColumnString;
+      } else {
+        return TableScanSubModel::ColumnValueString;
+      }
+    } else {
+      if (features.right_operand_is_column) {
+        return TableScanSubModel::ColumnColumnNumeric;
+      } else {
+        return TableScanSubModel::ColumnValueNumeric;
+      }
+    }
+  }
+}
+
+CostModelSegmented::TableScanFeatures CostModelSegmented::table_scan_features(const TableScan& table_scan) {
+  DebugAssert(table_scan.input_table_left(), "Operator needs input");
+  DebugAssert(table_scan.get_output(), "Operator needs to be executed first");
+
+  TableScanFeatures features;
+
+  features.left_data_type = table_scan.get_output()->column_data_type(table_scan.left_column_id());
+  features.input_row_count = table_scan.input_table_left()->row_count();
+
+  features.right_operand_is_column = table_scan.right_parameter().type() == typeid(ColumnID);
+
+  if (features.right_operand_is_column) {
+    features.right_data_type = table_scan.get_output()->column_data_type(boost::get<ColumnID>(table_scan.right_parameter()));
+
+    if (table_scan.input_table_left()->type() == TableType::References) {
+      features.input_reference_count = features.input_row_count * 2;
+    }
+  } else {
+    DebugAssert(table_scan.right_parameter().type() == typeid(AllTypeVariant), "Unexpected right parameter");
+    features.right_data_type = data_type_from_all_type_variant(boost::get<AllTypeVariant>(table_scan.right_parameter()));
+
+    if (table_scan.input_table_left()->type() == TableType::References) {
+      features.input_reference_count = features.input_row_count;
+    }
+  }
+
+  features.predicate_condition = table_scan.predicate_condition();
+
+  features.output_row_count = table_scan.get_output()->row_count();
+
+  if (table_scan.input_table_left()->type() == TableType::References) {
+    features.output_reference_count = features.output_row_count;
+  } else {
+    features.output_reference_count = 0;
+  }
+
+  return features;
+}
+
+CostModelSegmented::TableScanTargets CostModelSegmented::table_scan_targets(const TableScan& table_scan) {
+  DebugAssert(table_scan.input_table_left(), "Operator needs input");
+  DebugAssert(table_scan.get_output(), "Operator needs to be executed first");
+
+  TableScanTargets targets;
+
+  targets.scan_cost = static_cast<float>(table_scan.performance_data().scan.count());
+  targets.output_cost = static_cast<float>(table_scan.performance_data().output.count());
+  targets.total = static_cast<float>(table_scan.performance_data().total.count());
+
+  return targets;
+}
+
+
 CostModelSegmented::CostModelSegmented() {
+  // clang-format off
   _join_hash_coefficients =
       JoinHashCoefficientMatrix{{{{0.5134497330789046f, 0.2855347312271709f, 0.03562409664220728f, 0.0f}},
                                  {{-3.568099221199f, 2.163215873463416f, 3.5492830521878886f, 0.0f}},
@@ -13,14 +90,19 @@ CostModelSegmented::CostModelSegmented() {
                                  {{0.3460139111375513f, 0.030189513343270802f, 0.07910391143651066f, 0.0f}},
                                  {{0.5765816664702633f, 0.08757680844338467f, 1.4843440266345889f, 0.0f}}}};
 
-  _table_scan_column_value_numeric = TableScanCoefficientMatrix{{{{0.143470961207f,0.212471537509f,0.107160515551f}}}};
-  _table_scan_column_column_numeric = TableScanCoefficientMatrix{{{{0.30762516144f,0.61525032288f,-1.0277178954f}}}};
-  _table_scan_column_value_string = TableScanCoefficientMatrix{{{{0.37348066254f,0.18510574601f,0.132287638358f}}}};
-  _table_scan_uncategorized = TableScanCoefficientMatrix{{{{0.143470961207f,0.212471537509f,0.107160515551f}}}};
+  auto& m = _table_scan_sub_model_coefficients;
+
+  m[TableScanSubModel::Uncategorized] = TableScanCoefficientMatrix{{{{0.143470961207f,0.212471537509f,0.107160515551f}}}};
+  m[TableScanSubModel::ColumnValueNumeric] = TableScanCoefficientMatrix{{{{0.143470961207f,0.212471537509f,0.107160515551f}}}};
+  m[TableScanSubModel::ColumnColumnNumeric] = TableScanCoefficientMatrix{{{{0.30762516144f,0.61525032288f,-1.0277178954f}}}};
+  m[TableScanSubModel::ColumnValueString] = TableScanCoefficientMatrix{{{{0.143470961207f,0.212471537509f,0.107160515551f}}}};
+  m[TableScanSubModel::ColumnValueNumeric] = TableScanCoefficientMatrix{{{{0.143470961207f,0.212471537509f,0.107160515551f}}}};
+  m[TableScanSubModel::Like] = TableScanCoefficientMatrix{{{{0.143470961207f,0.212471537509f,0.107160515551f}}}};
 
   _join_sort_merge_coefficients = JoinSortMergeCoefficientMatrix{{{{0.4391338428178249f, 0.09476596343484817f, 0.0f}}}};
 
   _product_coefficients = ProductCoefficientMatrix{{{{1.0960099722478653f}}}};
+  // clang-format on
 }
 
 Cost CostModelSegmented::cost_join_hash(const std::shared_ptr<TableStatistics>& table_statistics_left,
@@ -50,31 +132,33 @@ Cost CostModelSegmented::cost_join_hash(const std::shared_ptr<TableStatistics>& 
 Cost CostModelSegmented::cost_table_scan(const std::shared_ptr<TableStatistics>& table_statistics,
                                          const ColumnID column, const PredicateCondition predicate_condition,
                                          const AllParameterVariant& value) const {
-  const auto input_row_count = table_statistics->row_count();
-  auto input_reference_count = 0.0f;
   const auto output_table_statistics = table_statistics->predicate_statistics(column, predicate_condition, value);
-  const auto output_row_count = output_table_statistics->row_count();
-  const auto value_is_column = value.type() == typeid(LQPColumnReference);
-  const auto data_type = table_statistics->column_statistics()[column]->data_type();
 
-  const TableScanCoefficientMatrix * m = {nullptr};
+  TableScanFeatures features;
+  features.left_data_type = table_statistics->column_statistics()[column]->data_type();
+
+  features.right_operand_is_column = value.type() == typeid(ColumnID);
+
+  if (features.right_operand_is_column) {
+    features.right_data_type = table_statistics->column_statistics()[boost::get<ColumnID>(value)]->data_type();
+  } else {
+    features.right_data_type = data_type_from_all_type_variant(boost::get<AllTypeVariant>(value));
+  }
+
+  features.predicate_condition = predicate_condition;
+  features.input_row_count = table_statistics->row_count();
+  features.input_reference_count = 0;
+  features.output_row_count = output_table_statistics->row_count();
 
   if (table_statistics->table_type() == TableType::References) {
-      input_reference_count = value_is_column ? 2 * input_row_count : input_row_count;
-  }
-
-  if (data_type == DataType::String) {
-    m = &_table_scan_column_value_string; // TODO(moritz) different model for column-column-string
+    features.input_reference_count = features.right_operand_is_column ? 2 * features.input_row_count : features.input_row_count;
+    features.output_reference_count = features.output_row_count;
   } else {
-    m = value_is_column ? &_table_scan_column_column_numeric : &_table_scan_column_value_numeric;
+    features.input_reference_count = 0;
+    features.output_reference_count = 0;
   }
 
-
-  // clang-format off
-  const auto cost = input_row_count * (*m)[0][0] + input_reference_count * (*m)[0][1] + output_row_count * (*m)[0][2];
-  // clang-format on
-
-  return cost;
+  return cost_table_scan_impl(features);
 }
 
 Cost CostModelSegmented::cost_join_sort_merge(const std::shared_ptr<TableStatistics>& table_statistics_left,
@@ -97,13 +181,23 @@ Cost CostModelSegmented::cost_product(const std::shared_ptr<TableStatistics>& ta
   return total;
 }
 
-std::optional<Cost> CostModelSegmented::cost_table_scan_op(const TableScan& table_scan) {
-  DebugAssert(table_scan.has_finished_execution(), "Operator needs to have finished");
+std::optional<Cost> CostModelSegmented::cost_table_scan_op(const TableScan& table_scan) const {
+  return cost_table_scan_impl(table_scan_features(table_scan));
+}
 
-  const auto input_table = table_scan.input_table_left()
-  const auto input_row_count = input_table->row_count();
-  const auto output_row_count = output_table_statistics->row_count();
+Cost CostModelSegmented::cost_table_scan_impl(const TableScanFeatures& features) const {
+  const auto submodel = table_scan_sub_model(features);
 
+  const auto coefficients_iter = _table_scan_sub_model_coefficients.find(submodel);
+  DebugAssert(coefficients_iter != _table_scan_sub_model_coefficients.end(), "No coefficients for submodel");
+
+  const TableScanCoefficientMatrix& m = coefficients_iter->second;
+
+  // clang-format off
+  const auto cost = features.input_row_count * m[0][0] + features.input_reference_count * m[0][1] + features.output_row_count * m[0][2];
+  // clang-format on
+
+  return cost;
 }
 
 }  // namespace opossum
