@@ -144,13 +144,13 @@ int main(int argc, char* argv[]) {
 
   if (config["globals"]["use_tpch_tables"]) {
     std::cerr << "Generating TPCH tables with scale factor " << scale_factor << std::endl;
-    opossum::TpchDbGenerator generator(scale_factor);
+    opossum::TpchDbGenerator generator(scale_factor, opossum::ChunkID(100000));
     generator.generate_and_store();
   }
 
   if (config["globals"]["use_other_tables"]) {
     std::cerr << "Generating JIT tables with scale factor " << scale_factor << std::endl;
-    opossum::JitTableGenerator generator(scale_factor);
+    opossum::JitTableGenerator generator(scale_factor, opossum::ChunkID(100000));
     generator.generate_and_store();
   }
 

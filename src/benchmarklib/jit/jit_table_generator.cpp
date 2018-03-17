@@ -9,7 +9,6 @@ void JitTableGenerator::generate_and_store() {
   benchmark_utilities::RandomGenerator generator;
   auto cardinalities =
       std::make_shared<std::vector<size_t>>(std::initializer_list<size_t>{static_cast<size_t>(_scale_factor * 1000000)});
-
   auto table_scan = std::make_shared<opossum::Table>();
   add_column<int32_t>(table_scan, "ID", cardinalities, [&](std::vector<size_t> indices) { return indices[0]; });
   add_column<int32_t>(table_scan, "A", cardinalities,
@@ -82,6 +81,22 @@ void JitTableGenerator::generate_and_store() {
                       [&](std::vector<size_t> indices) { return generator.random_number(0, 10); });
   add_column<int32_t>(table_aggregate, "D", cardinalities,
                       [&](std::vector<size_t> indices) { return generator.random_number(0, 10); });
+  add_column<int32_t>(table_aggregate, "E", cardinalities,
+                      [&](std::vector<size_t> indices) { return generator.random_number(0, 10); });
+  add_column<int32_t>(table_aggregate, "F", cardinalities,
+                      [&](std::vector<size_t> indices) { return generator.random_number(0, 10); });
+  add_column<int32_t>(table_aggregate, "X1", cardinalities,
+                      [&](std::vector<size_t> indices) { return generator.random_number(0, 0); });
+  add_column<int32_t>(table_aggregate, "X10", cardinalities,
+                      [&](std::vector<size_t> indices) { return generator.random_number(0, 9); });
+  add_column<int32_t>(table_aggregate, "X100", cardinalities,
+                      [&](std::vector<size_t> indices) { return generator.random_number(0, 99); });
+  add_column<int32_t>(table_aggregate, "X1000", cardinalities,
+                      [&](std::vector<size_t> indices) { return generator.random_number(0, 999); });
+  add_column<int32_t>(table_aggregate, "X10000", cardinalities,
+                      [&](std::vector<size_t> indices) { return generator.random_number(0, 9999); });
+  add_column<int32_t>(table_aggregate, "X100000", cardinalities,
+                      [&](std::vector<size_t> indices) { return generator.random_number(0, 99999); });
 
   auto table_types = std::make_shared<opossum::Table>();
   add_column<int32_t>(table_types, "I1", cardinalities,
