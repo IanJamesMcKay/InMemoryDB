@@ -12,22 +12,65 @@ void JitTableGenerator::generate_and_store() {
 
   auto table_scan = std::make_shared<opossum::Table>();
   add_column<int32_t>(table_scan, "ID", cardinalities, [&](std::vector<size_t> indices) { return indices[0]; });
-  add_column<float>(table_scan, "A", cardinalities,
+  add_column<int32_t>(table_scan, "A", cardinalities,
                       [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); });
-  add_column<float>(table_scan, "B", cardinalities,
+  add_column<int32_t>(table_scan, "B", cardinalities,
                       [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); });
   add_column<int32_t>(table_scan, "C", cardinalities,
                       [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); });
   add_column<int32_t>(table_scan, "D", cardinalities,
                       [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); });
   add_nullable_column<int32_t>(table_scan, "E", cardinalities,
-                               [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); }, [&](std::vector<size_t> indices) { return false; });
+                      [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); }, [&](std::vector<size_t> indices) { return false; });
   add_nullable_column<int32_t>(table_scan, "F", cardinalities,
                       [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); }, [&](std::vector<size_t> indices) { return false; });
   add_nullable_column<int32_t>(table_scan, "G", cardinalities,
-                               [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); }, [&](std::vector<size_t> indices) { return false; });
+                      [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); }, [&](std::vector<size_t> indices) { return false; });
   add_nullable_column<int32_t>(table_scan, "H", cardinalities,
-                               [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); }, [&](std::vector<size_t> indices) { return false; });
+                      [&](std::vector<size_t> indices) { return generator.random_number(0, 100000); }, [&](std::vector<size_t> indices) { return false; });
+
+  add_column<int32_t>(table_scan, "X0", cardinalities,
+                      [&](std::vector<size_t> indices) { return 0; });
+  add_column<int32_t>(table_scan, "X5000", cardinalities,
+                      [&](std::vector<size_t> indices) { return 5000; });
+  add_column<int32_t>(table_scan, "X10000", cardinalities,
+                      [&](std::vector<size_t> indices) { return 10000; });
+  add_column<int32_t>(table_scan, "X15000", cardinalities,
+                      [&](std::vector<size_t> indices) { return 15000; });
+  add_column<int32_t>(table_scan, "X20000", cardinalities,
+                      [&](std::vector<size_t> indices) { return 20000; });
+  add_column<int32_t>(table_scan, "X25000", cardinalities,
+                      [&](std::vector<size_t> indices) { return 25000; });
+  add_column<int32_t>(table_scan, "X30000", cardinalities,
+                      [&](std::vector<size_t> indices) { return 30000; });
+  add_column<int32_t>(table_scan, "X35000", cardinalities,
+                      [&](std::vector<size_t> indices) { return 35000; });
+  add_column<int32_t>(table_scan, "X40000", cardinalities,
+                      [&](std::vector<size_t> indices) { return 40000; });
+  add_column<int32_t>(table_scan, "X45000", cardinalities,
+                      [&](std::vector<size_t> indices) { return 45000; });
+  add_column<int32_t>(table_scan, "X50000", cardinalities,
+                      [&](std::vector<size_t> indices) { return 50000; });
+  add_column<int32_t>(table_scan, "X55000", cardinalities,
+                      [&](std::vector<size_t> indices) { return 55000; });
+  add_column<int32_t>(table_scan, "X60000", cardinalities,
+                      [&](std::vector<size_t> indices) { return 60000; });
+  add_column<int32_t>(table_scan, "X65000", cardinalities,
+                      [&](std::vector<size_t> indices) { return 65000; });
+  add_column<int32_t>(table_scan, "X70000", cardinalities,
+                      [&](std::vector<size_t> indices) { return 70000; });
+  add_column<int32_t>(table_scan, "X75000", cardinalities,
+                      [&](std::vector<size_t> indices) { return 75000; });
+  add_column<int32_t>(table_scan, "X80000", cardinalities,
+                      [&](std::vector<size_t> indices) { return 80000; });
+  add_column<int32_t>(table_scan, "X85000", cardinalities,
+                      [&](std::vector<size_t> indices) { return 85000; });
+  add_column<int32_t>(table_scan, "X90000", cardinalities,
+                      [&](std::vector<size_t> indices) { return 90000; });
+  add_column<int32_t>(table_scan, "X95000", cardinalities,
+                      [&](std::vector<size_t> indices) { return 95000; });
+  add_column<int32_t>(table_scan, "X100000", cardinalities,
+                      [&](std::vector<size_t> indices) { return 100000; });
 
   auto table_aggregate = std::make_shared<opossum::Table>();
   add_column<int32_t>(table_aggregate, "ID", cardinalities, [&](std::vector<size_t> indices) { return indices[0]; });
