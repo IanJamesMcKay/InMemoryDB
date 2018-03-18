@@ -165,7 +165,7 @@ int main(int argc, char* argv[]) {
   std::cerr << "Table Information" << std::endl;
   for (const auto& table_name : opossum::StorageManager::get().table_names()) {
     auto table = opossum::StorageManager::get().get_table(table_name);
-    std::cerr << table_name << ": " << table->row_count() " rows, " << table->chunk_count() << " chunks, " << table->column_count() << " columns, " << table->estimate_memory_usage() << " bytes" <<  std::endl;
+    std::cerr << table_name << ": " << table->row_count() << " rows, " << table->chunk_count() << " chunks, " << table->column_count() << " columns, " << table->estimate_memory_usage() << " bytes" <<  std::endl;
   }
 
   std::cerr << "Initializing JIT repository" << std::endl;
