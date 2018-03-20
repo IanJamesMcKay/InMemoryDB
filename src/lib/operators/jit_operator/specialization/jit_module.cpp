@@ -24,6 +24,13 @@ JitModule::JitModule(const std::string& root_function_name)
       _compiler{_repository.llvm_context()},
       _root_function_name{root_function_name} {
   _module->setDataLayout(_compiler.data_layout());
+
+  JitEvaluationHelper::get().result()["dynamic_resolved"] = 0;
+  JitEvaluationHelper::get().result()["static_resolved"] = 0;
+  JitEvaluationHelper::get().result()["resolved_vtables"] = 0;
+  JitEvaluationHelper::get().result()["not_resolved_vtables"] = 0;
+  JitEvaluationHelper::get().result()["inlined_functions"] = 0;
+  JitEvaluationHelper::get().result()["replaced_values"] = 0;
 }
 
 void JitModule::specialize(const JitRuntimePointer::Ptr& runtime_this) {
