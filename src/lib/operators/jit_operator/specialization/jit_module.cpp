@@ -31,7 +31,7 @@ void JitModule::specialize(const JitRuntimePointer::Ptr& runtime_this) {
   DebugAssert(root_function, "root function not found in repository");
   _root_function = _clone_function(*root_function, "_");
 
-  const auto second_pass = JitEvaluationHelper::get().experiment().at("jit_second_pass").get<bool>();
+  const auto second_pass = JitEvaluationHelper::get().experiment()["jit_second_pass"].get<bool>();
 
   _runtime_values[&*_root_function->arg_begin()] = runtime_this;
   _resolve_virtual_calls(false);
@@ -47,6 +47,10 @@ void JitModule::specialize(const JitRuntimePointer::Ptr& runtime_this) {
     _replace_loads_with_runtime_values();
     _optimize(false);
   }
+
+  int32_t num_instr = 0;
+  _visit<llvm::Instruction>([&](llvm::Instruction& inst) { num_instr++; });
+  JitEvaluationHelper::get().result()["num_instructions"] = num_instr;
 
   //llvm_utils::module_to_file("/tmp/final.ll", *_module);
 }
@@ -72,9 +76,11 @@ void JitModule::_resolve_virtual_calls(const bool second_pass) {
         const auto class_name = typeid(*instance).name();
         if (const auto repo_function = _repository.get_vtable_entry(class_name, vtable_index)) {
           call_site.setCalledFunction(repo_function);
+          JitEvaluationHelper::get().result()["resolved_vtables"] = JitEvaluationHelper::get().result()["resolved_vtables"].get<int32_t>() + 1;
         }
       } else {
         // The virtual call could not be resolved. There is nothing we can inline so we might as well move on.
+        JitEvaluationHelper::get().result()["not_resolved_vtables"] = JitEvaluationHelper::get().result()["not_resolved_vtables"].get<int32_t>() + 1;
         call_sites.pop();
         continue;
       }
@@ -136,6 +142,7 @@ void JitModule::_resolve_virtual_calls(const bool second_pass) {
     InlineContext ctx{_module.get(), _runtime_values, _llvm_value_map};
     //std::cerr << "inlining: " << function.getName().str() << std::endl;
     if (llvm::MyInlineFunction(call_site, info, nullptr, false, ctx)) {
+      JitEvaluationHelper::get().result()["inlined_functions"] = JitEvaluationHelper::get().result()["inlined_functions"].get<int32_t>() + 1;
       for (const auto& new_call_site : info.InlinedCallSites) {
         call_sites.push(new_call_site);
       }
@@ -207,14 +214,17 @@ void JitModule::_replace_loads_with_runtime_values() {
           bit_width == 64 ? 0xffffffffffffffff : (static_cast<uint64_t>(1) << inst.getType()->getIntegerBitWidth()) - 1;
       const auto value = *reinterpret_cast<uint64_t*>(address) & mask;
       inst.replaceAllUsesWith(llvm::ConstantInt::get(inst.getType(), value));
+      JitEvaluationHelper::get().result()["replaced_values"] = JitEvaluationHelper::get().result()["replaced_values"].get<int32_t>() + 1;
       _modified = true;
     } else if (inst.getType()->isFloatTy()) {
       const auto value = *reinterpret_cast<float*>(address);
       inst.replaceAllUsesWith(llvm::ConstantFP::get(inst.getType(), value));
+      JitEvaluationHelper::get().result()["replaced_values"] = JitEvaluationHelper::get().result()["replaced_values"].get<int32_t>() + 1;
       _modified = true;
     } else if (inst.getType()->isDoubleTy()) {
       const auto value = *reinterpret_cast<double*>(address);
       inst.replaceAllUsesWith(llvm::ConstantFP::get(inst.getType(), value));
+      JitEvaluationHelper::get().result()["replaced_values"] = JitEvaluationHelper::get().result()["replaced_values"].get<int32_t>() + 1;
       _modified = true;
     } /* else if (inst.getType()->isPointerTy()) {
       const auto int_address = llvm::ConstantInt::get(llvm::IntegerType::getInt64Ty(*_repository.llvm_context()),
