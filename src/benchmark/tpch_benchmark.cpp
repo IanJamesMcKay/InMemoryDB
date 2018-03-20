@@ -3,6 +3,9 @@
 #include <iostream>
 #include <random>
 #include <string>
+#include "unistd.h"
+#include "sys/types.h"
+
 
 #include "SQLParser.h"
 #include "SQLParserResult.h"
@@ -101,12 +104,14 @@ struct BenchmarkState {
       return false;
     }
 
+    /*
     end = std::chrono::high_resolution_clock::now();
     const auto duration = end - begin;
     if (duration >= max_duration) {
       state = State::Over;
       return false;
     }
+    */
 
     num_iterations++;
 
@@ -149,6 +154,8 @@ class TpchBenchmark final {
     /**
      * Run the TPCH queries in the selected mode
      */
+    std::cout << "Enter to start Process ID " << getpid() <<  std::endl;
+    getchar();
     switch (_benchmark_mode) {
       case BenchmarkMode::IndividualQueries:
         _benchmark_individual_queries();
@@ -157,6 +164,8 @@ class TpchBenchmark final {
         _benchmark_permuted_query_sets();
         break;
     }
+    std::cout << "Enter to finalize" << std::endl;
+    getchar();
 
     /**
      * Create report
@@ -212,11 +221,11 @@ class TpchBenchmark final {
         query_benchmark_result.num_iterations++;
 
 
-        auto graph_filename = std::string{".queryplan_"} + std::to_string(query_id) + ".dot";
-        auto img_filename = std::string{"queryplan_"} + std::to_string(query_id) + ".png";
+        //auto graph_filename = std::string{".queryplan_"} + std::to_string(query_id) + ".dot";
+        //auto img_filename = std::string{"queryplan_"} + std::to_string(query_id) + ".png";
         //SQLQueryPlanVisualizer visualizer;
-        LQPVisualizer visualizer;
-        visualizer.visualize(pipeline.get_optimized_logical_plans(), graph_filename, img_filename);
+        //LQPVisualizer visualizer;
+        //visualizer.visualize(pipeline.get_optimized_logical_plans(), graph_filename, img_filename);
 
       }
     }
@@ -307,7 +316,7 @@ int main(int argc, char* argv[]) {
     ("help", "print this help message")
     ("v,verbose", "Print log messages", cxxopts::value<bool>(opossum::verbose_benchmark)->default_value("false"))
     ("s,scale", "Database scale factor (1.0 ~ 1GB)", cxxopts::value<float>(scale_factor)->default_value("0.001"))
-    ("r,runs", "Maximum number of runs of a single query", cxxopts::value<size_t>(num_iterations)->default_value("1000")) // NOLINT
+    ("r,runs", "Maximum number of runs of a single query", cxxopts::value<size_t>(num_iterations)->default_value("3")) // NOLINT
     ("c,chunk_size", "ChunkSize, default is 2^32-1", cxxopts::value<opossum::ChunkOffset>(chunk_size)->default_value(std::to_string(opossum::INVALID_CHUNK_OFFSET))) // NOLINT
     ("t,time", "Maximum seconds within which a new query(set) is initiated", cxxopts::value<size_t>(timeout_duration)->default_value("5")) // NOLINT
     ("o,output", "File to output results to, don't specify for stdout", cxxopts::value<std::string>())
