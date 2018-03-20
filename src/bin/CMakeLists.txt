@@ -21,7 +21,7 @@ target_link_libraries(
     hyriseBenchmarkLib
 )
 
-# Configure static cost evaluator
+# Configure hyriseJoinOrderingEvaluator
 add_executable(
     hyriseJoinOrderingEvaluator
 
@@ -32,6 +32,11 @@ target_link_libraries(
     hyrise
     hyriseBenchmarkLib
 )
+
+
+# Configure hyriseCostModelCalibrator
+add_executable(hyriseCostModelCalibrator cost_model_calibrator.cpp)
+target_link_libraries(hyriseCostModelCalibrator hyrise hyriseBenchmarkLib)
 
 # Configure tpccTableGenerator
 add_executable(tpccTableGenerator tpcc_table_generator.cpp)

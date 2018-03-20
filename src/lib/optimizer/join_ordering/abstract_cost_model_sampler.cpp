@@ -2,6 +2,7 @@
 
 #include "operators/utils/flatten_pqp.hpp"
 #include "operators/table_scan.hpp"
+#include "operators/join_hash.hpp"
 #include "sql/sql.hpp"
 #include "sql/sql_pipeline.hpp"
 #include "sql/sql_query_plan.hpp"
@@ -12,19 +13,13 @@ void AbstractCostModelSampler::sample(const std::shared_ptr<AbstractOperator>& p
   const auto operators = flatten_pqp(pqp);
 
   for (const auto& op : operators) {
-    if (const auto table_scan = std::dynamic_pointer_cast<TableScan>(op)) {
-      _sample_table_scan(*table_scan);
-    }
+    switch (op->type()) {
+      case OperatorType::TableScan: _sample_table_scan(*std::static_pointer_cast<TableScan>(op)); break;
+      case OperatorType::JoinHash: _sample_join_hash(*std::static_pointer_cast<JoinHash>(op)); break;
 
-    /*else if (const auto join_hash = std::dynamic_pointer_cast<JoinHash>(op)) {
-      visit_join_hash(*join_hash);
-    } else if (const auto join_sort_merge = std::dynamic_pointer_cast<JoinSortMerge>(op)) {
-      visit_join_sort_merge(*join_sort_merge);
-    } else if (const auto product = std::dynamic_pointer_cast<Product>(op)) {
-      visit_product(*product);
-    } else {
-      op->execute();
-    }*/
+      default:
+        ;
+    }
   }
 }
 

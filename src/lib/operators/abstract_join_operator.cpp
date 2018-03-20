@@ -32,7 +32,7 @@ const std::string AbstractJoinOperator::description(DescriptionMode description_
   if (input_table_left()) column_name_left = input_table_left()->column_name(_column_ids.first);
   if (input_table_right()) column_name_right = input_table_right()->column_name(_column_ids.second);
 
-  const auto separator = description_mode == DescriptionMode::MultiLine ? "\n" : " ";
+  const auto separator = description_mode == DescriptionMode::MultiLine ? "\\n" : " ";
 
   return name() + separator + "(" + join_mode_to_string.at(_mode) + " Join where " + column_name_left + " " +
          predicate_condition_to_string.left.at(_predicate_condition) + " " + column_name_right + ")";

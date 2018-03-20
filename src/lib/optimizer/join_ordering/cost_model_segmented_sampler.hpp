@@ -19,13 +19,22 @@ class CostModelSegmentedSampler : public AbstractCostModelSampler {
     friend std::ostream& operator<<(std::ostream& stream, const TableScanSample& sample);
   };
 
+  struct JoinHashSample {
+    CostModelSegmented::JoinHashFeatures features;
+    CostModelSegmented::JoinHashTargets targets;
+
+    friend std::ostream& operator<<(std::ostream& stream, const JoinHashSample& sample);
+  };
+
   void write_samples() const override;
 
  protected:
   void _sample_table_scan(const TableScan& table_scan) override;
+  void _sample_join_hash(const JoinHash& join_hash) override;
 
  private:
   std::vector<TableScanSample> _table_scan_samples;
+  std::vector<JoinHashSample> _join_hash_samples;
 };
 
 }  // namespace opossum

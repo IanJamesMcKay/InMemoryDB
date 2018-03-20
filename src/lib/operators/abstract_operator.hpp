@@ -116,6 +116,9 @@ class AbstractOperator : public std::enable_shared_from_this<AbstractOperator>, 
 
   void set_post_callbacks(const std::vector<PostOperatorCallback>& post_operator_callbacks);
 
+  std::shared_ptr<AbstractLQPNode> lqp_node() const;
+  void set_lqp_node(const std::shared_ptr<AbstractLQPNode>& node);
+
  protected:
   // abstract method to actually execute the operator
   // execute and get_output are split into two methods to allow for easier
@@ -154,6 +157,8 @@ class AbstractOperator : public std::enable_shared_from_this<AbstractOperator>, 
   std::weak_ptr<OperatorTask> _operator_task;
 
   std::vector<PostOperatorCallback> _post_operator_callbacks;
+
+  std::shared_ptr<AbstractLQPNode> _lqp_node;
 
  private:
   BaseOperatorPerformanceData _base_performance_data;

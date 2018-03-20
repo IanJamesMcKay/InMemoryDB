@@ -30,13 +30,17 @@
 #include "utils/timer.hpp"
 #include "utils/table_generator2.hpp"
 
+using namespace std::string_literals;  // NOLINT
 using namespace opossum;  // NOLINT
 
 int main() {
   std::cout << "- Hyrise Join Ordering Evaluator" << std::endl;
 
-  const auto scale_factor = 0.05f;
-  const auto sql = tpch_queries[8];
+  const auto scale_factor = 0.005f;
+  const auto sql = tpch_queries[4];
+  const auto name = "TPCH-5"s;
+
+  auto plan_durations = std::vector<std::chrono::microseconds>();
 
   TpchDbGenerator{scale_factor}.generate_and_store();
 
@@ -73,22 +77,14 @@ int main() {
 
     Timer timer;
     CurrentScheduler::schedule_and_wait_for_tasks(plan.create_tasks());
-    const auto plan_duration = timer.lap().count();
+    const auto plan_duration = timer.lap();
+    plan_durations.emplace_back(plan_duration);
 
     const auto operators = flatten_pqp(pqp);
 
-    for (const auto& op : operators) {
-      const auto cost = cost_model->get_operator_cost(*op);
-      if (cost) {
-        const auto estimated_cost = static_cast<int>(*cost);
-        const auto actual_cost = op->performance_data().total.count();
-
-        std::cout << "  - " << op->name() << ": Estimated: " << estimated_cost << "; Actual: " << actual_cost << std::endl;
-      } else {
-        //std::cout << "  - No cost for operator " << op->name() << std::endl;
-      }
-    }
-
+    /**
+     * Visualize
+     */
     GraphvizConfig graphviz_config;
     graphviz_config.format = "svg";
     VizGraphInfo viz_graph_info;
@@ -96,7 +92,16 @@ int main() {
 
     SQLQueryPlanVisualizer visualizer{graphviz_config, viz_graph_info, {}, {}};
     visualizer.set_cost_model(cost_model);
-    visualizer.visualize(plan, "tmp.dot", std::string("viz/") + std::to_string(current_plan_idx) + "_" + std::to_string(plan_duration) + ".svg");
+    visualizer.visualize(plan, "tmp.dot", std::string("viz/") + name + "_" + std::to_string(current_plan_idx) + "_" + std::to_string(plan_duration.count()) + ".svg");
+
+    /**
+     * CSV
+     */
+    auto csv = std::ofstream{std::string("viz/") + name + ".csv"};
+    for (auto plan_idx = size_t{0}; plan_idx < plan_durations.size(); ++plan_idx) {
+      csv << plan_idx << "," << plan_durations[plan_idx].count() << "\n";
+    }
+    csv.close();
 
     ++current_plan_idx;
   }

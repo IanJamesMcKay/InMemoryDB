@@ -16,7 +16,7 @@ struct JoinHashPerformanceData : public BaseOperatorPerformanceData {
   std::chrono::microseconds partitioning{0};
   std::chrono::microseconds build{0};
   std::chrono::microseconds probe{0};
-  std::chrono::nanoseconds output{0};
+  std::chrono::microseconds output{0};
 };
 
 /**

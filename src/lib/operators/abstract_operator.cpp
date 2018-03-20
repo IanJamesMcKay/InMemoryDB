@@ -146,6 +146,14 @@ void AbstractOperator::set_post_callbacks(const std::vector<PostOperatorCallback
   _post_operator_callbacks = post_operator_callbacks;
 }
 
+std::shared_ptr<AbstractLQPNode> AbstractOperator::lqp_node() const {
+  return _lqp_node;
+}
+
+void AbstractOperator::set_lqp_node(const std::shared_ptr<AbstractLQPNode>& node) {
+  _lqp_node = node;
+}
+
 void AbstractOperator::_on_cleanup() {}
 
 std::shared_ptr<AbstractOperator> AbstractOperator::_recreate_impl(

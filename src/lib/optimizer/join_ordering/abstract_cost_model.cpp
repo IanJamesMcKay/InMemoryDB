@@ -3,11 +3,16 @@
 #include "logical_query_plan/abstract_lqp_node.hpp"
 #include "logical_query_plan/join_node.hpp"
 #include "logical_query_plan/predicate_node.hpp"
+#include "operators/join_hash.hpp"
 #include "operators/table_scan.hpp"
 
 namespace opossum {
 
-std::optional<Cost> AbstractCostModel::cost_table_scan_op(const TableScan& table_scan) const {
+std::optional<Cost> AbstractCostModel::cost_table_scan_op(const TableScan& table_scan, const OperatorCostMode operator_cost_mode) const {
+  return std::nullopt;
+}
+
+std::optional<Cost> AbstractCostModel::cost_join_hash_op(const JoinHash& join_hash, const OperatorCostMode operator_cost_mode) const {
   return std::nullopt;
 }
 
@@ -50,10 +55,12 @@ std::optional<Cost> AbstractCostModel::get_node_cost(const AbstractLQPNode& node
   }
 }
 
-std::optional<Cost> AbstractCostModel::get_operator_cost(const AbstractOperator& op) const {
+std::optional<Cost> AbstractCostModel::get_operator_cost(const AbstractOperator& op, const OperatorCostMode operator_cost_mode) const {
   switch (op.type()) {
     case OperatorType::TableScan:
-      return cost_table_scan_op(static_cast<const TableScan&>(op));
+      return cost_table_scan_op(static_cast<const TableScan&>(op), operator_cost_mode);
+    case OperatorType::JoinHash:
+      return cost_join_hash_op(static_cast<const JoinHash&>(op), operator_cost_mode);
 
     default:
       return std::nullopt;

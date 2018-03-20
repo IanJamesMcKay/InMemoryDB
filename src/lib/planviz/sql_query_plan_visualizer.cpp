@@ -4,9 +4,12 @@
 
 #include "planviz/abstract_visualizer.hpp"
 #include "planviz/sql_query_plan_visualizer.hpp"
+#include "logical_query_plan/abstract_lqp_node.hpp"
 #include "optimizer/join_ordering/abstract_cost_model.hpp"
+#include "optimizer/table_statistics.hpp"
 #include "sql/sql_query_plan.hpp"
 #include "utils/format_duration.hpp"
+#include "utils/format_integer.hpp"
 #include "viz_record_layout.hpp"
 
 namespace opossum {
@@ -77,17 +80,51 @@ void SQLQueryPlanVisualizer::_add_operator(const std::shared_ptr<const AbstractO
 
   if (op->get_output()) {
     auto wall_time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(op->performance_data().total);
-    label += "\n\n" + format_duration(wall_time_ns);
+    label += "\\n\\n" + format_duration(wall_time_ns);
     info.pen_width = std::fmax(1, std::ceil(std::log10(wall_time_ns.count()) / 2));
   }
 
   VizRecordLayout layout;
   layout.add_label(label);
 
-  if (_cost_model) {
-    const auto cost = _cost_model->get_operator_cost(*op);
-    if (cost) {
-      layout.add_label("Estimated Cost: " + std::to_string(static_cast<int>(*cost)));
+  /**
+   * Optimizer info
+   */
+  if (op->lqp_node()) {
+    auto& optimizer_info = layout.add_sublayout();
+
+    auto& comparisons = optimizer_info.add_sublayout();
+
+    auto& row_count_info = comparisons.add_sublayout();
+    row_count_info.add_label("RowCount");
+    row_count_info.add_label(format_integer(static_cast<size_t>(op->lqp_node()->get_statistics()->row_count())) + " est");
+    row_count_info.add_label("-");
+    row_count_info.add_label(format_integer(op->get_output()->row_count()) + " aim");
+
+    if (_cost_model && _cost_model->get_node_cost(*op->lqp_node())) {
+      auto& cost_info = comparisons.add_sublayout();
+      cost_info.add_label("Cost");
+
+      const auto node_cost = _cost_model->get_node_cost(*op->lqp_node());
+      if (node_cost) {
+        cost_info.add_label(format_integer(static_cast<int>(*node_cost)) + " est");
+      } else {
+        cost_info.add_label("-");
+      }
+
+      const auto op_cost = _cost_model->get_operator_cost(*op, OperatorCostMode::PredictedCost);
+      if (op_cost) {
+        cost_info.add_label(format_integer(static_cast<int>(*op_cost)) + " re-est");
+      } else {
+        cost_info.add_label("-");
+      }
+
+      const auto target_cost = _cost_model->get_operator_cost(*op, OperatorCostMode::TargetCost);
+      if (target_cost) {
+        cost_info.add_label(format_integer(static_cast<int>(*target_cost)) + " aim");
+      } else {
+        cost_info.add_label("-");
+      }
     }
   }
 

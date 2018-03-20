@@ -50,15 +50,28 @@ const AllParameterVariant& TableScan::right_parameter() const { return _right_pa
 const std::string TableScan::name() const { return "TableScan"; }
 
 const std::string TableScan::description(DescriptionMode description_mode) const {
-  std::string column_name = std::string("Col #") + std::to_string(_left_column_id);
+  std::string column_name;
 
-  if (input_table_left()) column_name += "'" + input_table_left()->column_name(_left_column_id) + "'";
+  if (input_table_left()) {
+    column_name = "'" + input_table_left()->column_name(_left_column_id) + "' (#";
+    column_name += std::to_string(_left_column_id) + ")";
+  } else {
+    column_name = std::string("Col #") + std::to_string(_left_column_id);
+  }
 
-  std::string predicate_string = to_string(_right_parameter);
+  std::string right_parameter_str;
 
-  const auto separator = description_mode == DescriptionMode::MultiLine ? "\n" : " ";
+  if (is_column_id(_right_parameter) && input_table_left()) {
+    const auto right_column_id = boost::get<ColumnID>(_right_parameter);
+    right_parameter_str = "'" + input_table_left()->column_name(right_column_id) + "' (#";
+    right_parameter_str += std::to_string(right_column_id) + ")";
+  } else  {
+    right_parameter_str = to_string(_right_parameter);
+  }
+
+  const auto separator = description_mode == DescriptionMode::MultiLine ? "\\n" : " ";
   return name() + separator + "(" + column_name + " " + predicate_condition_to_string.left.at(_predicate_condition) +
-         " " + predicate_string + ")";
+         " " + right_parameter_str + ")";
 }
 
 const TableScanPerformanceData& TableScan::performance_data() const {

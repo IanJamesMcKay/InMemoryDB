@@ -7,6 +7,7 @@
 namespace opossum {
 
 class TableScan;
+class JoinHash;
 
 class CostModelSegmented : public AbstractCostModel {
  public:
@@ -15,7 +16,7 @@ class CostModelSegmented : public AbstractCostModel {
    * x Axis: LeftInputRowCount, RightInputRowCount, OutputRowCount, Intercept
    * y Axis: materialization, partitioning, build, probe, output
    */
-  using JoinHashCoefficientMatrix = std::array<std::array<float, 4>, 5>;
+  using JoinHashCoefficientMatrix = std::array<std::array<float, 5>, 6>;
 
   /**
    * ProductCoefficientMatrix 1x1
@@ -29,7 +30,7 @@ class CostModelSegmented : public AbstractCostModel {
    * Features: InputRowCount, InputReferenceCount, OutputRowCount
    * Targets: Total
    */
-  using TableScanCoefficientMatrix = std::array<std::array<float, 3>, 1>;
+  using TableScanCoefficientMatrix = std::array<std::array<float, 4>, 1>;
 
   /**
    * JoinSortMergeCoefficientMatrix 1x3
@@ -69,16 +70,55 @@ class CostModelSegmented : public AbstractCostModel {
   static TableScanSubModel table_scan_sub_model(const TableScanFeatures& features);
   static TableScanFeatures table_scan_features(const TableScan& table_scan);
   static TableScanTargets table_scan_targets(const TableScan& table_scan);
+
+  Cost cost_table_scan(const std::shared_ptr<TableStatistics>& table_statistics, const ColumnID column,
+                       const PredicateCondition predicate_condition, const AllParameterVariant& value) const override;
+  Cost cost_table_scan_impl(const TableScanFeatures& features) const;
+
+  std::optional<Cost> cost_table_scan_op(const TableScan& table_scan, const OperatorCostMode operator_cost_mode) const override;
   /**@}*/
 
-  CostModelSegmented();
+  /**
+   * @defgroup JoinHash
+   * @{
+   */
+  struct JoinHashFeatures final {
+    // Scalar features
+    size_t major_input_row_count{0};
+    size_t major_input_reference_count{0};
+    size_t minor_input_row_count{0};
+    size_t minor_input_reference_count{0};
+    size_t output_row_count{0};
+  };
+
+  struct JoinHashTargets final {
+    Cost materialization{0};
+    Cost partitioning{0};
+    Cost build{0};
+    Cost probe{0};
+    Cost output{0};
+    Cost total{0};
+  };
+
+  enum class JoinHashSubModel {
+    Standard
+  };
+
+  static JoinHashSubModel join_hash_sub_model(const JoinHashFeatures& features);
+  static JoinHashFeatures join_hash_features(const JoinHash& join_hash);
+  static JoinHashTargets join_hash_targets(const JoinHash& join_hash);
 
   Cost cost_join_hash(const std::shared_ptr<TableStatistics>& table_statistics_left,
                       const std::shared_ptr<TableStatistics>& table_statistics_right, const JoinMode join_mode,
                       const ColumnIDPair& join_column_ids, const PredicateCondition predicate_condition) const override;
+  Cost cost_join_hash_impl(const JoinHashFeatures& features) const;
 
-  Cost cost_table_scan(const std::shared_ptr<TableStatistics>& table_statistics, const ColumnID column,
-                       const PredicateCondition predicate_condition, const AllParameterVariant& value) const override;
+  std::optional<Cost> cost_join_hash_op(const JoinHash& join_hash, const OperatorCostMode operator_cost_mode) const override;
+  /**@}*/
+
+  CostModelSegmented();
+
+
 
   Cost cost_join_sort_merge(const std::shared_ptr<TableStatistics>& table_statistics_left,
                             const std::shared_ptr<TableStatistics>& table_statistics_right, const JoinMode join_mode,
@@ -88,20 +128,13 @@ class CostModelSegmented : public AbstractCostModel {
   Cost cost_product(const std::shared_ptr<TableStatistics>& table_statistics_left,
                     const std::shared_ptr<TableStatistics>& table_statistics_right) const override;
 
-  std::optional<Cost> cost_table_scan_op(const TableScan& table_scan) const override;
-
-  /**
-   * @defgroup Actual costing function backends
-   * @{
-   */
-  Cost cost_table_scan_impl(const TableScanFeatures& features) const;
-  /**@}*/
 
  private:
-  JoinHashCoefficientMatrix _join_hash_coefficients;
   JoinSortMergeCoefficientMatrix _join_sort_merge_coefficients;
-  std::unordered_map<TableScanSubModel, TableScanCoefficientMatrix> _table_scan_sub_model_coefficients;
   ProductCoefficientMatrix _product_coefficients;
+
+  std::unordered_map<JoinHashSubModel, JoinHashCoefficientMatrix> _join_hash_sub_model_coefficients;
+  std::unordered_map<TableScanSubModel, TableScanCoefficientMatrix> _table_scan_sub_model_coefficients;
 };
 
 }  // namespace opossum

@@ -421,6 +421,7 @@ set(
     utils/format_bytes.hpp
     utils/format_duration.cpp
     utils/format_duration.hpp
+    utils/format_integer.hpp
     utils/load_table.cpp
     utils/load_table.hpp
     utils/murmur_hash.cpp

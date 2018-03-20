@@ -10,8 +10,13 @@ namespace opossum {
 
 class AbstractLQPNode;
 class AbstractOperator;
+class JoinHash;
 class TableStatistics;
 class TableScan;
+
+enum class OperatorCostMode {
+  TargetCost, PredictedCost
+};
 
 class AbstractCostModel {
  public:
@@ -40,12 +45,13 @@ class AbstractCostModel {
    * @{
    */
 
-  virtual std::optional<Cost> cost_table_scan_op(const TableScan& table_scan) const;
+  virtual std::optional<Cost> cost_table_scan_op(const TableScan& table_scan, const OperatorCostMode operator_cost_mode) const;
+  virtual std::optional<Cost> cost_join_hash_op(const JoinHash& join_hash, const OperatorCostMode operator_cost_mode) const;
 
   /**@}*/
 
   std::optional<Cost> get_node_cost(const AbstractLQPNode& node) const;
-  std::optional<Cost> get_operator_cost(const AbstractOperator& op) const;
+  std::optional<Cost> get_operator_cost(const AbstractOperator& op, const OperatorCostMode operator_cost_mode) const;
 };
 
 }  // namespace opossum
