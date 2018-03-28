@@ -45,6 +45,29 @@ std::ostream& operator<<(std::ostream& stream, const CostModelSegmentedSampler::
   return stream;
 }
 
+std::ostream& operator<<(std::ostream& stream, const CostModelSegmentedSampler::ProductSample& sample) {
+  stream << sample.features.output_row_count << ",";
+  stream << sample.features.output_value_count << ",";
+
+  stream << sample.targets.total << ",";
+
+  stream << std::endl;
+
+  return stream;
+}
+
+std::ostream& operator<<(std::ostream& stream, const CostModelSegmentedSampler::UnionPositionsSample& sample) {
+  stream << sample.features.row_count_left << ",";
+  stream << sample.features.row_count_right << ",";
+  stream << sample.features.output_value_count << ",";
+
+  stream << sample.targets.total << ",";
+
+  stream << std::endl;
+
+  return stream;
+}
+
 void CostModelSegmentedSampler::write_samples() const {
   auto prefix = std::string{"samples/"};
 
@@ -78,6 +101,22 @@ void CostModelSegmentedSampler::write_samples() const {
       case CostModelSegmented::JoinHashSubModel::Standard: join_hash_standard << sample; break;
     }
   }
+
+  auto product_standard = std::ofstream(prefix + "product_standard.csv");
+
+  for (const auto& sample : _product_samples) {
+    switch(CostModelSegmented::product_sub_model(sample.features)) {
+      case CostModelSegmented::ProductCostModel::Standard: product_standard << sample; break;
+    }
+  }
+
+  auto union_positions_standard = std::ofstream(prefix + "union_positions_standard.csv");
+
+  for (const auto& sample : _union_positions_samples) {
+    switch(CostModelSegmented::union_positions_sub_model(sample.features)) {
+      case CostModelSegmented::UnionPositionsCostModel::Standard: union_positions_standard << sample; break;
+    }
+  }
 }
 
 void CostModelSegmentedSampler::_sample_table_scan(const TableScan& table_scan) {
@@ -96,6 +135,24 @@ void CostModelSegmentedSampler::_sample_join_hash(const JoinHash& join_hash) {
   };
 
   _join_hash_samples.emplace_back(sample);
+}
+
+void CostModelSegmentedSampler::_sample_product(const Product& product) {
+  ProductSample sample{
+    CostModelSegmented::product_features(product),
+    CostModelSegmented::product_targets(product)
+  };
+
+  _product_samples.emplace_back(sample);
+}
+
+void CostModelSegmentedSampler::_sample_union_positions(const UnionPositions& union_positions) {
+  UnionPositionsSample sample{
+    CostModelSegmented::union_positions_features(union_positions),
+    CostModelSegmented::union_positions_targets(union_positions)
+  };
+
+  _union_positions_samples.emplace_back(sample);
 }
 
 }  // namespace opossum

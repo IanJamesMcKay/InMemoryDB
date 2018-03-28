@@ -1,6 +1,8 @@
 #include "cost_model_segmented.hpp"
 
+#include "operators/product.hpp"
 #include "operators/table_scan.hpp"
+#include "operators/union_positions.hpp"
 #include "operators/join_hash.hpp"
 #include "optimizer/table_statistics.hpp"
 #include "types.hpp"
@@ -259,6 +261,113 @@ std::optional<Cost> CostModelSegmented::cost_join_hash_op(const JoinHash& join_h
   Fail("Unreachable");
 }
 
+CostModelSegmented::ProductCostModel CostModelSegmented::product_sub_model(const ProductFeatures& features) {
+  return ProductCostModel::Standard;
+}
+
+CostModelSegmented::ProductFeatures CostModelSegmented::product_features(const Product& product) {
+  ProductFeatures features;
+  features.output_row_count = product.input_table_left()->row_count() * product.input_table_right()->row_count();
+  features.output_value_count = features.output_row_count * (product.input_table_left()->column_count() + product.input_table_right()->column_count());
+  return features;
+}
+
+CostModelSegmented::ProductTargets CostModelSegmented::product_targets(const Product& product) {
+  ProductTargets targets;
+  targets.total = static_cast<Cost>(product.performance_data().total.count());
+  return targets;
+}
+
+Cost CostModelSegmented::cost_product(const std::shared_ptr<TableStatistics>& table_statistics_left,
+                                      const std::shared_ptr<TableStatistics>& table_statistics_right) const  {
+  ProductFeatures features;
+  features.output_row_count = table_statistics_left->row_count() * table_statistics_right->row_count();
+  features.output_value_count = features.output_row_count * (table_statistics_left->column_statistics().size() + table_statistics_right->column_statistics().size());
+  return cost_product_impl(features);
+}
+
+Cost CostModelSegmented::cost_product_impl(const ProductFeatures& features) const {
+  const auto submodel = product_sub_model(features);
+
+  const auto coefficients_iter = _product_sub_model_coefficients.find(submodel);
+  DebugAssert(coefficients_iter != _product_sub_model_coefficients.end(), "No coefficients for submodel");
+
+  const ProductCoefficientMatrix & m = coefficients_iter->second;
+
+  // clang-format off
+  const auto cost = features.output_row_count * m[0][0] +
+                    features.output_value_count * m[0][1];
+  // clang-format on
+
+  return cost;
+}
+
+std::optional<Cost> CostModelSegmented::cost_product_op(const Product& product, const OperatorCostMode operator_cost_mode) const  {
+  switch (operator_cost_mode) {
+    case OperatorCostMode::PredictedCost: return cost_product_impl(product_features(product));
+    case OperatorCostMode::TargetCost:
+      return static_cast<Cost>(
+      product.performance_data().total.count());
+  }
+
+  Fail("Unreachable");
+}
+
+CostModelSegmented::UnionPositionsCostModel CostModelSegmented::union_positions_sub_model(const UnionPositionsFeatures& features) {
+  return UnionPositionsCostModel::Standard;
+}
+
+CostModelSegmented::UnionPositionsFeatures CostModelSegmented::union_positions_features(const UnionPositions& union_positions) {
+  UnionPositionsFeatures features;
+  features.row_count_left = union_positions.input_table_left()->row_count();
+  features.row_count_right = union_positions.input_table_right()->row_count();
+  features.output_value_count = union_positions.get_output()->row_count();
+  return features;
+}
+
+CostModelSegmented::UnionPositionsTargets CostModelSegmented::union_positions_targets(const UnionPositions& union_positions) {
+  UnionPositionsTargets targets;
+  targets.total = static_cast<Cost>(union_positions.performance_data().total.count());
+  return targets;
+}
+
+Cost CostModelSegmented::cost_union_positions(const std::shared_ptr<TableStatistics>& table_statistics_left,
+                          const std::shared_ptr<TableStatistics>& table_statistics_right) const {
+  UnionPositionsFeatures features;
+  features.row_count_left = table_statistics_left->row_count();
+  features.row_count_right = table_statistics_right->row_count();
+  features.output_value_count = table_statistics_left->generate_disjunction_statistics(table_statistics_right)->row_count() * table_statistics_left->column_statistics().size();
+  return cost_union_positions_impl(features);
+}
+
+Cost CostModelSegmented::cost_union_positions_impl(const UnionPositionsFeatures& features) const {
+  const auto submodel = union_positions_sub_model(features);
+
+  const auto coefficients_iter = _union_positions_sub_model_coefficients.find(submodel);
+  DebugAssert(coefficients_iter != _union_positions_sub_model_coefficients.end(), "No coefficients for submodel");
+
+  const UnionPositionsCoefficientMatrix & m = coefficients_iter->second;
+
+  // clang-format off
+  const auto cost = features.row_count_left * m[0][0] +
+                    features.row_count_right * m[0][1] +
+                    features.output_value_count * m[0][2];
+  // clang-format on
+
+  return cost;
+}
+
+std::optional<Cost> CostModelSegmented::cost_union_positions_op(const UnionPositions& union_positions, const OperatorCostMode operator_cost_mode) const {
+  switch (operator_cost_mode) {
+    case OperatorCostMode::PredictedCost: return cost_union_positions_impl(union_positions_features(union_positions));
+    case OperatorCostMode::TargetCost:
+      return static_cast<Cost>(
+      union_positions.performance_data().total.count());
+  }
+
+  Fail("Unreachable");
+}
+
 CostModelSegmented::CostModelSegmented() {
   // clang-format off
 #if IS_DEBUG
@@ -300,19 +409,6 @@ Cost CostModelSegmented::cost_join_sort_merge(const std::shared_ptr<TableStatist
                                               const JoinMode join_mode, const ColumnIDPair& join_column_ids,
                                               const PredicateCondition predicate_condition) const {
   return 0.0f;
-}
-
-Cost CostModelSegmented::cost_product(const std::shared_ptr<TableStatistics>& table_statistics_left,
-                                      const std::shared_ptr<TableStatistics>& table_statistics_right) const {
-  const auto product_row_count = table_statistics_left->row_count() * table_statistics_right->row_count();
-
-  const auto& m = _product_coefficients;
-
-  // clang-format off
-  const auto total = product_row_count * m[0][0];
-  // clang-format on
-
-  return total;
 }
 
 }  // namespace opossum

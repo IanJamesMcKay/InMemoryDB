@@ -6,7 +6,9 @@
 namespace opossum {
 
 class AbstractOperator;
+class Product;
 class JoinHash;
+class UnionPositions;
 class TableScan;
 
 class AbstractCostModelSampler {
@@ -20,6 +22,8 @@ class AbstractCostModelSampler {
  protected:
   virtual void _sample_table_scan(const TableScan& table_scan) {}
   virtual void _sample_join_hash(const JoinHash& join_hash) {}
+  virtual void _sample_product(const Product& join_hash) {}
+  virtual void _sample_union_positions(const UnionPositions& union_positions) {}
 };
 
 }  // namespace opossum

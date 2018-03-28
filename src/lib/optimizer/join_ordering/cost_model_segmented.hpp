@@ -6,34 +6,42 @@
 
 namespace opossum {
 
+class Product;
 class TableScan;
 class JoinHash;
 
 class CostModelSegmented : public AbstractCostModel {
  public:
   /**
-   * JoinHashCoefficientMatrix 5x4
+   * JoinHashCoefficientMatrix
    * x Axis: LeftInputRowCount, RightInputRowCount, OutputRowCount, Intercept
    * y Axis: materialization, partitioning, build, probe, output
    */
   using JoinHashCoefficientMatrix = std::array<std::array<float, 5>, 6>;
 
   /**
-   * ProductCoefficientMatrix 1x1
-   * x Axis: RowCountProduct
+   * ProductCoefficientMatrix
+   * x Axis: RowCountProduct, ColumnCountProduct
    * y Axis: Total
    */
-  using ProductCoefficientMatrix = std::array<std::array<float, 1>, 1>;
+  using ProductCoefficientMatrix = std::array<std::array<float, 2>, 1>;
 
   /**
-   * TableScanCoefficientMatrix 1x3
+   * UnionPositionsCoefficientMatrix
+   * x Axis: RowCountLeft, RowCountRight, OutputValueCount
+   * y Axis: Total
+   */
+  using UnionPositionsCoefficientMatrix = std::array<std::array<float, 3>, 1>;
+
+  /**
+   * TableScanCoefficientMatrix
    * Features: InputRowCount, InputReferenceCount, OutputRowCount
    * Targets: Total
    */
   using TableScanCoefficientMatrix = std::array<std::array<float, 4>, 1>;
 
   /**
-   * JoinSortMergeCoefficientMatrix 1x3
+   * JoinSortMergeCoefficientMatrix
    * x Axis: LeftInputRowCount, OutputRowCount, Intercept
    * y Axis: Total
    */
@@ -116,17 +124,71 @@ class CostModelSegmented : public AbstractCostModel {
   std::optional<Cost> cost_join_hash_op(const JoinHash& join_hash, const OperatorCostMode operator_cost_mode) const override;
   /**@}*/
 
+  /**
+   * @defgroup Product
+   * @{
+   */
+  struct ProductFeatures final {
+    size_t output_row_count{0};
+    size_t output_value_count{0};
+  };
+
+  struct ProductTargets final {
+    Cost total{0};
+  };
+
+  enum class ProductCostModel {
+    Standard
+  };
+
+  static ProductCostModel product_sub_model(const ProductFeatures& features);
+  static ProductFeatures product_features(const Product& product);
+  static ProductTargets product_targets(const Product& product);
+
+  Cost cost_product(const std::shared_ptr<TableStatistics>& table_statistics_left,
+                      const std::shared_ptr<TableStatistics>& table_statistics_right) const override;
+  Cost cost_product_impl(const ProductFeatures& features) const;
+
+  std::optional<Cost> cost_product_op(const Product& product, const OperatorCostMode operator_cost_mode) const override;
+  /**@}*/
+
+
+  /**
+   * @defgroup UnionPositions
+   * @{
+   */
+  struct UnionPositionsFeatures final {
+    size_t row_count_left{0};
+    size_t row_count_right{0};
+    size_t output_value_count{0};
+  };
+
+  struct UnionPositionsTargets final {
+    Cost total{0};
+  };
+
+  enum class UnionPositionsCostModel {
+    Standard
+  };
+
+  static UnionPositionsCostModel union_positions_sub_model(const UnionPositionsFeatures& features);
+  static UnionPositionsFeatures union_positions_features(const UnionPositions& union_positions);
+  static UnionPositionsTargets union_positions_targets(const UnionPositions& union_positions);
+
+  Cost cost_union_positions(const std::shared_ptr<TableStatistics>& table_statistics_left,
+                      const std::shared_ptr<TableStatistics>& table_statistics_right) const override;
+  Cost cost_union_positions_impl(const UnionPositionsFeatures& features) const;
+
+  std::optional<Cost> cost_union_positions_op(const UnionPositions& union_positions, const OperatorCostMode operator_cost_mode) const override;
+  /**@}*/
+
+
   CostModelSegmented();
-
-
 
   Cost cost_join_sort_merge(const std::shared_ptr<TableStatistics>& table_statistics_left,
                             const std::shared_ptr<TableStatistics>& table_statistics_right, const JoinMode join_mode,
                             const ColumnIDPair& join_column_ids,
                             const PredicateCondition predicate_condition) const override;
-
-  Cost cost_product(const std::shared_ptr<TableStatistics>& table_statistics_left,
-                    const std::shared_ptr<TableStatistics>& table_statistics_right) const override;
 
 
  private:
@@ -135,6 +197,8 @@ class CostModelSegmented : public AbstractCostModel {
 
   std::unordered_map<JoinHashSubModel, JoinHashCoefficientMatrix> _join_hash_sub_model_coefficients;
   std::unordered_map<TableScanSubModel, TableScanCoefficientMatrix> _table_scan_sub_model_coefficients;
+  std::unordered_map<ProductCostModel, ProductCoefficientMatrix> _product_sub_model_coefficients;
+  std::unordered_map<UnionPositionsCostModel, UnionPositionsCoefficientMatrix> _union_positions_sub_model_coefficients;
 };
 
 }  // namespace opossum

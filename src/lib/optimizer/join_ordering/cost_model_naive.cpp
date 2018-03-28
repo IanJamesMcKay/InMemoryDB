@@ -33,4 +33,8 @@ Cost CostModelNaive::cost_product(const std::shared_ptr<TableStatistics>& table_
   return table_statistics_left->row_count() * table_statistics_right->row_count();
 }
 
+Cost CostModelNaive::cost_union_positions(const std::shared_ptr<TableStatistics>& table_statistics_left,
+                          const std::shared_ptr<TableStatistics>& table_statistics_right) const {
+  return 0.0f; // TODO(moritz)
+}
 }  // namespace opossum

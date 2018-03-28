@@ -2,6 +2,7 @@
 
 #include "logical_query_plan/abstract_lqp_node.hpp"
 #include "logical_query_plan/join_node.hpp"
+#include "logical_query_plan/union_node.hpp"
 #include "logical_query_plan/predicate_node.hpp"
 #include "operators/join_hash.hpp"
 #include "operators/table_scan.hpp"
@@ -13,6 +14,14 @@ std::optional<Cost> AbstractCostModel::cost_table_scan_op(const TableScan& table
 }
 
 std::optional<Cost> AbstractCostModel::cost_join_hash_op(const JoinHash& join_hash, const OperatorCostMode operator_cost_mode) const {
+  return std::nullopt;
+}
+
+std::optional<Cost> AbstractCostModel::cost_product_op(const Product& product, const OperatorCostMode operator_cost_mode) const {
+  return std::nullopt;
+}
+
+std::optional<Cost> AbstractCostModel::cost_union_positions_op(const UnionPositions& union_positions, const OperatorCostMode operator_cost_mode) const {
   return std::nullopt;
 }
 
@@ -48,6 +57,14 @@ std::optional<Cost> AbstractCostModel::get_node_cost(const AbstractLQPNode& node
       }
 
       return cost_join_sort_merge(left_statistics, right_statistics, join_node.join_mode(), {left_column_id, right_column_id}, *join_node.predicate_condition());
+    }
+
+    case LQPNodeType::Union: {
+      const auto& union_node = static_cast<const UnionNode&>(node);
+
+      switch(union_node.union_mode()){
+        case UnionMode::Positions: return cost_union_positions(node.left_input()->get_statistics(), node.right_input()->get_statistics());
+      }
     }
 
     default:

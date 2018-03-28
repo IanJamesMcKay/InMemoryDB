@@ -20,6 +20,9 @@ class CostModelNaive : public AbstractCostModel {
 
   Cost cost_product(const std::shared_ptr<TableStatistics>& table_statistics_left,
                     const std::shared_ptr<TableStatistics>& table_statistics_right) const override;
+
+  Cost cost_union_positions(const std::shared_ptr<TableStatistics>& table_statistics_left,
+                                    const std::shared_ptr<TableStatistics>& table_statistics_right) const override;
 };
 
 }  // namespace opossum
