@@ -24,14 +24,14 @@ class CostModelSegmented : public AbstractCostModel {
    * x Axis: RowCountProduct, ColumnCountProduct
    * y Axis: Total
    */
-  using ProductCoefficientMatrix = std::array<std::array<float, 2>, 1>;
+  using ProductCoefficientMatrix = std::array<std::array<float, 1>, 1>;
 
   /**
    * UnionPositionsCoefficientMatrix
    * x Axis: RowCountLeft, RowCountRight, OutputValueCount
    * y Axis: Total
    */
-  using UnionPositionsCoefficientMatrix = std::array<std::array<float, 3>, 1>;
+  using UnionPositionsCoefficientMatrix = std::array<std::array<float, 3>, 3>;
 
   /**
    * TableScanCoefficientMatrix
@@ -129,7 +129,6 @@ class CostModelSegmented : public AbstractCostModel {
    * @{
    */
   struct ProductFeatures final {
-    size_t output_row_count{0};
     size_t output_value_count{0};
   };
 
@@ -137,11 +136,11 @@ class CostModelSegmented : public AbstractCostModel {
     Cost total{0};
   };
 
-  enum class ProductCostModel {
+  enum class ProductSubModel {
     Standard
   };
 
-  static ProductCostModel product_sub_model(const ProductFeatures& features);
+  static ProductSubModel product_sub_model(const ProductFeatures& features);
   static ProductFeatures product_features(const Product& product);
   static ProductTargets product_targets(const Product& product);
 
@@ -158,20 +157,23 @@ class CostModelSegmented : public AbstractCostModel {
    * @{
    */
   struct UnionPositionsFeatures final {
-    size_t row_count_left{0};
-    size_t row_count_right{0};
+    size_t n_log_n_row_count_left{0};
+    size_t n_log_n_row_count_right{0};
     size_t output_value_count{0};
   };
 
   struct UnionPositionsTargets final {
+    Cost init{0};
+    Cost sort{0};
+    Cost output{0};
     Cost total{0};
   };
 
-  enum class UnionPositionsCostModel {
+  enum class UnionPositionsSubModel {
     Standard
   };
 
-  static UnionPositionsCostModel union_positions_sub_model(const UnionPositionsFeatures& features);
+  static UnionPositionsSubModel union_positions_sub_model(const UnionPositionsFeatures& features);
   static UnionPositionsFeatures union_positions_features(const UnionPositions& union_positions);
   static UnionPositionsTargets union_positions_targets(const UnionPositions& union_positions);
 
@@ -193,12 +195,11 @@ class CostModelSegmented : public AbstractCostModel {
 
  private:
   JoinSortMergeCoefficientMatrix _join_sort_merge_coefficients;
-  ProductCoefficientMatrix _product_coefficients;
 
   std::unordered_map<JoinHashSubModel, JoinHashCoefficientMatrix> _join_hash_sub_model_coefficients;
   std::unordered_map<TableScanSubModel, TableScanCoefficientMatrix> _table_scan_sub_model_coefficients;
-  std::unordered_map<ProductCostModel, ProductCoefficientMatrix> _product_sub_model_coefficients;
-  std::unordered_map<UnionPositionsCostModel, UnionPositionsCoefficientMatrix> _union_positions_sub_model_coefficients;
+  std::unordered_map<ProductSubModel, ProductCoefficientMatrix> _product_sub_model_coefficients;
+  std::unordered_map<UnionPositionsSubModel, UnionPositionsCoefficientMatrix> _union_positions_sub_model_coefficients;
 };
 
 }  // namespace opossum

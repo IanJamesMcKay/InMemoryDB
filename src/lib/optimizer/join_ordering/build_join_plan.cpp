@@ -70,18 +70,8 @@ const std::shared_ptr<TableStatistics>& statistics, const AbstractCostModel& cos
         case JoinPlanPredicateLogicalOperator::Or: {
           const auto right_operand_estimate =
           estimate_predicate(*logical_operator_predicate.right_operand, statistics, cost_model, resolve_column_id_fn);
-          const auto post_left_operand_row_count = left_operand_estimate.statistics->row_count();
-          const auto post_right_operand_row_count = right_operand_estimate.statistics->row_count();
 
-          auto union_costs = 0.0f;
-
-          if (post_left_operand_row_count > 0.0f && post_right_operand_row_count > 0.0f) {
-            // Union costs ~= sort left and sort right, then iterate over both to merge
-            // if one side has no row, the Union operator can just forward - and we avoid NaNs caused by std::log(0)
-            union_costs = post_left_operand_row_count * std::log(post_left_operand_row_count) +
-                          post_right_operand_row_count * std::log(post_right_operand_row_count) +
-                          post_left_operand_row_count + post_right_operand_row_count;
-          }
+          auto union_costs = cost_model.cost_union_positions(left_operand_estimate.statistics, right_operand_estimate.statistics);
 
           const auto union_statistics =
           left_operand_estimate.statistics->generate_disjunction_statistics(right_operand_estimate.statistics);

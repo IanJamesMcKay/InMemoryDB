@@ -23,6 +23,12 @@ class CostModelNaive : public AbstractCostModel {
 
   Cost cost_union_positions(const std::shared_ptr<TableStatistics>& table_statistics_left,
                                     const std::shared_ptr<TableStatistics>& table_statistics_right) const override;
+
+
+  std::optional<Cost> cost_table_scan_op(const TableScan& table_scan, const OperatorCostMode operator_cost_mode) const override;
+  std::optional<Cost> cost_join_hash_op(const JoinHash& join_hash, const OperatorCostMode operator_cost_mode) const override;
+  std::optional<Cost> cost_product_op(const Product& product, const OperatorCostMode operator_cost_mode) const override;
+  std::optional<Cost> cost_union_positions_op(const UnionPositions& union_positions, const OperatorCostMode operator_cost_mode) const override;
 };
 
 }  // namespace opossum

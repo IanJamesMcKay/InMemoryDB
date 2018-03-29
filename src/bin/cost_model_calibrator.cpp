@@ -65,6 +65,15 @@ int main() {
   R"(SELECT * FROM lineitem WHERE l_shipdate > '1996-01-01' OR l_shipdate < '1996-12-31';)",
   R"(SELECT * FROM lineitem WHERE l_shipdate > '1996-05-01' OR l_shipdate < '1996-07-31';)",
   R"(SELECT * FROM lineitem WHERE l_shipdate = '1996-12-31';)",
+  R"(SELECT * FROM "part", nation;)",
+  R"(SELECT * FROM nation, "part";)",
+  R"(SELECT * FROM supplier, (SELECT * FROM customer WHERE c_nationkey = 1) AS b;)",
+  R"(SELECT * FROM supplier, (SELECT * FROM customer WHERE c_nationkey > 10) AS b;)",
+  R"(SELECT * FROM supplier, (SELECT * FROM customer WHERE c_nationkey > 20) AS b;)",
+  R"(SELECT * FROM (SELECT * FROM customer WHERE c_nationkey < 20) AS a, (SELECT * FROM customer WHERE c_nationkey > 20) AS b;)",
+  R"(SELECT * FROM (SELECT * FROM customer WHERE c_nationkey < 4) AS a, (SELECT * FROM customer WHERE c_nationkey > 4) AS b;)",
+  R"(SELECT * FROM (SELECT * FROM customer WHERE c_nationkey < 12) AS a, (SELECT * FROM customer WHERE c_nationkey > 12) AS b;)",
+  R"(SELECT * FROM region, orders;)",
 
   // Joins and Column-Column Scans
   R"(SELECT * FROM supplier AS s1, supplier AS s2 WHERE s1.s_nationkey = s2.s_nationkey AND s1.s_acctbal > s2.s_acctbal;)",

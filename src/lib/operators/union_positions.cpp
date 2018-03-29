@@ -11,6 +11,7 @@
 #include "storage/chunk.hpp"
 #include "storage/reference_column.hpp"
 #include "storage/table.hpp"
+#include "utils/timer.hpp"
 #include "types.hpp"
 
 /**
@@ -67,7 +68,13 @@ std::shared_ptr<AbstractOperator> UnionPositions::_on_recreate(
 
 const std::string UnionPositions::name() const { return "UnionPositions"; }
 
+const UnionPositionsPerformanceData& UnionPositions::performance_data() const {
+  return _performance_data;
+}
+
 std::shared_ptr<const Table> UnionPositions::_on_execute() {
+  Timer timer;
+
   const auto early_result = _prepare_operator();
   if (early_result) {
     return early_result;
@@ -87,6 +94,8 @@ std::shared_ptr<const Table> UnionPositions::_on_execute() {
   VirtualPosList virtual_pos_list_right(input_table_right()->row_count(), 0u);
   std::iota(virtual_pos_list_right.begin(), virtual_pos_list_right.end(), 0u);
 
+  _performance_data.init = timer.lap();
+
   /**
    * Sort the virtual pos lists so that they bring the rows in their respective ReferenceMatrix into order.
    * This is necessary for merging them.
@@ -96,6 +105,8 @@ std::shared_ptr<const Table> UnionPositions::_on_execute() {
             VirtualPosListCmpContext{reference_matrix_left});
   std::sort(virtual_pos_list_right.begin(), virtual_pos_list_right.end(),
             VirtualPosListCmpContext{reference_matrix_right});
+
+  _performance_data.sort = timer.lap();
 
   /**
    * Build result table
@@ -188,6 +199,8 @@ std::shared_ptr<const Table> UnionPositions::_on_execute() {
   if (chunk_row_idx != 0) {
     emit_chunk();
   }
+
+  _performance_data.output = timer.lap();
 
   return out_table;
 }

@@ -46,7 +46,6 @@ std::ostream& operator<<(std::ostream& stream, const CostModelSegmentedSampler::
 }
 
 std::ostream& operator<<(std::ostream& stream, const CostModelSegmentedSampler::ProductSample& sample) {
-  stream << sample.features.output_row_count << ",";
   stream << sample.features.output_value_count << ",";
 
   stream << sample.targets.total << ",";
@@ -57,10 +56,13 @@ std::ostream& operator<<(std::ostream& stream, const CostModelSegmentedSampler::
 }
 
 std::ostream& operator<<(std::ostream& stream, const CostModelSegmentedSampler::UnionPositionsSample& sample) {
-  stream << sample.features.row_count_left << ",";
-  stream << sample.features.row_count_right << ",";
+  stream << sample.features.n_log_n_row_count_left << ",";
+  stream << sample.features.n_log_n_row_count_right << ",";
   stream << sample.features.output_value_count << ",";
 
+  stream << sample.targets.init << ",";
+  stream << sample.targets.sort << ",";
+  stream << sample.targets.output << ",";
   stream << sample.targets.total << ",";
 
   stream << std::endl;
@@ -106,7 +108,7 @@ void CostModelSegmentedSampler::write_samples() const {
 
   for (const auto& sample : _product_samples) {
     switch(CostModelSegmented::product_sub_model(sample.features)) {
-      case CostModelSegmented::ProductCostModel::Standard: product_standard << sample; break;
+      case CostModelSegmented::ProductSubModel::Standard: product_standard << sample; break;
     }
   }
 
@@ -114,7 +116,7 @@ void CostModelSegmentedSampler::write_samples() const {
 
   for (const auto& sample : _union_positions_samples) {
     switch(CostModelSegmented::union_positions_sub_model(sample.features)) {
-      case CostModelSegmented::UnionPositionsCostModel::Standard: union_positions_standard << sample; break;
+      case CostModelSegmented::UnionPositionsSubModel::Standard: union_positions_standard << sample; break;
     }
   }
 }

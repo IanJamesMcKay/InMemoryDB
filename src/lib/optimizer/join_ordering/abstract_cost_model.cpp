@@ -6,6 +6,8 @@
 #include "logical_query_plan/predicate_node.hpp"
 #include "operators/join_hash.hpp"
 #include "operators/table_scan.hpp"
+#include "operators/product.hpp"
+#include "operators/union_positions.hpp"
 
 namespace opossum {
 
@@ -78,6 +80,10 @@ std::optional<Cost> AbstractCostModel::get_operator_cost(const AbstractOperator&
       return cost_table_scan_op(static_cast<const TableScan&>(op), operator_cost_mode);
     case OperatorType::JoinHash:
       return cost_join_hash_op(static_cast<const JoinHash&>(op), operator_cost_mode);
+    case OperatorType::Product:
+      return cost_product_op(static_cast<const Product&>(op), operator_cost_mode);
+    case OperatorType::UnionPositions:
+      return cost_union_positions_op(static_cast<const UnionPositions&>(op), operator_cost_mode);
 
     default:
       return std::nullopt;
