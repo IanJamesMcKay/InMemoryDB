@@ -18,7 +18,7 @@ if __name__ == "__main__":
             continue
 
         for y_idx in range(1, df.shape[1]):
-            plt.plot(df.iloc[:,0], df.iloc[:,y_idx], linewidth=0.2, label=df.columns[y_idx])
+            plt.semilogy(df.iloc[:,0], df.iloc[:,y_idx], linewidth=0.6, label=df.columns[y_idx])
 
         plt.legend()
         plt.xlabel("rank")
