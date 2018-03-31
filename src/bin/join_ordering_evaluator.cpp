@@ -1,5 +1,6 @@
 #include <array>
 #include <chrono>
+#include <thread>
 #include <fstream>
 #include <iostream>
 
@@ -11,6 +12,8 @@
 #include "operators/join_hash.hpp"
 #include "operators/join_sort_merge.hpp"
 #include "operators/product.hpp"
+#include "concurrency/transaction_context.hpp"
+#include "concurrency/transaction_manager.hpp"
 #include "operators/table_scan.hpp"
 #include "operators/table_wrapper.hpp"
 #include "operators/utils/flatten_pqp.hpp"
@@ -114,6 +117,7 @@ int main(int argc, char ** argv) {
   auto scale_factor = 0.1f;
   auto cost_model_str = "segmented"s;
   auto visualize = false;
+  auto timeout_seconds = std::optional<long>{0};
 
   cxxopts::Options cli_options_description{"Hyrise Join Ordering Evaluator", ""};
 
@@ -123,6 +127,7 @@ int main(int argc, char ** argv) {
     ("v,verbose", "Print log messages", cxxopts::value<bool>(verbose)->default_value("true"))
     ("s,scale", "Database scale factor (1.0 ~ 1GB)", cxxopts::value<float>(scale_factor)->default_value("0.001"))
     ("m,cost_model", "CostModel to use (naive, segmented)", cxxopts::value<std::string>(cost_model_str)->default_value(cost_model_str))  // NOLINT
+    ("t,timeout", "Timeout per query, in seconds", cxxopts::value<long>(*timeout_seconds)->default_value("0"))  // NOLINT
     ("visualize", "Visualize query plan", cxxopts::value<bool>(visualize)->default_value("false"))  // NOLINT
     ("queries", "Specify queries to run, default is all that are supported", cxxopts::value<std::vector<QueryID>>()); // NOLINT
   ;
@@ -155,6 +160,13 @@ int main(int argc, char ** argv) {
     out() << (query_id + 1) << " ";
   }
   out() << std::endl;
+
+  if (*timeout_seconds <= 0) {
+    timeout_seconds.reset();
+    out() << "-- No timeout" << std::endl;
+  } else {
+    out() << "-- Queries will timeout after " << *timeout_seconds << std::endl;
+  }
 
   out() << "-- Generating TPCH tables with scale factor " << scale_factor << std::endl;
   TpchDbGenerator{scale_factor}.generate_and_store();
@@ -210,12 +222,35 @@ int main(int argc, char ** argv) {
 
       const auto pqp = LQPTranslator{}.translate_node(lqp_root->left_input());
 
+      auto transaction_context = TransactionManager::get().new_transaction_context();
+      pqp->set_transaction_context_recursively(transaction_context);
+
+      std::atomic_bool aborted{false};
+
+      if (timeout_seconds) {
+        std::thread timeout_thread([&]() {
+          std::this_thread::sleep_for(std::chrono::seconds(*timeout_seconds));
+          aborted = transaction_context->rollback();
+        });
+        timeout_thread.detach();
+      }
+
       SQLQueryPlan plan;
       plan.add_tree_by_root(pqp);
 
       Timer timer;
       CurrentScheduler::schedule_and_wait_for_tasks(plan.create_tasks());
+
+      if (aborted.load()) {
+        out() << "-- Query took too long" << std::endl;
+        plan_durations.emplace_back(0);
+        plan_cost_samples.emplace_back(PlanCostSample{});
+        ++current_plan_idx;
+        continue;
+      }
+
       const auto plan_duration = timer.lap();
+
       plan_durations.emplace_back(plan_duration);
 
       const auto operators = flatten_pqp(pqp);
