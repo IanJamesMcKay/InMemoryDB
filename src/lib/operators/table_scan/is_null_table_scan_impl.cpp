@@ -15,8 +15,8 @@
 namespace opossum {
 
 IsNullTableScanImpl::IsNullTableScanImpl(std::shared_ptr<const Table> in_table, const ColumnID left_column_id,
-                                         const PredicateCondition& predicate_condition)
-    : BaseSingleColumnTableScanImpl{in_table, left_column_id, predicate_condition} {
+                                         const PredicateCondition& predicate_condition, const TableScan& table_scan)
+    : BaseSingleColumnTableScanImpl{in_table, left_column_id, predicate_condition, table_scan} {
   DebugAssert(predicate_condition == PredicateCondition::IsNull || predicate_condition == PredicateCondition::IsNotNull,
               "Invalid PredicateCondition");
 }

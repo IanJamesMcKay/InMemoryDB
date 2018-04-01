@@ -23,8 +23,8 @@
 namespace opossum {
 
 LikeTableScanImpl::LikeTableScanImpl(std::shared_ptr<const Table> in_table, const ColumnID left_column_id,
-                                     const PredicateCondition predicate_condition, const std::string& right_wildcard)
-    : BaseSingleColumnTableScanImpl{in_table, left_column_id, predicate_condition},
+                                     const PredicateCondition predicate_condition, const std::string& right_wildcard, const TableScan& table_scan)
+    : BaseSingleColumnTableScanImpl{in_table, left_column_id, predicate_condition, table_scan},
       _right_wildcard{right_wildcard},
       _invert_results(predicate_condition == PredicateCondition::NotLike) {
   // convert the given SQL-like search term into a c++11 regex to use it for the actual matching

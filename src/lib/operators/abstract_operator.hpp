@@ -119,6 +119,8 @@ class AbstractOperator : public std::enable_shared_from_this<AbstractOperator>, 
   std::shared_ptr<AbstractLQPNode> lqp_node() const;
   void set_lqp_node(const std::shared_ptr<AbstractLQPNode>& node);
 
+  bool aborted() const;
+
  protected:
   // abstract method to actually execute the operator
   // execute and get_output are split into two methods to allow for easier

@@ -225,12 +225,11 @@ int main(int argc, char ** argv) {
       auto transaction_context = TransactionManager::get().new_transaction_context();
       pqp->set_transaction_context_recursively(transaction_context);
 
-      std::atomic_bool aborted{false};
-
       if (timeout_seconds) {
-        std::thread timeout_thread([&]() {
-          std::this_thread::sleep_for(std::chrono::seconds(*timeout_seconds));
-          aborted = transaction_context->rollback();
+        const auto seconds = *timeout_seconds;
+        std::thread timeout_thread([transaction_context, seconds]() {
+          std::this_thread::sleep_for(std::chrono::seconds(seconds));
+          transaction_context->rollback(TransactionPhaseSwitch::Lenient);
         });
         timeout_thread.detach();
       }
@@ -241,7 +240,7 @@ int main(int argc, char ** argv) {
       Timer timer;
       CurrentScheduler::schedule_and_wait_for_tasks(plan.create_tasks());
 
-      if (aborted.load()) {
+      if (!transaction_context->commit(TransactionPhaseSwitch::Lenient)) {
         out() << "-- Query took too long" << std::endl;
         plan_durations.emplace_back(0);
         plan_cost_samples.emplace_back(PlanCostSample{});

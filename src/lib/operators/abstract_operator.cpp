@@ -173,4 +173,12 @@ std::shared_ptr<AbstractOperator> AbstractOperator::_recreate_impl(
   return recreated_op;
 }
 
+bool AbstractOperator::aborted() const {
+  if (_transaction_context) {
+    const auto transaction_context = _transaction_context->lock();
+    return transaction_context ? transaction_context->aborted() : false;
+  }
+  return false;
+}
+
 }  // namespace opossum

@@ -5,6 +5,7 @@
 
 #include "types.hpp"
 #include "utils/assert.hpp"
+#include "operators/table_scan.hpp"
 
 namespace opossum {
 
@@ -16,14 +17,15 @@ class Table;
 class BaseTableScanImpl {
  public:
   BaseTableScanImpl(std::shared_ptr<const Table> in_table, const ColumnID left_column_id,
-                    const PredicateCondition predicate_condition)
-      : _in_table{in_table}, _left_column_id{left_column_id}, _predicate_condition{predicate_condition} {}
+                    const PredicateCondition predicate_condition, const TableScan& table_scan)
+      : _in_table{in_table}, _left_column_id{left_column_id}, _predicate_condition{predicate_condition}, _table_scan(table_scan) {}
 
   virtual ~BaseTableScanImpl() = default;
 
   virtual PosList scan_chunk(ChunkID chunk_id) = 0;
 
  protected:
+
   /**
    * @defgroup The hot loops of the table scan
    * @{
@@ -40,6 +42,8 @@ class BaseTableScanImpl {
       if (func(left.value())) {
         matches_out.push_back(RowID{chunk_id, left.chunk_offset()});
       }
+
+      if ((left.chunk_offset() & 0xFFF) == 0 && _table_scan.aborted()) return;
     }
   }
 
@@ -55,6 +59,7 @@ class BaseTableScanImpl {
       if (func(left.value(), right.value())) {
         matches_out.push_back(RowID{chunk_id, left.chunk_offset()});
       }
+      if ((left.chunk_offset() & 0xFFF) == 0 && _table_scan.aborted()) return;
     }
   }
 
@@ -64,6 +69,7 @@ class BaseTableScanImpl {
   const std::shared_ptr<const Table> _in_table;
   const ColumnID _left_column_id;
   const PredicateCondition _predicate_condition;
+  const TableScan& _table_scan;
 };
 
 }  // namespace opossum

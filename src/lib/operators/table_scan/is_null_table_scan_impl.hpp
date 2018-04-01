@@ -16,7 +16,7 @@ class BaseValueColumn;
 class IsNullTableScanImpl : public BaseSingleColumnTableScanImpl {
  public:
   IsNullTableScanImpl(std::shared_ptr<const Table> in_table, const ColumnID left_column_id,
-                      const PredicateCondition& predicate_condition);
+                      const PredicateCondition& predicate_condition, const TableScan& table_scan);
 
   void handle_column(const ReferenceColumn& left_column, std::shared_ptr<ColumnVisitableContext> base_context) override;
 

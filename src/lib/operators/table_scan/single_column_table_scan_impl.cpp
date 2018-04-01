@@ -19,8 +19,8 @@ namespace opossum {
 SingleColumnTableScanImpl::SingleColumnTableScanImpl(std::shared_ptr<const Table> in_table,
                                                      const ColumnID left_column_id,
                                                      const PredicateCondition& predicate_condition,
-                                                     const AllTypeVariant& right_value)
-    : BaseSingleColumnTableScanImpl{in_table, left_column_id, predicate_condition}, _right_value{right_value} {}
+                                                     const AllTypeVariant& right_value, const TableScan& table_scan)
+    : BaseSingleColumnTableScanImpl{in_table, left_column_id, predicate_condition, table_scan}, _right_value{right_value} {}
 
 PosList SingleColumnTableScanImpl::scan_chunk(ChunkID chunk_id) {
   // early outs for specific NULL semantics

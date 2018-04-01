@@ -44,6 +44,10 @@ enum class TransactionPhase {
   Committed    // Transaction has been committed.
 };
 
+enum class TransactionPhaseSwitch {
+  Strong, Lenient
+};
+
 /**
  * @brief Representation of a transaction
  */
@@ -87,7 +91,7 @@ class TransactionContext : public std::enable_shared_from_this<TransactionContex
    *
    * @returns false if called a second time
    */
-  bool rollback();
+  bool rollback(const TransactionPhaseSwitch phase_switch = TransactionPhaseSwitch::Strong);
 
   /**
    * Commits the transaction.
@@ -95,7 +99,7 @@ class TransactionContext : public std::enable_shared_from_this<TransactionContex
    * @param callback called when transaction is actually committed
    * @return false if called a second time
    */
-  bool commit_async(std::function<void(TransactionID)> callback);
+  bool commit_async(std::function<void(TransactionID)> callback, const TransactionPhaseSwitch phase_switch = TransactionPhaseSwitch::Strong);
 
   /**
    * Commits the transaction.
@@ -104,7 +108,7 @@ class TransactionContext : public std::enable_shared_from_this<TransactionContex
    *
    * @return false if called a second time
    */
-  bool commit();
+  bool commit(const TransactionPhaseSwitch phase_switch = TransactionPhaseSwitch::Strong);
 
   /**
    * Add an operator to the list of read-write operators.
@@ -132,7 +136,7 @@ class TransactionContext : public std::enable_shared_from_this<TransactionContex
    *
    * @returns false if called a second time.
    */
-  bool _abort();
+  bool _abort(const TransactionPhaseSwitch phase_switch);
 
   /**
    * Sets the transaction phase to RolledBack.
@@ -148,7 +152,7 @@ class TransactionContext : public std::enable_shared_from_this<TransactionContex
    *
    * @return false if called a second time.
    */
-  bool _prepare_commit();
+  bool _prepare_commit(const TransactionPhaseSwitch phase_switch);
 
   /**
    * Sets transaction phase to Pending.
@@ -169,7 +173,7 @@ class TransactionContext : public std::enable_shared_from_this<TransactionContex
    * Throws an exception if the transition fails and
    * has not been already in phase to_phase or end_phase.
    */
-  bool _transition(TransactionPhase from_phase, TransactionPhase to_phase, TransactionPhase end_phase);
+  bool _transition(TransactionPhase from_phase, TransactionPhase to_phase, TransactionPhase end_phase, const TransactionPhaseSwitch phase_switch);
 
  private:
   const TransactionID _transaction_id;
