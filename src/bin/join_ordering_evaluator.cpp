@@ -244,7 +244,6 @@ int main(int argc, char ** argv) {
         out() << "-- Query took too long" << std::endl;
         plan_durations.emplace_back(0);
         plan_cost_samples.emplace_back(PlanCostSample{});
-        ++current_plan_idx;
       } else {
         const auto plan_duration = timer.lap();
 
