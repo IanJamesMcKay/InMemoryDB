@@ -39,6 +39,7 @@ std::shared_ptr<const Table> Product::_on_execute() {
   for (ChunkID chunk_id_left = ChunkID{0}; chunk_id_left < input_table_left()->chunk_count(); ++chunk_id_left) {
     for (ChunkID chunk_id_right = ChunkID{0}; chunk_id_right < input_table_right()->chunk_count(); ++chunk_id_right) {
       add_product_of_two_chunks(output, chunk_id_left, chunk_id_right);
+      if (aborted()) return nullptr;
     }
   }
 
@@ -93,6 +94,8 @@ void Product::add_product_of_two_chunks(std::shared_ptr<Table> output, ChunkID c
         pos_list_out = std::make_shared<PosList>();
         pos_list_out->reserve(chunk_left->size() * chunk_right->size());
         for (size_t i = 0; i < chunk_left->size() * chunk_right->size(); ++i) {
+          if ((i & 0xFFF) == 0 && aborted()) return;
+
           // size_t is sufficient here, because ChunkOffset::max is 2^32 and (2^32 * 2^32 = 2^64)
           ChunkOffset offset = is_left_side ? (i / chunk_right->size()) : (i % chunk_right->size());
           if (pos_list_in) {

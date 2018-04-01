@@ -245,30 +245,29 @@ int main(int argc, char ** argv) {
         plan_durations.emplace_back(0);
         plan_cost_samples.emplace_back(PlanCostSample{});
         ++current_plan_idx;
-        continue;
-      }
+      } else {
+        const auto plan_duration = timer.lap();
 
-      const auto plan_duration = timer.lap();
+        plan_durations.emplace_back(plan_duration);
 
-      plan_durations.emplace_back(plan_duration);
+        const auto operators = flatten_pqp(pqp);
+        plan_cost_samples.emplace_back(create_plan_cost_sample(*cost_model, operators));
 
-      const auto operators = flatten_pqp(pqp);
-      plan_cost_samples.emplace_back(create_plan_cost_sample(*cost_model, operators));
+        /**
+         * Visualize
+         */
+        if (visualize) {
+          GraphvizConfig graphviz_config;
+          graphviz_config.format = "svg";
+          VizGraphInfo viz_graph_info;
+          viz_graph_info.bg_color = "black";
 
-      /**
-       * Visualize
-       */
-      if (visualize) {
-        GraphvizConfig graphviz_config;
-        graphviz_config.format = "svg";
-        VizGraphInfo viz_graph_info;
-        viz_graph_info.bg_color = "black";
-
-        SQLQueryPlanVisualizer visualizer{graphviz_config, viz_graph_info, {}, {}};
-        visualizer.set_cost_model(cost_model);
-        visualizer.visualize(plan, "tmp.dot",
-                             std::string("viz/") + evaluation_name + "_" + std::to_string(current_plan_idx) + "_" +
-                             std::to_string(plan_duration.count()) + ".svg");
+          SQLQueryPlanVisualizer visualizer{graphviz_config, viz_graph_info, {}, {}};
+          visualizer.set_cost_model(cost_model);
+          visualizer.visualize(plan, "tmp.dot",
+                               std::string("viz/") + evaluation_name + "_" + std::to_string(current_plan_idx) + "_" +
+                               std::to_string(plan_duration.count()) + ".svg");
+        }
       }
 
       /**
