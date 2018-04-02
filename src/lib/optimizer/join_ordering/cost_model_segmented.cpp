@@ -10,6 +10,10 @@
 
 namespace opossum {
 
+std::string CostModelSegmented::name() const {
+  return "CostModelSegmented";
+}
+
 CostModelSegmented::TableScanSubModel CostModelSegmented::table_scan_sub_model(const CostModelSegmented::TableScanFeatures& features) {
   if (features.predicate_condition == PredicateCondition::Like || features.predicate_condition == PredicateCondition::NotLike) {
     DebugAssert(features.left_data_type == DataType::String && features.right_data_type == DataType::String, "Expected string");

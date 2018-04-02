@@ -24,6 +24,8 @@ class AbstractCostModel {
  public:
   virtual ~AbstractCostModel() = default;
 
+  virtual std::string name() const = 0;
+
   virtual Cost cost_join_hash(const std::shared_ptr<TableStatistics>& table_statistics_left,
                               const std::shared_ptr<TableStatistics>& table_statistics_right, const JoinMode join_mode,
                               const ColumnIDPair& join_column_ids,

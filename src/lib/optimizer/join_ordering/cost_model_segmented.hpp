@@ -12,6 +12,8 @@ class JoinHash;
 
 class CostModelSegmented : public AbstractCostModel {
  public:
+  std::string name() const override;
+
   /**
    * JoinHashCoefficientMatrix
    * x Axis: LeftInputRowCount, RightInputRowCount, OutputRowCount, Intercept

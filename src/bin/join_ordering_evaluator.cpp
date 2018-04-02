@@ -127,6 +127,7 @@ int main(int argc, char ** argv) {
     ("v,verbose", "Print log messages", cxxopts::value<bool>(verbose)->default_value("true"))
     ("s,scale", "Database scale factor (1.0 ~ 1GB)", cxxopts::value<float>(scale_factor)->default_value("0.001"))
     ("m,cost_model", "CostModel to use (naive, segmented)", cxxopts::value<std::string>(cost_model_str)->default_value(cost_model_str))  // NOLINT
+    ("all-cost-models", "Use all cost models")  // NOLINT
     ("t,timeout", "Timeout per query, in seconds", cxxopts::value<long>(*timeout_seconds)->default_value("0"))  // NOLINT
     ("visualize", "Visualize query plan", cxxopts::value<bool>(visualize)->default_value("false"))  // NOLINT
     ("queries", "Specify queries to run, default is all that are supported", cxxopts::value<std::vector<QueryID>>()); // NOLINT
@@ -172,114 +173,125 @@ int main(int argc, char ** argv) {
   TpchDbGenerator{scale_factor}.generate_and_store();
   out() << "-- Done." << std::endl;
 
-  auto cost_model = std::shared_ptr<AbstractCostModel>();
-  if (cost_model_str == "naive") {
-    out() << "-- Using CostModelNaive" << std::endl;
-    cost_model = std::make_shared<CostModelNaive>();
-  } else if (cost_model_str == "segmented") {
-    out() << "-- Using CostModelSegmented" << std::endl;
-    cost_model = std::make_shared<CostModelSegmented>();
+  auto cost_models = std::vector<std::shared_ptr<AbstractCostModel>>{};
+  if (cli_parse_result.count("all-cost-models")) {
+    out() << "-- Using all available cost models" << std::endl;
+    cost_models.emplace_back(std::make_shared<CostModelNaive>());
+    cost_models.emplace_back(std::make_shared<CostModelSegmented>());
   } else {
-    Fail("Unknown cost model");
+    if (cost_model_str == "naive") {
+      out() << "-- Using CostModelNaive" << std::endl;
+      cost_models.emplace_back(std::make_shared<CostModelNaive>());
+    }
+    if (cost_model_str == "segmented") {
+      out() << "-- Using CostModelSegmented" << std::endl;
+      cost_models.emplace_back(std::make_shared<CostModelSegmented>());
+    } else {
+      Fail("Unknown cost model");
+    }
   }
 
-  for (const auto tpch_query_idx : query_ids) {
-    const auto sql = tpch_queries[tpch_query_idx];
-    const auto query_name = "TPCH-"s + std::to_string(tpch_query_idx + 1);
-    out() << "-- Query: " << query_name << std::endl;
+  for (const auto cost_model : cost_models) {
+    for (const auto tpch_query_idx : query_ids) {
+      const auto sql = tpch_queries[tpch_query_idx];
+      const auto query_name = "TPCH-"s + std::to_string(tpch_query_idx + 1);
 
-    const auto evaluation_name =
-    (IS_DEBUG ? "debug"s : "release"s) + "-" + query_name + "-" + cost_model_str + "-sf" + std::to_string(scale_factor);
+      const auto evaluation_name =
+      (IS_DEBUG ? "debug"s : "release"s) + "-" + query_name + "-" + cost_model->name() + "-sf" +
+      std::to_string(scale_factor);
 
-    auto plan_durations = std::vector<long>();
-    auto plan_cost_samples = std::vector<PlanCostSample>();
+      out() << "-- Evaluating: " << evaluation_name << std::endl;
 
-    auto pipeline_statement = SQL{sql}.disable_mvcc().pipeline_statement();
+      auto plan_durations = std::vector<long>();
+      auto plan_cost_samples = std::vector<PlanCostSample>();
 
-    const auto lqp = pipeline_statement.get_optimized_logical_plan();
-    const auto lqp_root = LogicalPlanRootNode::make(lqp);
-    const auto join_graph = JoinGraph::from_lqp(lqp);
+      auto pipeline_statement = SQL{sql}.disable_mvcc().pipeline_statement();
 
-    DpCcpTopK dp_ccp_top_k{DpSubplanCacheTopK::NO_ENTRY_LIMIT, cost_model};
+      const auto lqp = pipeline_statement.get_optimized_logical_plan();
+      const auto lqp_root = LogicalPlanRootNode::make(lqp);
+      const auto join_graph = JoinGraph::from_lqp(lqp);
 
-    dp_ccp_top_k(join_graph);
+      DpCcpTopK dp_ccp_top_k{DpSubplanCacheTopK::NO_ENTRY_LIMIT, cost_model};
 
-    JoinVertexSet all_vertices{join_graph->vertices.size()};
-    all_vertices.flip();
-    const auto join_plans = dp_ccp_top_k.subplan_cache()->get_best_plans(all_vertices);
+      dp_ccp_top_k(join_graph);
 
-    out() << "-- Generated plans: " << join_plans.size() << std::endl;
+      JoinVertexSet all_vertices{join_graph->vertices.size()};
+      all_vertices.flip();
+      const auto join_plans = dp_ccp_top_k.subplan_cache()->get_best_plans(all_vertices);
 
-    auto current_plan_idx = 0;
+      out() << "-- Generated plans: " << join_plans.size() << std::endl;
 
-    for (const auto &join_plan : join_plans) {
-      out() << "-- Plan Index: " << current_plan_idx << std::endl;
+      auto current_plan_idx = 0;
 
-      const auto join_ordered_sub_lqp = join_plan->to_lqp();
-      for (const auto &parent_relation : join_graph->output_relations) {
-        parent_relation.output->set_input(parent_relation.input_side, join_ordered_sub_lqp);
-      }
+      for (const auto &join_plan : join_plans) {
+        out() << "-- Plan Index: " << current_plan_idx << std::endl;
 
-      const auto pqp = LQPTranslator{}.translate_node(lqp_root->left_input());
+        const auto join_ordered_sub_lqp = join_plan->to_lqp();
+        for (const auto &parent_relation : join_graph->output_relations) {
+          parent_relation.output->set_input(parent_relation.input_side, join_ordered_sub_lqp);
+        }
 
-      auto transaction_context = TransactionManager::get().new_transaction_context();
-      pqp->set_transaction_context_recursively(transaction_context);
+        const auto pqp = LQPTranslator{}.translate_node(lqp_root->left_input());
 
-      if (timeout_seconds) {
-        const auto seconds = *timeout_seconds;
-        std::thread timeout_thread([transaction_context, seconds]() {
-          std::this_thread::sleep_for(std::chrono::seconds(seconds));
-          transaction_context->rollback(TransactionPhaseSwitch::Lenient);
-        });
-        timeout_thread.detach();
-      }
+        auto transaction_context = TransactionManager::get().new_transaction_context();
+        pqp->set_transaction_context_recursively(transaction_context);
 
-      SQLQueryPlan plan;
-      plan.add_tree_by_root(pqp);
+        if (timeout_seconds) {
+          const auto seconds = *timeout_seconds;
+          std::thread timeout_thread([transaction_context, seconds]() {
+            std::this_thread::sleep_for(std::chrono::seconds(seconds));
+            transaction_context->rollback(TransactionPhaseSwitch::Lenient);
+          });
+          timeout_thread.detach();
+        }
 
-      Timer timer;
-      CurrentScheduler::schedule_and_wait_for_tasks(plan.create_tasks());
+        SQLQueryPlan plan;
+        plan.add_tree_by_root(pqp);
 
-      if (!transaction_context->commit(TransactionPhaseSwitch::Lenient)) {
-        out() << "-- Query took too long" << std::endl;
-        plan_durations.emplace_back(std::numeric_limits<long>::max());
-        plan_cost_samples.emplace_back(PlanCostSample{});
-      } else {
-        const auto plan_duration = timer.lap();
+        Timer timer;
+        CurrentScheduler::schedule_and_wait_for_tasks(plan.create_tasks());
 
-        plan_durations.emplace_back(plan_duration.count());
+        if (!transaction_context->commit(TransactionPhaseSwitch::Lenient)) {
+          out() << "-- Query took too long" << std::endl;
+          plan_durations.emplace_back(std::numeric_limits<long>::max());
+          plan_cost_samples.emplace_back(PlanCostSample{});
+        } else {
+          const auto plan_duration = timer.lap();
 
-        const auto operators = flatten_pqp(pqp);
-        plan_cost_samples.emplace_back(create_plan_cost_sample(*cost_model, operators));
+          plan_durations.emplace_back(plan_duration.count());
+
+          const auto operators = flatten_pqp(pqp);
+          plan_cost_samples.emplace_back(create_plan_cost_sample(*cost_model, operators));
+
+          /**
+           * Visualize
+           */
+          if (visualize) {
+            GraphvizConfig graphviz_config;
+            graphviz_config.format = "svg";
+            VizGraphInfo viz_graph_info;
+            viz_graph_info.bg_color = "black";
+
+            SQLQueryPlanVisualizer visualizer{graphviz_config, viz_graph_info, {}, {}};
+            visualizer.set_cost_model(cost_model);
+            visualizer.visualize(plan, "tmp.dot",
+                                 std::string("viz/") + evaluation_name + "_" + std::to_string(current_plan_idx) + "_" +
+                                 std::to_string(plan_duration.count()) + ".svg");
+          }
+        }
 
         /**
-         * Visualize
+         * CSV
          */
-        if (visualize) {
-          GraphvizConfig graphviz_config;
-          graphviz_config.format = "svg";
-          VizGraphInfo viz_graph_info;
-          viz_graph_info.bg_color = "black";
-
-          SQLQueryPlanVisualizer visualizer{graphviz_config, viz_graph_info, {}, {}};
-          visualizer.set_cost_model(cost_model);
-          visualizer.visualize(plan, "tmp.dot",
-                               std::string("viz/") + evaluation_name + "_" + std::to_string(current_plan_idx) + "_" +
-                               std::to_string(plan_duration.count()) + ".svg");
+        auto csv = std::ofstream{evaluation_name + ".csv"};
+        csv << "Idx,Duration,EstCost,ReEstCost,AimCost,AbsEstCostError,AbsReEstCostError" << "\n";
+        for (auto plan_idx = size_t{0}; plan_idx < plan_durations.size(); ++plan_idx) {
+          csv << plan_idx << "," << plan_durations[plan_idx] << "," << plan_cost_samples[plan_idx] << "\n";
         }
-      }
+        csv.close();
 
-      /**
-       * CSV
-       */
-      auto csv = std::ofstream{evaluation_name + ".csv"};
-      csv << "Idx,Duration,EstCost,ReEstCost,AimCost,AbsEstCostError,AbsReEstCostError" << "\n";
-      for (auto plan_idx = size_t{0}; plan_idx < plan_durations.size(); ++plan_idx) {
-        csv << plan_idx << "," << plan_durations[plan_idx] << "," << plan_cost_samples[plan_idx] << "\n";
+        ++current_plan_idx;
       }
-      csv.close();
-
-      ++current_plan_idx;
     }
   }
 }

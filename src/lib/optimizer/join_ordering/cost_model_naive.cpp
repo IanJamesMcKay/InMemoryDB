@@ -10,6 +10,10 @@
 
 namespace opossum {
 
+std::string CostModelNaive::name() const {
+  return "CostModelNaive";
+}
+
 Cost CostModelNaive::cost_join_hash(const std::shared_ptr<TableStatistics>& table_statistics_left,
                                     const std::shared_ptr<TableStatistics>& table_statistics_right,
                                     const JoinMode join_mode, const ColumnIDPair& join_column_ids,
