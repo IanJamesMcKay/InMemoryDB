@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "boost/functional/hash.hpp"
+
 #include "optimizer/table_statistics.hpp"
 #include "storage/storage_manager.hpp"
 #include "storage/table.hpp"
@@ -89,5 +91,10 @@ std::optional<QualifiedColumnName> StoredTableNode::_resolve_local_table_name(
 void StoredTableNode::set_excluded_chunk_ids(const std::vector<ChunkID>& chunks) { _excluded_chunk_ids = chunks; }
 
 const std::vector<ChunkID>& StoredTableNode::excluded_chunk_ids() const { return _excluded_chunk_ids; }
+
+size_t StoredTableNode::_on_hash() const {
+  auto hash = boost::hash_value(_table_name);
+  return hash;
+}
 
 }  // namespace opossum

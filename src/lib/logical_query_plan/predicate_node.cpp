@@ -5,6 +5,11 @@
 #include <sstream>
 #include <string>
 
+#include "boost/functional/hash.hpp"
+
+#include "all_type_variant.hpp"
+#include "all_parameter_variant.hpp"
+#include "lqp_column_reference.hpp"
 #include "constant_mappings.hpp"
 #include "optimizer/table_statistics.hpp"
 #include "types.hpp"
@@ -119,6 +124,15 @@ bool PredicateNode::shallow_equals(const AbstractLQPNode& rhs) const {
   if (!_value2.has_value() && !predicate_node._value2.has_value()) return true;
 
   return all_type_variant_near(*_value2, *predicate_node._value2);
+}
+
+size_t PredicateNode::_on_hash() const {
+  auto hash = std::hash<LQPColumnReference>{}(_column_reference);
+  boost::hash_combine(hash, boost::hash_value(static_cast<size_t>(_predicate_condition)));
+  boost::hash_combine(hash, std::hash<AllParameterVariant >{}(_value));
+  boost::hash_combine(hash, std::hash<std::optional<AllTypeVariant>>{}(_value2));
+  boost::hash_combine(hash, boost::hash_value(static_cast<size_t>(_scan_type)));
+  return hash;
 }
 
 }  // namespace opossum

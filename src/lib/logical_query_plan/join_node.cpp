@@ -9,6 +9,8 @@
 #include <utility>
 #include <vector>
 
+#include "boost/functional/hash.hpp"
+
 #include "constant_mappings.hpp"
 #include "optimizer/table_statistics.hpp"
 #include "types.hpp"
@@ -134,6 +136,17 @@ bool JoinNode::shallow_equals(const AbstractLQPNode& rhs) const {
 }
 
 void JoinNode::_on_input_changed() { _output_column_names.reset(); }
+
+size_t JoinNode::_on_hash() const {
+  auto hash = boost::hash_value(_join_mode);
+  if (_join_column_references) {
+    boost::hash_combine(hash, std::hash<decltype(_join_column_references->first)>{}(_join_column_references->first));
+    boost::hash_combine(hash, std::hash<decltype(_join_column_references->second)>{}(_join_column_references->second));
+  }
+  if (_predicate_condition) boost::hash_combine(hash, boost::hash_value(static_cast<size_t>(*_predicate_condition)));
+  if (_implementation) boost::hash_combine(hash, boost::hash_value(static_cast<size_t>(*_implementation)));
+  return hash;
+}
 
 void JoinNode::_update_output() const {
   /**

@@ -3,6 +3,9 @@
 #include <sstream>
 #include <string>
 
+#include "boost/functional/hash.hpp"
+#include "abstract_lqp_node.hpp"
+
 namespace opossum {
 
 CreateViewNode::CreateViewNode(const std::string& view_name, const std::shared_ptr<const AbstractLQPNode>& lqp)
@@ -29,6 +32,12 @@ std::string CreateViewNode::description() const {
 const std::vector<std::string>& CreateViewNode::output_column_names() const {
   static std::vector<std::string> output_column_names_dummy;
   return output_column_names_dummy;
+}
+
+size_t CreateViewNode::_on_hash() const {
+  auto hash = boost::hash_value(_view_name);
+  boost::hash_combine(hash, _lqp->hash());
+  return hash;
 }
 
 bool CreateViewNode::shallow_equals(const AbstractLQPNode& rhs) const {

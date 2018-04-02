@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "boost/functional/hash.hpp"
+
 #include "lqp_expression.hpp"
 #include "utils/assert.hpp"
 
@@ -66,5 +68,13 @@ bool UpdateNode::shallow_equals(const AbstractLQPNode& rhs) const {
   Assert(left_input() && rhs.left_input(), "Can't compare column references without inputs");
   return _table_name == update_node._table_name &&
          _equals(*left_input(), _column_expressions, *update_node.left_input(), update_node._column_expressions);
+}
+
+size_t UpdateNode::_on_hash() const {
+  auto hash = boost::hash_value(_table_name);
+  for (const auto& column_expression : _column_expressions) {
+    boost::hash_combine(hash, column_expression->hash());
+  }
+  return hash;
 }
 }  // namespace opossum

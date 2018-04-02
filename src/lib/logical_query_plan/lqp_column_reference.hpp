@@ -33,3 +33,12 @@ class LQPColumnReference final {
 
 std::ostream& operator<<(std::ostream& os, const LQPColumnReference& column_reference);
 }  // namespace opossum
+
+namespace std {
+
+template<>
+struct hash<opossum::LQPColumnReference> {
+  size_t operator()(const opossum::LQPColumnReference& lqp_column_reference) const;
+};
+
+}  // namespace std

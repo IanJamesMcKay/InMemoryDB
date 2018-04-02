@@ -1,5 +1,7 @@
 #include "lqp_column_reference.hpp"
 
+#include "boost/functional/hash.hpp"
+
 #include "abstract_lqp_node.hpp"
 #include "utils/assert.hpp"
 
@@ -35,3 +37,16 @@ std::ostream& operator<<(std::ostream& os, const LQPColumnReference& column_refe
   return os;
 }
 }  // namespace opossum
+
+namespace std {
+
+size_t hash<opossum::LQPColumnReference>::operator()(const opossum::LQPColumnReference& lqp_column_reference) const {
+  const auto original_node = lqp_column_reference.original_node();
+  DebugAssert(original_node, "original_node needs to exist for hashing to work");
+
+  auto hash = original_node->hash();
+  boost::hash_combine(hash, lqp_column_reference.original_column_id().t);
+  return hash;
+}
+
+} // namespace std

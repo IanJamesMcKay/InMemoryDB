@@ -9,6 +9,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "boost/functional/hash.hpp"
+
 #include "lqp_column_reference.hpp"
 #include "types.hpp"
 #include "utils/assert.hpp"
@@ -459,6 +461,7 @@ std::optional<QualifiedColumnName> AbstractLQPNode::_resolve_local_table_name(
 
 void AbstractLQPNode::_input_changed() {
   _statistics.reset();
+  _hash.reset();
   _output_column_references.reset();
 
   _on_input_changed();
@@ -507,6 +510,21 @@ std::shared_ptr<LQPExpression> AbstractLQPNode::adapt_expression_to_different_lq
 std::optional<std::pair<std::shared_ptr<const AbstractLQPNode>, std::shared_ptr<const AbstractLQPNode>>>
 AbstractLQPNode::find_first_subplan_mismatch(const std::shared_ptr<const AbstractLQPNode>& rhs) const {
   return _find_first_subplan_mismatch_impl(shared_from_this(), rhs);
+}
+
+size_t AbstractLQPNode::hash() const {
+  if (!_hash) {
+    auto hash = boost::hash_value(static_cast<size_t>(_type));
+    boost::hash_combine(hash, std::hash<decltype(_table_alias)>{}(_table_alias));
+
+    boost::hash_combine(hash, _on_hash());
+    _hash = hash;
+  }
+  return *_hash;
+}
+
+size_t AbstractLQPNode::_on_hash() const {
+  return 0;
 }
 
 std::optional<std::pair<std::shared_ptr<const AbstractLQPNode>, std::shared_ptr<const AbstractLQPNode>>>
@@ -594,6 +612,9 @@ bool AbstractLQPNode::_equals(const AbstractLQPNode& lqp_left, const LQPColumnRe
   // We just need a temporary ColumnReference which won't be used to manipulate nodes, promised.
   auto& mutable_lqp_left = const_cast<AbstractLQPNode&>(lqp_left);
   auto& mutable_lqp_right = const_cast<AbstractLQPNode&>(lqp_right);
+
+  if (mutable_lqp_left.output_column_count() != mutable_lqp_right.output_column_count()) return false;
+
   const auto column_reference_left_adapted_to_right = AbstractLQPNode::adapt_column_reference_to_different_lqp(
       column_reference_left, mutable_lqp_left.shared_from_this(), mutable_lqp_right.shared_from_this());
 

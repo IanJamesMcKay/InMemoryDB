@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "boost/functional/hash.hpp"
+
 #include "constant_mappings.hpp"
 #include "types.hpp"
 
@@ -72,6 +74,15 @@ bool SortNode::shallow_equals(const AbstractLQPNode& rhs) const {
   }
 
   return true;
+}
+
+size_t SortNode::_on_hash() const {
+  auto hash = boost::hash_value(0);
+  for (const auto& order_by_definition : _order_by_definitions) {
+    boost::hash_combine(hash, std::hash<LQPColumnReference>{}(order_by_definition.column_reference));
+    boost::hash_combine(hash, std::hash<size_t>{}(static_cast<size_t>(order_by_definition.order_by_mode)));
+  }
+  return hash;
 }
 
 }  // namespace opossum

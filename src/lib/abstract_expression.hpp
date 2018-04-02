@@ -155,6 +155,8 @@ class AbstractExpression : public std::enable_shared_from_this<DerivedExpression
   virtual std::string to_string(const std::optional<std::vector<std::string>>& input_column_names = std::nullopt,
                                 bool is_root = true) const;
 
+  virtual size_t hash() const;
+
  protected:
   // Not to be used directly, derived classes should implement it in the public scope and use this internally
   bool operator==(const AbstractExpression& other) const;

@@ -7,6 +7,7 @@
 #include "join_plan_predicate.hpp"
 #include "join_plan_vertex_node.hpp"
 #include "optimizer/table_statistics.hpp"
+#include "optimizer/table_statistics_cache.hpp"
 #include "utils/assert.hpp"
 
 namespace {
@@ -25,7 +26,7 @@ struct JoinPlanPredicateEstimate final {
 
 template<typename ResolveColumnID>
 JoinPlanPredicateEstimate estimate_predicate(const AbstractJoinPlanPredicate& predicate,
-const std::shared_ptr<TableStatistics>& statistics, const AbstractCostModel& cost_model, ResolveColumnID resolve_column_id_fn) {
+const std::shared_ptr<TableStatistics>& statistics, const AbstractCostModel& cost_model, ResolveColumnID resolve_column_id_fn, const TableStatisticsCache& statistics_cache) {
   switch (predicate.type()) {
     case JoinPlanPredicateType::Atomic: {
       const auto& atomic_predicate = static_cast<const JoinPlanAtomicPredicate&>(predicate);
@@ -59,17 +60,17 @@ const std::shared_ptr<TableStatistics>& statistics, const AbstractCostModel& cos
     }
     case JoinPlanPredicateType::LogicalOperator: {
       const auto& logical_operator_predicate = static_cast<const JoinPlanLogicalPredicate&>(predicate);
-      const auto left_operand_estimate = estimate_predicate(*logical_operator_predicate.left_operand, statistics, cost_model, resolve_column_id_fn);
+      const auto left_operand_estimate = estimate_predicate(*logical_operator_predicate.left_operand, statistics, cost_model, resolve_column_id_fn, statistics_cache);
 
       switch (logical_operator_predicate.logical_operator) {
         case JoinPlanPredicateLogicalOperator::And: {
           const auto right_operand_estimate =
-          estimate_predicate(*logical_operator_predicate.right_operand, left_operand_estimate.statistics, cost_model, resolve_column_id_fn);
+          estimate_predicate(*logical_operator_predicate.right_operand, left_operand_estimate.statistics, cost_model, resolve_column_id_fn, statistics_cache);
           return {left_operand_estimate.cost + right_operand_estimate.cost, right_operand_estimate.statistics};
         }
         case JoinPlanPredicateLogicalOperator::Or: {
           const auto right_operand_estimate =
-          estimate_predicate(*logical_operator_predicate.right_operand, statistics, cost_model, resolve_column_id_fn);
+          estimate_predicate(*logical_operator_predicate.right_operand, statistics, cost_model, resolve_column_id_fn, statistics_cache);
 
           auto union_costs = cost_model.cost_union_positions(left_operand_estimate.statistics, right_operand_estimate.statistics);
 
@@ -88,10 +89,10 @@ const std::shared_ptr<TableStatistics>& statistics, const AbstractCostModel& cos
 
 template<typename FindColumnID>
 void order_predicates(std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates,
-                                             const std::shared_ptr<TableStatistics>& statistics, const AbstractCostModel& cost_model, FindColumnID find_column_id_fn) {
+                                             const std::shared_ptr<TableStatistics>& statistics, const AbstractCostModel& cost_model, FindColumnID find_column_id_fn, const TableStatisticsCache& statistics_cache) {
   const auto sort_predicate = [&](auto& left, auto& right) {
-    return estimate_predicate(*left, statistics, cost_model, find_column_id_fn).statistics->row_count() <
-           estimate_predicate(*right, statistics, cost_model, find_column_id_fn).statistics->row_count();
+    return estimate_predicate(*left, statistics, cost_model, find_column_id_fn, statistics_cache).statistics->row_count() <
+           estimate_predicate(*right, statistics, cost_model, find_column_id_fn, statistics_cache).statistics->row_count();
   };
 
   std::sort(predicates.begin(), predicates.end(), sort_predicate);
@@ -104,7 +105,7 @@ namespace opossum {
 std::shared_ptr<JoinPlanJoinNode> build_join_plan_join_node(
     const AbstractCostModel& cost_model, const std::shared_ptr<const AbstractJoinPlanNode>& left_child,
     const std::shared_ptr<const AbstractJoinPlanNode>& right_child,
-    const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates) {
+    const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates, const TableStatisticsCache& statistics_cache) {
 
   auto primary_join_predicate = std::shared_ptr<const JoinPlanAtomicPredicate>{};
   auto secondary_predicates = predicates;
@@ -198,11 +199,11 @@ std::shared_ptr<JoinPlanJoinNode> build_join_plan_join_node(
            : static_cast<ColumnID>(*column_id_in_right_child + left_child->output_column_count());
   };
 
-  order_predicates(secondary_predicates, statistics, cost_model, find_column_id);
+  order_predicates(secondary_predicates, statistics, cost_model, find_column_id, statistics_cache);
 
   // Apply remaining predicates
   for (const auto& predicate : secondary_predicates) {
-    const auto predicate_estimate = estimate_predicate(*predicate, statistics, cost_model, find_column_id);
+    const auto predicate_estimate = estimate_predicate(*predicate, statistics, cost_model, find_column_id, statistics_cache);
 
     node_cost += predicate_estimate.cost;
     statistics = predicate_estimate.statistics;
@@ -215,19 +216,19 @@ std::shared_ptr<JoinPlanJoinNode> build_join_plan_join_node(
 std::shared_ptr<JoinPlanVertexNode> build_join_plan_vertex_node(
     const AbstractCostModel& cost_model,
     const std::shared_ptr<AbstractLQPNode>& vertex_node,
-    std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> predicates) {
+    std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> predicates, const TableStatisticsCache& statistics_cache) {
   auto statistics = vertex_node->get_statistics();
 
   const auto find_column_id = [&](const auto& column_reference) {
     return vertex_node->find_output_column_id(column_reference);
   };
 
-  order_predicates(predicates, statistics, cost_model, find_column_id);
+  order_predicates(predicates, statistics, cost_model, find_column_id, statistics_cache);
 
   auto node_cost = 0.0f;
 
   for (const auto& predicate : predicates) {
-    const auto predicate_estimate = estimate_predicate(*predicate, statistics, cost_model, find_column_id);
+    const auto predicate_estimate = estimate_predicate(*predicate, statistics, cost_model, find_column_id, statistics_cache);
 
     node_cost += predicate_estimate.cost;
     statistics = predicate_estimate.statistics;

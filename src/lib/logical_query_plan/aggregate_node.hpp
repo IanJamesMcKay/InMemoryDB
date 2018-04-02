@@ -63,6 +63,7 @@ class AggregateNode : public EnableMakeForLQPNode<AggregateNode>, public Abstrac
       const std::shared_ptr<AbstractLQPNode>& copied_left_input,
       const std::shared_ptr<AbstractLQPNode>& copied_right_input) const override;
   void _on_input_changed() override;
+  size_t _on_hash() const override;
 
  private:
   std::vector<std::shared_ptr<LQPExpression>> _aggregate_expressions;

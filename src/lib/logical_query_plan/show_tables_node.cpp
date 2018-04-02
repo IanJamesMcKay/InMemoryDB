@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "boost/functional/hash.hpp"
+
 namespace opossum {
 
 ShowTablesNode::ShowTablesNode() : AbstractLQPNode(LQPNodeType::ShowTables) {}
@@ -23,5 +25,4 @@ bool ShowTablesNode::shallow_equals(const AbstractLQPNode& rhs) const {
   Assert(rhs.type() == type(), "Can only compare nodes of the same type()");
   return true;
 }
-
 }  // namespace opossum

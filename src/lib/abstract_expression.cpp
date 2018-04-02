@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "boost/functional/hash.hpp"
+
 #include "all_type_variant.hpp"
 #include "constant_mappings.hpp"
 #include "logical_query_plan/abstract_lqp_node.hpp"
@@ -394,6 +396,42 @@ std::shared_ptr<DerivedExpression> AbstractExpression<DerivedExpression>::create
   auto expression = std::make_shared<DerivedExpression>(ExpressionType::Star);
   expression->_table_name = table_name;
   return expression;
+}
+
+template <typename DerivedExpression>
+size_t AbstractExpression<DerivedExpression>::hash() const {
+  auto hash = boost::hash_value(static_cast<size_t>(_type));
+
+  if (_value) {
+    boost::hash_combine(hash, std::hash<AllTypeVariant>{}(*_value));
+  }
+  if (_aggregate_function) {
+    boost::hash_combine(hash, std::hash<size_t>{}(static_cast<size_t>(*_aggregate_function)));
+  }
+
+  for (const auto arg : _aggregate_function_arguments) {
+    boost::hash_combine(hash, arg->hash());
+  }
+
+  if (_table_name) {
+    boost::hash_combine(hash, boost::hash_value(*_table_name));
+  }
+  if (_alias) {
+    boost::hash_combine(hash, boost::hash_value(*_alias));
+  }
+  if (_value_placeholder) {
+    boost::hash_combine(hash, boost::hash_value(_value_placeholder->index()));
+  }
+
+  if (_left_child) {
+    boost::hash_combine(hash, _left_child->hash());
+  }
+
+  if (_right_child) {
+    boost::hash_combine(hash, _right_child->hash());
+  }
+
+  return hash;
 }
 
 template class AbstractExpression<LQPExpression>;

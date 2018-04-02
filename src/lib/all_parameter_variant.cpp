@@ -26,3 +26,21 @@ bool all_parameter_variant_near(const AllParameterVariant& lhs, const AllParamet
   return lhs == rhs;
 }
 }  // namespace opossum
+
+namespace std {
+
+size_t hash<opossum::AllParameterVariant>::operator()(const opossum::AllParameterVariant& x) const {
+  auto hash = x.type().hash_code();
+  if (opossum::is_placeholder(x)) {
+    boost::hash_combine(hash, boost::get<opossum::ValuePlaceholder>(x).index());
+  } else if (opossum::is_column_id(x)) {
+    boost::hash_combine(hash, boost::get<opossum::ColumnID>(x).t);
+  } else if (opossum::is_lqp_column_reference(x)) {
+    boost::hash_combine(hash, std::hash<opossum::LQPColumnReference>{}(boost::get<opossum::LQPColumnReference>(x)));
+  } else {
+    boost::hash_combine(hash, std::hash<opossum::AllTypeVariant>{}(boost::get<opossum::AllTypeVariant>(x)));
+  }
+  return hash;
+}
+
+}  // namespace std

@@ -231,6 +231,8 @@ set(
     optimizer/strategy/rule_batch.hpp
     optimizer/table_statistics.cpp
     optimizer/table_statistics.hpp
+    optimizer/table_statistics_cache.cpp
+    optimizer/table_statistics_cache.hpp
     planviz/abstract_visualizer.hpp
     planviz/lqp_visualizer.cpp
     planviz/lqp_visualizer.hpp

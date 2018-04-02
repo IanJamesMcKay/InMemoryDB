@@ -1,5 +1,7 @@
 #include "lqp_expression.hpp"
 
+#include "boost/functional/hash.hpp"
+
 #include "constant_mappings.hpp"
 #include "lqp_column_reference.hpp"
 #include "operators/pqp_expression.hpp"
@@ -65,4 +67,14 @@ bool LQPExpression::operator==(const LQPExpression& other) const {
 void LQPExpression::_deep_copy_impl(const std::shared_ptr<LQPExpression>& copy) const {
   copy->_column_reference = _column_reference;
 }
+
+size_t LQPExpression::hash() const {
+  auto hash = boost::hash_value(0);
+  if (_column_reference) {
+    boost::hash_combine(hash, std::hash<LQPColumnReference>{}(*_column_reference));
+  }
+  boost::hash_combine(hash, AbstractExpression<LQPExpression>::hash());
+  return hash;
+}
+
 }  // namespace opossum

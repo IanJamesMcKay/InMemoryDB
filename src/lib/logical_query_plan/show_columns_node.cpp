@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "boost/functional/hash.hpp"
+
 namespace opossum {
 
 ShowColumnsNode::ShowColumnsNode(const std::string& table_name)
@@ -28,4 +30,8 @@ bool ShowColumnsNode::shallow_equals(const AbstractLQPNode& rhs) const {
   return _table_name == show_columns_node._table_name;
 }
 
+size_t ShowColumnsNode::_on_hash() const {
+  auto hash = boost::hash_value(_table_name);
+  return hash;
+}
 }  // namespace opossum

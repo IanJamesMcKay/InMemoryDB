@@ -15,7 +15,8 @@
 
 namespace opossum {
 
-DpCcp::DpCcp(const std::shared_ptr<const AbstractCostModel>& cost_model) : AbstractDpAlgorithm(std::make_shared<DpSubplanCacheBest>(), cost_model) {}
+DpCcp::DpCcp(const std::shared_ptr<const AbstractCostModel>& cost_model,
+             const std::shared_ptr<const TableStatisticsCache>& statistics_cache) : AbstractDpAlgorithm(std::make_shared<DpSubplanCacheBest>(), cost_model, statistics_cache) {}
 
 void DpCcp::_on_execute() {
   /**
@@ -44,7 +45,7 @@ void DpCcp::_on_execute() {
     const auto best_plan_left = _subplan_cache->get_best_plan(csg_cmp_pair.first);
     const auto best_plan_right = _subplan_cache->get_best_plan(csg_cmp_pair.second);
     const auto predicates = _join_graph->find_predicates(csg_cmp_pair.first, csg_cmp_pair.second);
-    const auto current_plan = build_join_plan_join_node(*_cost_model, best_plan_left, best_plan_right, predicates);
+    const auto current_plan = build_join_plan_join_node(*_cost_model, best_plan_left, best_plan_right, predicates, *_statistics_cache);
     const auto current_best_plan = _subplan_cache->get_best_plan(csg_cmp_pair.first | csg_cmp_pair.second);
 
 #if VERBOSE
