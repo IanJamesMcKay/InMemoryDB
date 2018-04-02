@@ -32,9 +32,9 @@ namespace std {
 size_t hash<opossum::AllParameterVariant>::operator()(const opossum::AllParameterVariant& x) const {
   auto hash = x.type().hash_code();
   if (opossum::is_placeholder(x)) {
-    boost::hash_combine(hash, boost::get<opossum::ValuePlaceholder>(x).index());
+    boost::hash_combine(hash, boost::hash_value(boost::get<opossum::ValuePlaceholder>(x).index()));
   } else if (opossum::is_column_id(x)) {
-    boost::hash_combine(hash, boost::get<opossum::ColumnID>(x).t);
+    boost::hash_combine(hash, boost::hash_value(boost::get<opossum::ColumnID>(x).t));
   } else if (opossum::is_lqp_column_reference(x)) {
     boost::hash_combine(hash, std::hash<opossum::LQPColumnReference>{}(boost::get<opossum::LQPColumnReference>(x)));
   } else {
