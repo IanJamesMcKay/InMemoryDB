@@ -231,6 +231,7 @@ int main(int argc, char ** argv) {
         const auto join_graph = JoinGraph::from_lqp(lqp);
 
         DpCcpTopK dp_ccp_top_k{DpSubplanCacheTopK::NO_ENTRY_LIMIT, cost_model, statistics_cache};
+        std::
 
         dp_ccp_top_k(join_graph);
 

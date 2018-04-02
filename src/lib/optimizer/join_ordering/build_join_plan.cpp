@@ -8,6 +8,8 @@
 #include "join_plan_vertex_node.hpp"
 #include "optimizer/table_statistics.hpp"
 #include "optimizer/table_statistics_cache.hpp"
+#include "logical_query_plan/predicate_node.hpp"
+#include "logical_query_plan/union_node.hpp"
 #include "utils/assert.hpp"
 
 namespace {
@@ -15,69 +17,62 @@ namespace {
 using namespace opossum;  // NOLINT
 
 struct JoinPlanPredicateEstimate final {
-  JoinPlanPredicateEstimate(const float cost, const std::shared_ptr<TableStatistics>& statistics)
-  : cost(cost), statistics(statistics) {
+  JoinPlanPredicateEstimate(const float cost, const std::shared_ptr<AbstractLQPNode>& lqp)
+  : cost(cost), lqp(lqp) {
     DebugAssert(cost >= 0.0f && !std::isnan(cost), "Invalid cost");
   }
 
   const float cost;
-  std::shared_ptr<TableStatistics> statistics;
+  std::shared_ptr<AbstractLQPNode> lqp;
 };
 
-template<typename ResolveColumnID>
 JoinPlanPredicateEstimate estimate_predicate(const AbstractJoinPlanPredicate& predicate,
-const std::shared_ptr<TableStatistics>& statistics, const AbstractCostModel& cost_model, ResolveColumnID resolve_column_id_fn, const TableStatisticsCache& statistics_cache) {
+std::shared_ptr<AbstractLQPNode> lqp, const AbstractCostModel& cost_model, const TableStatisticsCache& statistics_cache) {
   switch (predicate.type()) {
     case JoinPlanPredicateType::Atomic: {
       const auto& atomic_predicate = static_cast<const JoinPlanAtomicPredicate&>(predicate);
 
-      const auto left_column_id = resolve_column_id_fn(atomic_predicate.left_operand);
+      const auto left_column_id = lqp->find_output_column_id(atomic_predicate.left_operand);
       DebugAssert(left_column_id, "Couldn't resolve " + atomic_predicate.left_operand.description());
-
-      std::shared_ptr<TableStatistics> table_statistics;
 
       auto cost = Cost{0.0f};
 
+      lqp = PredicateNode::make(atomic_predicate.left_operand, atomic_predicate.predicate_condition, atomic_predicate.right_operand, lqp);
+
       if (is_lqp_column_reference(atomic_predicate.right_operand)) {
         const auto right_operand_column_reference = boost::get<LQPColumnReference>(atomic_predicate.right_operand);
-        const auto right_column_id = resolve_column_id_fn(right_operand_column_reference);
+        const auto right_column_id = lqp->find_output_column_id(right_operand_column_reference);
         DebugAssert(right_column_id, "Couldn't resolve " + right_operand_column_reference.description());
 
-        table_statistics =
-        statistics->predicate_statistics(*left_column_id, atomic_predicate.predicate_condition, *right_column_id);
-        cost = cost_model.cost_table_scan(statistics, *left_column_id, atomic_predicate.predicate_condition, *right_column_id);
+        cost = cost_model.cost_table_scan(statistics_cache.get(lqp), *left_column_id, atomic_predicate.predicate_condition, *right_column_id);
       } else {
         Assert(atomic_predicate.right_operand.type() == typeid(AllTypeVariant), "Unexpected type");
 
         const auto right_operand_value = boost::get<AllTypeVariant>(atomic_predicate.right_operand);
 
-        table_statistics = statistics->predicate_statistics(*left_column_id, atomic_predicate.predicate_condition,
-                                                            right_operand_value);
-        cost = cost_model.cost_table_scan(statistics, *left_column_id, atomic_predicate.predicate_condition, right_operand_value);
+        cost = cost_model.cost_table_scan(statistics_cache.get(lqp), *left_column_id, atomic_predicate.predicate_condition, right_operand_value);
       }
 
-      return {cost, table_statistics};
+      return {cost, lqp};
     }
     case JoinPlanPredicateType::LogicalOperator: {
       const auto& logical_operator_predicate = static_cast<const JoinPlanLogicalPredicate&>(predicate);
-      const auto left_operand_estimate = estimate_predicate(*logical_operator_predicate.left_operand, statistics, cost_model, resolve_column_id_fn, statistics_cache);
+      const auto left_operand_estimate = estimate_predicate(*logical_operator_predicate.left_operand, lqp, cost_model, statistics_cache);
 
       switch (logical_operator_predicate.logical_operator) {
         case JoinPlanPredicateLogicalOperator::And: {
           const auto right_operand_estimate =
-          estimate_predicate(*logical_operator_predicate.right_operand, left_operand_estimate.statistics, cost_model, resolve_column_id_fn, statistics_cache);
-          return {left_operand_estimate.cost + right_operand_estimate.cost, right_operand_estimate.statistics};
+          estimate_predicate(*logical_operator_predicate.right_operand, left_operand_estimate.lqp, cost_model, statistics_cache);
+          return {left_operand_estimate.cost + right_operand_estimate.cost, right_operand_estimate.lqp};
         }
         case JoinPlanPredicateLogicalOperator::Or: {
           const auto right_operand_estimate =
-          estimate_predicate(*logical_operator_predicate.right_operand, statistics, cost_model, resolve_column_id_fn, statistics_cache);
+          estimate_predicate(*logical_operator_predicate.right_operand, lqp, cost_model, statistics_cache);
 
-          auto union_costs = cost_model.cost_union_positions(left_operand_estimate.statistics, right_operand_estimate.statistics);
+          auto union_costs = cost_model.cost_union_positions(statistics_cache.get(left_operand_estimate.lqp), statistics_cache.get(right_operand_estimate.lqp));
 
-          const auto union_statistics =
-          left_operand_estimate.statistics->generate_disjunction_statistics(right_operand_estimate.statistics);
-
-          return {left_operand_estimate.cost + right_operand_estimate.cost + union_costs, union_statistics};
+          lqp = UnionNode::make(UnionMode::Positions, left_operand_estimate.lqp, right_operand_estimate.lqp);
+          return {left_operand_estimate.cost + right_operand_estimate.cost + union_costs, lqp};
         }
       }
     }
@@ -87,12 +82,11 @@ const std::shared_ptr<TableStatistics>& statistics, const AbstractCostModel& cos
   return {0.0f, nullptr};
 }
 
-template<typename FindColumnID>
 void order_predicates(std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates,
-                                             const std::shared_ptr<TableStatistics>& statistics, const AbstractCostModel& cost_model, FindColumnID find_column_id_fn, const TableStatisticsCache& statistics_cache) {
+                                             const std::shared_ptr<AbstractLQPNode>& lqp, const AbstractCostModel& cost_model, const TableStatisticsCache& statistics_cache) {
   const auto sort_predicate = [&](auto& left, auto& right) {
-    return estimate_predicate(*left, statistics, cost_model, find_column_id_fn, statistics_cache).statistics->row_count() <
-           estimate_predicate(*right, statistics, cost_model, find_column_id_fn, statistics_cache).statistics->row_count();
+    return statistics_cache.get(estimate_predicate(*left, lqp, cost_model, statistics_cache).lqp)->row_count() <
+    statistics_cache.get(estimate_predicate(*right, lqp, cost_model, statistics_cache).lqp)->row_count();
   };
 
   std::sort(predicates.begin(), predicates.end(), sort_predicate);
@@ -154,12 +148,13 @@ std::shared_ptr<JoinPlanJoinNode> build_join_plan_join_node(
   /**
    * Compute costs and statistics
    */
-  const auto left_statistics = left_child->statistics();
-  const auto right_statistics = right_child->statistics();
+  const auto left_statistics = statistics_cache.get(left_child->to_lqp());
+  const auto right_statistics = statistics_cache.get(right_child->to_lqp());
+  auto lqp = std::shared_ptr<AbstractLQPNode>();
 
   // Compute cost&statistics of primary join predicate, if it exists. Otherwise assume a cross join.
   if (!primary_join_predicate) {
-    statistics = left_statistics->generate_cross_join_statistics(right_statistics);
+    lqp = JoinNode::make(JoinMode::Cross, left_child->to_lqp(), right_child->to_lqp());
     node_cost = cost_model.cost_product(left_statistics, right_statistics);
   } else {
     const auto left_column_id = left_child->find_column_id(primary_join_predicate->left_operand);
@@ -168,8 +163,6 @@ std::shared_ptr<JoinPlanJoinNode> build_join_plan_join_node(
     const auto right_operand_column_reference = boost::get<LQPColumnReference>(primary_join_predicate->right_operand);
     const auto right_column_id = right_child->find_column_id(right_operand_column_reference);
     DebugAssert(right_column_id, "Couldn't resolve " + right_operand_column_reference.description());
-
-    const auto join_column_ids = ColumnIDPair{*left_column_id, *right_column_id};
 
     // If scan type is equals, assume HashJoin can be used, otherwise its SortMergeJoin
     if (primary_join_predicate->predicate_condition == PredicateCondition::Equals) {
@@ -182,34 +175,20 @@ std::shared_ptr<JoinPlanJoinNode> build_join_plan_join_node(
                                                    primary_join_predicate->predicate_condition);
     }
 
-    statistics = left_statistics->generate_predicated_join_statistics(
-        right_statistics, JoinMode::Inner, join_column_ids, primary_join_predicate->predicate_condition);
+    lqp = JoinNode::make(JoinMode::Inner, std::make_pair(primary_join_predicate->left_operand, right_operand_column_reference), primary_join_predicate->predicate_condition, left_child->to_lqp(), right_child->to_lqp());
   }
 
-  const auto find_column_id = [&](const auto& column_reference) -> std::optional<ColumnID> {
-    const auto column_id_in_left_child = left_child->find_column_id(column_reference);
-    const auto column_id_in_right_child = right_child->find_column_id(column_reference);
-
-    if (!column_id_in_left_child && !column_id_in_right_child) {
-      return std::nullopt;
-    }
-
-    return column_id_in_left_child
-           ? column_id_in_left_child
-           : static_cast<ColumnID>(*column_id_in_right_child + left_child->output_column_count());
-  };
-
-  order_predicates(secondary_predicates, statistics, cost_model, find_column_id, statistics_cache);
+  order_predicates(secondary_predicates, lqp, cost_model, statistics_cache);
 
   // Apply remaining predicates
   for (const auto& predicate : secondary_predicates) {
-    const auto predicate_estimate = estimate_predicate(*predicate, statistics, cost_model, find_column_id, statistics_cache);
+    const auto predicate_estimate = estimate_predicate(*predicate, lqp, cost_model, statistics_cache);
 
     node_cost += predicate_estimate.cost;
-    statistics = predicate_estimate.statistics;
+    lqp = predicate_estimate.lqp;
   }
 
-  return std::make_shared<JoinPlanJoinNode>(left_child, right_child, statistics, primary_join_predicate, secondary_predicates,
+  return std::make_shared<JoinPlanJoinNode>(left_child, right_child, statistics_cache.get(lqp), primary_join_predicate, secondary_predicates,
                                             node_cost);
 }
 
@@ -217,24 +196,20 @@ std::shared_ptr<JoinPlanVertexNode> build_join_plan_vertex_node(
     const AbstractCostModel& cost_model,
     const std::shared_ptr<AbstractLQPNode>& vertex_node,
     std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> predicates, const TableStatisticsCache& statistics_cache) {
-  auto statistics = vertex_node->get_statistics();
+  auto lqp = vertex_node;
 
-  const auto find_column_id = [&](const auto& column_reference) {
-    return vertex_node->find_output_column_id(column_reference);
-  };
-
-  order_predicates(predicates, statistics, cost_model, find_column_id, statistics_cache);
+  order_predicates(predicates, lqp, cost_model, statistics_cache);
 
   auto node_cost = 0.0f;
 
   for (const auto& predicate : predicates) {
-    const auto predicate_estimate = estimate_predicate(*predicate, statistics, cost_model, find_column_id, statistics_cache);
+    const auto predicate_estimate = estimate_predicate(*predicate, lqp, cost_model, statistics_cache);
 
     node_cost += predicate_estimate.cost;
-    statistics = predicate_estimate.statistics;
+    lqp = predicate_estimate.lqp;
   }
 
-  return std::make_shared<JoinPlanVertexNode>(vertex_node, predicates, statistics, node_cost);
+  return std::make_shared<JoinPlanVertexNode>(vertex_node, predicates, statistics_cache.get(lqp), node_cost);
 }
 
 }  // namespace opossum
