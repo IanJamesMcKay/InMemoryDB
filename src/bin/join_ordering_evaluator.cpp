@@ -230,10 +230,11 @@ int main(int argc, char ** argv) {
         const auto lqp_root = LogicalPlanRootNode::make(lqp);
         const auto join_graph = JoinGraph::from_lqp(lqp);
 
+        std::cout << "Cache: " << statistics_cache->hit_count() << "/" << statistics_cache->miss_count() << " -> ";
         DpCcpTopK dp_ccp_top_k{DpSubplanCacheTopK::NO_ENTRY_LIMIT, cost_model, statistics_cache};
-        std::
 
         dp_ccp_top_k(join_graph);
+        std::cout << statistics_cache->hit_count() << "/" << statistics_cache->miss_count() << std::endl;
 
         JoinVertexSet all_vertices{join_graph->vertices.size()};
         all_vertices.flip();

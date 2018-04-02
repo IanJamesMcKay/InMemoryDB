@@ -8,13 +8,23 @@ namespace opossum {
 std::shared_ptr<TableStatistics> TableStatisticsCache::get(const std::shared_ptr<AbstractLQPNode>& lqp) const {
   const auto cache_iter = _cache.find(lqp);
   if (cache_iter != _cache.end()) {
+    ++_hit_count;
     return cache_iter->second;
   }
+  ++_miss_count;
   return lqp->get_statistics();
 }
 
 void TableStatisticsCache::put(const std::shared_ptr<AbstractLQPNode>& lqp, const std::shared_ptr<TableStatistics>& statistics) {
   _cache.emplace(lqp, statistics);
+}
+
+size_t TableStatisticsCache::hit_count() const {
+  return _hit_count;
+}
+
+size_t TableStatisticsCache::miss_count() const {
+  return _miss_count;
 }
 
 size_t TableStatisticsCache::LQPHash::operator()(const std::shared_ptr<AbstractLQPNode>& lqp) const {

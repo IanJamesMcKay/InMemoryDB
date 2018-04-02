@@ -10,7 +10,7 @@ timeout_threshold = 1000 * 1000 * 60 * 60
 
 def fix_gaps(row):
     if row["Duration"] >= timeout_threshold or row["Duration"] == 0:
-        row = float("nan")
+        row[:] = float("nan")
     return row
 
 
@@ -62,19 +62,22 @@ if __name__ == "__main__":
     else:
         file_names = sys.argv[1]
 
+    #file_names = ["debug-TPCH-5-CostModelNaive-sf0.010000.csv"]
+
     for file_name in file_names:
 
         try:
             df = pandas.read_csv(file_name, sep=",")
-        except Exception:
-            print("Couldn't parse {}".format(file_name))
+        except Exception as e:
+            print("Couldn't parse {}: {}".format(file_name, e))
             continue
 
         durations = df["Duration"].tolist()
-        _, inversions = sort_and_count(df["Duration"].tolist())
+        _, inversions = sort_and_count(durations)
         print("{}/{} inversions in {}".format(inversions, num_pairs(len(durations)), file_name))
 
-        df = df.apply(fix_gaps, axis=1)
+        if df.shape[0] > 1:
+            df = df.apply(fix_gaps, axis=1, reduce=False)
 
         last_valid_row_idx = 0
         for idx, row in df.iterrows():
