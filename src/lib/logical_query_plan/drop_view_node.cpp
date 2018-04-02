@@ -5,6 +5,8 @@
 #include <sstream>
 #include <string>
 
+#include "boost/functional/hash.hpp"
+
 #include "utils/assert.hpp"
 
 namespace opossum {
@@ -40,6 +42,11 @@ bool DropViewNode::shallow_equals(const AbstractLQPNode& rhs) const {
   const auto& drop_view_node = static_cast<const DropViewNode&>(rhs);
 
   return _view_name == drop_view_node._view_name;
+}
+
+size_t DropViewNode::_on_hash() const {
+  auto hash = boost::hash_value(_view_name);
+  return hash;
 }
 
 }  // namespace opossum

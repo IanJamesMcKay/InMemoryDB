@@ -23,6 +23,7 @@ class LimitNode : public EnableMakeForLQPNode<LimitNode>, public AbstractLQPNode
   std::shared_ptr<AbstractLQPNode> _deep_copy_impl(
       const std::shared_ptr<AbstractLQPNode>& copied_left_input,
       const std::shared_ptr<AbstractLQPNode>& copied_right_input) const override;
+  size_t _on_hash() const override;
 
  private:
   const size_t _num_rows;

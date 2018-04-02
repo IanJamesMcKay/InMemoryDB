@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "boost/functional/hash.hpp"
+
 #include "constant_mappings.hpp"
 #include "utils/assert.hpp"
 #include "optimizer/table_statistics.hpp"
@@ -65,6 +67,11 @@ bool UnionNode::shallow_equals(const AbstractLQPNode& rhs) const {
   const auto& union_node = static_cast<const UnionNode&>(rhs);
 
   return _union_mode == union_node._union_mode;
+}
+
+size_t UnionNode::_on_hash() const {
+  auto hash = boost::hash_value(static_cast<size_t>(_union_mode));
+  return hash;
 }
 
 }  // namespace opossum

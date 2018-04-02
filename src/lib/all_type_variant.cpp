@@ -2,6 +2,9 @@
 
 #include <cmath>
 
+#include "boost/functional/hash.hpp"
+#include "boost/lexical_cast.hpp"
+
 namespace opossum {
 
 bool all_type_variant_near(const AllTypeVariant& lhs, const AllTypeVariant& rhs, double max_abs_error) {
@@ -17,3 +20,14 @@ bool all_type_variant_near(const AllTypeVariant& lhs, const AllTypeVariant& rhs,
 }
 
 }  // namespace opossum
+
+
+namespace std {
+
+size_t hash<opossum::AllTypeVariant>::operator()(const opossum::AllTypeVariant& all_type_variant) const {
+  auto hash = all_type_variant.type().hash_code();
+  boost::hash_combine(hash, boost::hash_value(boost::lexical_cast<std::string>(all_type_variant)));
+  return hash;
+}
+
+}  // namespace std

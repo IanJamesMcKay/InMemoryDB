@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "boost/functional/hash.hpp"
+
 #include "utils/assert.hpp"
 
 namespace opossum {
@@ -35,6 +37,11 @@ bool InsertNode::shallow_equals(const AbstractLQPNode& rhs) const {
   const auto& insert_node = static_cast<const InsertNode&>(rhs);
 
   return _table_name == insert_node._table_name;
+}
+
+size_t InsertNode::_on_hash() const {
+  auto hash = boost::hash_value(_table_name);
+  return hash;
 }
 
 }  // namespace opossum

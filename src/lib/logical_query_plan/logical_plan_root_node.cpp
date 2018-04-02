@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "boost/functional/hash.hpp"
+
 #include "abstract_lqp_node.hpp"
 
 namespace opossum {

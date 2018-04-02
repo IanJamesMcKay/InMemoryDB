@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "boost/functional/hash.hpp"
+
 #include "types.hpp"
 #include "utils/assert.hpp"
 

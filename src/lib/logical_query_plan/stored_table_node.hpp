@@ -44,6 +44,7 @@ class StoredTableNode : public EnableMakeForLQPNode<StoredTableNode>, public Abs
   void _on_input_changed() override;
   std::optional<QualifiedColumnName> _resolve_local_table_name(
       const QualifiedColumnName& qualified_column_name) const override;
+  size_t _on_hash() const override;
 
  private:
   const std::string _table_name;

@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "boost/functional/hash.hpp"
+
 #include "lqp_expression.hpp"
 #include "types.hpp"
 #include "utils/assert.hpp"
@@ -123,6 +125,17 @@ void AggregateNode::_on_input_changed() {
   DebugAssert(!right_input(), "AggregateNode can't have a right input.");
 
   _output_column_names.reset();
+}
+
+size_t AggregateNode::_on_hash() const {
+  auto hash = boost::hash_value(size_t{0});
+  for (const auto& expression : _aggregate_expressions) {
+    boost::hash_combine(hash, expression->hash());
+  }
+  for (const auto& groupby_column_reference : _groupby_column_references) {
+    boost::hash_combine(hash, std::hash<LQPColumnReference>{}(groupby_column_reference));
+  }
+  return hash;
 }
 
 const std::vector<std::string>& AggregateNode::output_column_names() const {

@@ -5,6 +5,8 @@
 #include <sstream>
 #include <string>
 
+#include "boost/functional/hash.hpp"
+
 #include "utils/assert.hpp"
 
 namespace opossum {
@@ -34,6 +36,11 @@ bool DeleteNode::shallow_equals(const AbstractLQPNode& rhs) const {
   const auto& delete_node = static_cast<const DeleteNode&>(rhs);
 
   return _table_name == delete_node._table_name;
+}
+
+size_t DeleteNode::_on_hash() const {
+  auto hash = boost::hash_value(_table_name);
+  return hash;
 }
 
 }  // namespace opossum

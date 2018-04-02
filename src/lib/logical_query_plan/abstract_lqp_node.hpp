@@ -306,6 +306,8 @@ class AbstractLQPNode : public std::enable_shared_from_this<AbstractLQPNode>, pr
   find_first_subplan_mismatch(const std::shared_ptr<const AbstractLQPNode>& rhs) const;
   // @}
 
+  size_t hash() const;
+
  protected:
   // Holds the actual implementation of deep_copy
   using PreviousCopiesMap =
@@ -326,6 +328,8 @@ class AbstractLQPNode : public std::enable_shared_from_this<AbstractLQPNode>, pr
    * output_column_names())
    */
   virtual void _on_input_changed() {}
+
+  virtual size_t _on_hash() const;
 
   // Used to easily differentiate between node types without pointer casts.
   LQPNodeType _type;
@@ -370,6 +374,7 @@ class AbstractLQPNode : public std::enable_shared_from_this<AbstractLQPNode>, pr
   std::vector<std::weak_ptr<AbstractLQPNode>> _outputs;
   std::array<std::shared_ptr<AbstractLQPNode>, 2> _inputs;
   mutable std::shared_ptr<TableStatistics> _statistics;
+  mutable std::optional<size_t> _hash;
 
   /**
    * Reset statistics, call _on_input_changed() for node specific behaviour and call _input_changed() on outputs

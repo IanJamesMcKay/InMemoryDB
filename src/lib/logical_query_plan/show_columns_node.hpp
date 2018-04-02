@@ -24,6 +24,7 @@ class ShowColumnsNode : public EnableMakeForLQPNode<ShowColumnsNode>, public Abs
   std::shared_ptr<AbstractLQPNode> _deep_copy_impl(
       const std::shared_ptr<AbstractLQPNode>& copied_left_input,
       const std::shared_ptr<AbstractLQPNode>& copied_right_input) const override;
+  size_t _on_hash() const override;
 
  private:
   const std::string _table_name;

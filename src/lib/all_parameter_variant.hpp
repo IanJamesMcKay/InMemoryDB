@@ -57,3 +57,12 @@ bool all_parameter_variant_near(const AllParameterVariant& lhs, const AllParamet
                                 double max_abs_error = 0.001);
 
 }  // namespace opossum
+
+namespace std {
+
+template<>
+struct hash<opossum::AllParameterVariant> {
+  size_t operator()(const opossum::AllParameterVariant& all_parameter_variant) const;
+};
+
+}  // namespace std

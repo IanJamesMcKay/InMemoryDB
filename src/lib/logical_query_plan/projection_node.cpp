@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "boost/functional/hash.hpp"
+
 #include "lqp_expression.hpp"
 #include "types.hpp"
 #include "utils/assert.hpp"
@@ -160,6 +162,14 @@ void ProjectionNode::_update_output() const {
 
     column_id++;
   }
+}
+
+size_t ProjectionNode::_on_hash() const {
+  auto hash = boost::hash_value(size_t{0});
+  for (const auto& column_expression : _column_expressions) {
+    boost::hash_combine(hash, column_expression->hash());
+  }
+  return hash;
 }
 
 }  // namespace opossum

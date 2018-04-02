@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "boost/functional/hash.hpp"
+
 #include "utils/assert.hpp"
 
 namespace opossum {
@@ -25,4 +27,8 @@ bool LimitNode::shallow_equals(const AbstractLQPNode& rhs) const {
   return _num_rows == limit_node._num_rows;
 }
 
+size_t LimitNode::_on_hash() const {
+  auto hash = boost::hash_value(_num_rows);
+  return hash;
+}
 }  // namespace opossum

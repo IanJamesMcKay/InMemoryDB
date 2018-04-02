@@ -11,16 +11,17 @@ class AbstractLQPNode;
 class AbstractJoinPlanPredicate;
 class JoinPlanJoinNode;
 class JoinPlanVertexNode;
+class TableStatisticsCache;
 
 std::shared_ptr<JoinPlanJoinNode> build_join_plan_join_node(
     const AbstractCostModel& cost_model,
     const std::shared_ptr<const AbstractJoinPlanNode>& left_child,
     const std::shared_ptr<const AbstractJoinPlanNode>& right_child,
-    const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates);
+    const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates, const TableStatisticsCache& statistics_cache);
 
 std::shared_ptr<JoinPlanVertexNode> build_join_plan_vertex_node(
     const AbstractCostModel& cost_model,
     const std::shared_ptr<AbstractLQPNode>& vertex_node,
-    std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> predicates);
+    std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> predicates, const TableStatisticsCache& statistics_cache);
 
 }  // namespace opossum

@@ -2,6 +2,8 @@
 
 #include <optional>
 
+#include "boost/functional/hash.hpp"
+
 #include "abstract_expression.hpp"
 #include "logical_query_plan/lqp_column_reference.hpp"
 
@@ -31,6 +33,8 @@ class LQPExpression : public AbstractExpression<LQPExpression> {
                         bool is_root = true) const override;
 
   bool operator==(const LQPExpression& other) const;
+
+  size_t hash() const override;
 
  protected:
   void _deep_copy_impl(const std::shared_ptr<LQPExpression>& copy) const override;
