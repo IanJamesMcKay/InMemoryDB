@@ -189,9 +189,9 @@ int main(int argc, char ** argv) {
     out() << "-- Query: " << query_name << std::endl;
 
     const auto evaluation_name =
-    (IS_DEBUG ? "debug"s : "release"s) + "-" + query_name + "-sf" + std::to_string(scale_factor);
+    (IS_DEBUG ? "debug"s : "release"s) + "-" + query_name + "-" + cost_model_str + "-sf" + std::to_string(scale_factor);
 
-    auto plan_durations = std::vector<std::chrono::microseconds>();
+    auto plan_durations = std::vector<long>();
     auto plan_cost_samples = std::vector<PlanCostSample>();
 
     auto pipeline_statement = SQL{sql}.disable_mvcc().pipeline_statement();
@@ -242,12 +242,12 @@ int main(int argc, char ** argv) {
 
       if (!transaction_context->commit(TransactionPhaseSwitch::Lenient)) {
         out() << "-- Query took too long" << std::endl;
-        plan_durations.emplace_back(0);
+        plan_durations.emplace_back(std::numeric_limits<long>::max());
         plan_cost_samples.emplace_back(PlanCostSample{});
       } else {
         const auto plan_duration = timer.lap();
 
-        plan_durations.emplace_back(plan_duration);
+        plan_durations.emplace_back(plan_duration.count());
 
         const auto operators = flatten_pqp(pqp);
         plan_cost_samples.emplace_back(create_plan_cost_sample(*cost_model, operators));
@@ -275,7 +275,7 @@ int main(int argc, char ** argv) {
       auto csv = std::ofstream{evaluation_name + ".csv"};
       csv << "Idx,Duration,EstCost,ReEstCost,AimCost,AbsEstCostError,AbsReEstCostError" << "\n";
       for (auto plan_idx = size_t{0}; plan_idx < plan_durations.size(); ++plan_idx) {
-        csv << plan_idx << "," << plan_durations[plan_idx].count() << "," << plan_cost_samples[plan_idx] << "\n";
+        csv << plan_idx << "," << plan_durations[plan_idx] << "," << plan_cost_samples[plan_idx] << "\n";
       }
       csv.close();
 
