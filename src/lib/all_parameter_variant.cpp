@@ -1,6 +1,7 @@
 #include "all_parameter_variant.hpp"
 
 #include <boost/lexical_cast.hpp>
+#include <boost/functional/hash.hpp>
 #include <string>
 
 #include "all_type_variant.hpp"
