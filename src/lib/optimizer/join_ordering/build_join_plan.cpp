@@ -30,19 +30,10 @@ JoinPlanNode add_predicate(const AbstractJoinPlanPredicate& predicate,
                                                atomic_predicate.right_operand,
                                                join_plan_node.lqp);
 
-      if (is_lqp_column_reference(atomic_predicate.right_operand)) {
-        const auto right_operand_column_reference = boost::get<LQPColumnReference>(atomic_predicate.right_operand);
-        const auto right_column_id = join_plan_node.lqp->find_output_column_id(right_operand_column_reference);
-        DebugAssert(right_column_id, "Couldn't resolve " + right_operand_column_reference.description());
+      const auto predicate_cost = cost_model.get_node_cost(*join_plan_node.lqp);
+      Assert(predicate_cost, "Couldn't cost predicate");
 
-        join_plan_node.plan_cost += cost_model.cost_table_scan(statistics_cache.get(join_plan_node.lqp), *left_column_id, atomic_predicate.predicate_condition, *right_column_id);
-      } else {
-        Assert(atomic_predicate.right_operand.type() == typeid(AllTypeVariant), "Unexpected type");
-
-        const auto right_operand_value = boost::get<AllTypeVariant>(atomic_predicate.right_operand);
-
-        join_plan_node.plan_cost += cost_model.cost_table_scan(statistics_cache.get(join_plan_node.lqp), *left_column_id, atomic_predicate.predicate_condition, right_operand_value);
-      }
+      join_plan_node.plan_cost += *predicate_cost;
 
       return join_plan_node;
     }
@@ -59,10 +50,12 @@ JoinPlanNode add_predicate(const AbstractJoinPlanPredicate& predicate,
           auto right_operand_join_plan = add_predicate(*logical_operator_predicate.right_operand, join_plan_node, cost_model, statistics_cache);
           const auto right_operand_added_cost = right_operand_join_plan.plan_cost - join_plan_node.plan_cost;
 
-          auto union_costs = cost_model.cost_union_positions(statistics_cache.get(left_operand_join_plan.lqp), statistics_cache.get(right_operand_join_plan.lqp));
-
           join_plan_node.lqp = UnionNode::make(UnionMode::Positions, left_operand_join_plan.lqp, right_operand_join_plan.lqp);
-          join_plan_node.plan_cost += union_costs + left_operand_added_cost + right_operand_added_cost;
+
+          const auto union_cost = cost_model.get_node_cost(*join_plan_node.lqp);
+          Assert(union_cost, "Couldn't cost union");
+
+          join_plan_node.plan_cost += *union_cost + left_operand_added_cost + right_operand_added_cost;
           return join_plan_node;
         }
       }
@@ -146,29 +139,19 @@ JoinPlanNode build_join_plan_join_node(
   // Compute cost&statistics of primary join predicate, if it exists. Otherwise assume a cross join.
   if (!primary_join_predicate) {
     join_plan_node.lqp = JoinNode::make(JoinMode::Cross, left_input.lqp, right_input.lqp);
-    join_plan_node.plan_cost += cost_model.cost_product(left_statistics, right_statistics);
   } else {
-    const auto left_column_id = left_input.lqp->find_output_column_id(primary_join_predicate->left_operand);
-    DebugAssert(left_column_id, "Couldn't resolve " + primary_join_predicate->left_operand.description());
-
     const auto right_operand_column_reference = boost::get<LQPColumnReference>(primary_join_predicate->right_operand);
-    const auto right_column_id = right_input.lqp->find_output_column_id(right_operand_column_reference);
-    DebugAssert(right_column_id, "Couldn't resolve " + right_operand_column_reference.description());
 
-    // If scan type is equals, assume HashJoin can be used, otherwise its SortMergeJoin
-    if (primary_join_predicate->predicate_condition == PredicateCondition::Equals) {
-      join_plan_node.plan_cost +=
-          cost_model.cost_join_hash(left_statistics, right_statistics, JoinMode::Inner,
-                                    {*left_column_id, *right_column_id}, primary_join_predicate->predicate_condition);
-    } else {
-      join_plan_node.plan_cost += cost_model.cost_join_sort_merge(left_statistics, right_statistics, JoinMode::Inner,
-                                                   {*left_column_id, *right_column_id},
-                                                   primary_join_predicate->predicate_condition);
-    }
-
-    join_plan_node.lqp = JoinNode::make(JoinMode::Inner, std::make_pair(primary_join_predicate->left_operand, right_operand_column_reference), primary_join_predicate->predicate_condition, left_input.lqp, right_input.lqp);
+    join_plan_node.lqp = JoinNode::make(JoinMode::Inner,
+                                        std::make_pair(primary_join_predicate->left_operand,
+                                                       right_operand_column_reference),
+                                        primary_join_predicate->predicate_condition, left_input.lqp, right_input.lqp);
   }
 
+  const auto join_cost = cost_model.get_node_cost(*join_plan_node.lqp);
+  Assert(join_cost, "Couldn't cost join");
+
+  join_plan_node.plan_cost += *join_cost;
   order_predicates(secondary_predicates, join_plan_node, cost_model, statistics_cache);
 
   // Apply remaining predicates

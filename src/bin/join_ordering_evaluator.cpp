@@ -184,8 +184,7 @@ int main(int argc, char ** argv) {
     if (cost_model_str == "naive") {
       out() << "-- Using CostModelNaive" << std::endl;
       cost_models.emplace_back(std::make_shared<CostModelNaive>());
-    }
-    if (cost_model_str == "segmented") {
+    } else if (cost_model_str == "segmented") {
       out() << "-- Using CostModelSegmented" << std::endl;
       cost_models.emplace_back(std::make_shared<CostModelSegmented>());
     } else {
@@ -245,7 +244,7 @@ int main(int argc, char ** argv) {
         auto current_plan_idx = 0;
 
         for (const auto &join_plan : join_plans) {
-          out() << "-- Plan Index: " << current_plan_idx << std::endl;
+          out() << "-- Plan " << current_plan_idx << ", estimated cost: " << join_plan.plan_cost << std::endl;
 
           const auto join_ordered_sub_lqp = join_plan.lqp;
           for (const auto &parent_relation : join_graph->output_relations) {
@@ -284,11 +283,14 @@ int main(int argc, char ** argv) {
             plan_durations.emplace_back(plan_duration.count());
 
             const auto operators = flatten_pqp(pqp);
-            plan_cost_samples.emplace_back(create_plan_cost_sample(*cost_model, operators));
+            const auto plan_cost_sample = create_plan_cost_sample(*cost_model, operators);
+            plan_cost_samples.emplace_back(plan_cost_sample);
 
-            for (const auto& op : operators) {
-              if (op->lqp_node()) {
-                statistics_cache->put(op->lqp_node(), std::make_shared<TableStatistics>(std::const_pointer_cast<Table>(op->get_output())));
+            if (cache_statistics && query_run_idx == 0) {
+              for (const auto& op : operators) {
+                if (op->lqp_node()) {
+                  statistics_cache->put(op->lqp_node(), std::make_shared<TableStatistics>(std::const_pointer_cast<Table>(op->get_output())));
+                }
               }
             }
 
