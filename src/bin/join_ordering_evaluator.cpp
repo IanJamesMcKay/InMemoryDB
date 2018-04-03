@@ -230,7 +230,7 @@ int main(int argc, char ** argv) {
         const auto lqp_root = LogicalPlanRootNode::make(lqp);
         const auto join_graph = JoinGraph::from_lqp(lqp);
 
-        std::cout << "Cache: " << statistics_cache->hit_count() << "/" << statistics_cache->miss_count() << " -> ";
+        out() << "-- StatisticsCache: " << statistics_cache->hit_count() << "/" << statistics_cache->miss_count() << " -> ";
         DpCcpTopK dp_ccp_top_k{DpSubplanCacheTopK::NO_ENTRY_LIMIT, cost_model, statistics_cache};
 
         dp_ccp_top_k(join_graph);
@@ -261,7 +261,9 @@ int main(int argc, char ** argv) {
             const auto seconds = *timeout_seconds;
             std::thread timeout_thread([transaction_context, seconds]() {
               std::this_thread::sleep_for(std::chrono::seconds(seconds));
-              transaction_context->rollback(TransactionPhaseSwitch::Lenient);
+              if (transaction_context->rollback(TransactionPhaseSwitch::Lenient)) {
+                out() << "-- Query timeout signalled" << std::endl;
+              }
             });
             timeout_thread.detach();
           }
@@ -273,7 +275,7 @@ int main(int argc, char ** argv) {
           CurrentScheduler::schedule_and_wait_for_tasks(plan.create_tasks());
 
           if (!transaction_context->commit(TransactionPhaseSwitch::Lenient)) {
-            out() << "-- Query took too long" << std::endl;
+            out() << "-- Query timeout accepted" << std::endl;
             plan_durations.emplace_back(std::numeric_limits<long>::max());
             plan_cost_samples.emplace_back(PlanCostSample{});
           } else {
