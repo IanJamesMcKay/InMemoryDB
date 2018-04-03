@@ -22,9 +22,6 @@ JoinPlanNode add_predicate(const AbstractJoinPlanPredicate& predicate,
     case JoinPlanPredicateType::Atomic: {
       const auto& atomic_predicate = static_cast<const JoinPlanAtomicPredicate&>(predicate);
 
-      const auto left_column_id = join_plan_node.lqp->find_output_column_id(atomic_predicate.left_operand);
-      DebugAssert(left_column_id, "Couldn't resolve " + atomic_predicate.left_operand.description());
-
       join_plan_node.lqp = PredicateNode::make(atomic_predicate.left_operand,
                                                atomic_predicate.predicate_condition,
                                                atomic_predicate.right_operand,
