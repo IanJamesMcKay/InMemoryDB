@@ -86,7 +86,7 @@ if __name__ == "__main__":
         df = df.iloc[:last_valid_row_idx + 1,:]
 
         for y_idx in range(1, df.shape[1]):
-            plt.semilogy(df.iloc[:,y_idx], linewidth=0.6, label=df.columns[y_idx])
+            plt.plot(df.iloc[:,y_idx], linewidth=0.6, label=df.columns[y_idx])
 
 
         plt.legend()

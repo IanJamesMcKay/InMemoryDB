@@ -16,6 +16,7 @@ std::shared_ptr<TableStatistics> TableStatisticsCache::get(const std::shared_ptr
 }
 
 void TableStatisticsCache::put(const std::shared_ptr<AbstractLQPNode>& lqp, const std::shared_ptr<TableStatistics>& statistics) {
+  statistics->column_statistics(); // Trigger generation, uuggh.
   _cache.emplace(lqp, statistics);
 }
 

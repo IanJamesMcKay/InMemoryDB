@@ -63,11 +63,17 @@ class ColumnStatistics : public BaseColumnStatistics {
 
   std::shared_ptr<BaseColumnStatistics> clone() const override;
 
- protected:
+  void generate() override {
+    distinct_count();
+    _get_or_calculate_max();
+    _get_or_calculate_min();
+  }
+
   std::ostream& _print_to_stream(std::ostream& os) const override;
   ColumnType _get_or_calculate_min() const;
   ColumnType _get_or_calculate_max() const;
 
+ protected:
   /**
    * Returns a column statistics identical to this which does not have null values.
    * @return shared pointer of this or copy of this, if column has null values.

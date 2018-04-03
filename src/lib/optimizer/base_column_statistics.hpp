@@ -85,6 +85,8 @@ class BaseColumnStatistics : public std::enable_shared_from_this<BaseColumnStati
    */
   virtual float distinct_count() const = 0;
 
+  virtual void generate() = 0;
+
   /**
    * Copies the derived object and returns a base class pointer to it.
    */
