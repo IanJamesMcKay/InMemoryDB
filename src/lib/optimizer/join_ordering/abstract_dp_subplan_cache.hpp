@@ -1,6 +1,10 @@
 #pragma once
 
+#include <optional>
+
 #include "boost/dynamic_bitset.hpp"
+
+#include "join_plan_node.hpp"
 
 namespace opossum {
 
@@ -12,9 +16,9 @@ class AbstractDpSubplanCache {
 
   virtual void clear() = 0;
 
-  virtual std::shared_ptr<const AbstractJoinPlanNode> get_best_plan(
+  virtual std::optional<JoinPlanNode> get_best_plan(
       const boost::dynamic_bitset<>& vertex_set) const = 0;
   virtual void cache_plan(const boost::dynamic_bitset<>& vertex_set,
-                          const std::shared_ptr<const AbstractJoinPlanNode>& plan) = 0;
+                          const JoinPlanNode& plan) = 0;
 };
 }

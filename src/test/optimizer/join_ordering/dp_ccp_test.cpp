@@ -76,7 +76,7 @@ TEST_P(DpCcpSqlToPredicatesTest, PreservesPredicates) {
 
   const auto join_plan = DpCcp{std::make_shared<CostModelNaive>()}(unoptimized_join_graph);
 
-  const auto optimized_lqp = join_plan->to_lqp();
+  const auto optimized_lqp = join_plan.lqp;
   const auto optimized_join_graph = JoinGraphBuilder{}(unoptimized_lqp);
   EXPECT_TRUE(_join_graph_has_predicates(*optimized_join_graph, sql_and_predicates.predicates));
 }

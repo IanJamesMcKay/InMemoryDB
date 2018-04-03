@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include "join_plan_node.hpp"
+
 namespace opossum {
 
 class AbstractJoinPlanNode;
@@ -14,7 +16,7 @@ class AbstractJoinOrderingAlgorithm {
  public:
   virtual ~AbstractJoinOrderingAlgorithm() = default;
 
-  virtual std::shared_ptr<const AbstractJoinPlanNode> operator()(
+  virtual JoinPlanNode operator()(
       const std::shared_ptr<const JoinGraph>& join_graph) = 0;
 };
 

@@ -198,6 +198,8 @@ set(
     optimizer/join_ordering/cost.hpp
     optimizer/join_ordering/enumerate_ccp.cpp
     optimizer/join_ordering/enumerate_ccp.hpp
+    optimizer/join_ordering/join_plan_node.cpp
+    optimizer/join_ordering/join_plan_node.hpp
     optimizer/join_ordering/join_edge.cpp
     optimizer/join_ordering/join_edge.hpp
     optimizer/join_ordering/join_graph_builder.cpp

@@ -15,12 +15,12 @@ class DpSubplanCacheBest : public AbstractDpSubplanCache {
  public:
   void clear() override;
 
-  std::shared_ptr<const AbstractJoinPlanNode> get_best_plan(const boost::dynamic_bitset<>& vertex_set) const override;
+  std::optional<JoinPlanNode> get_best_plan(const boost::dynamic_bitset<>& vertex_set) const override;
   void cache_plan(const boost::dynamic_bitset<>& vertex_set,
-                  const std::shared_ptr<const AbstractJoinPlanNode>& plan) override;
+                  const JoinPlanNode& plan) override;
 
  private:
-  mutable std::map<boost::dynamic_bitset<>, std::shared_ptr<const AbstractJoinPlanNode>> _plan_by_vertex_set;
+  mutable std::map<boost::dynamic_bitset<>, JoinPlanNode> _plan_by_vertex_set;
 };
 
 }  // namespace opossum

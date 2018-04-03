@@ -44,9 +44,10 @@ void DpCcp::_on_execute() {
 
     const auto best_plan_left = _subplan_cache->get_best_plan(csg_cmp_pair.first);
     const auto best_plan_right = _subplan_cache->get_best_plan(csg_cmp_pair.second);
+    DebugAssert(best_plan_left && best_plan_right, "Subplan missing");
+
     const auto predicates = _join_graph->find_predicates(csg_cmp_pair.first, csg_cmp_pair.second);
-    const auto current_plan = build_join_plan_join_node(*_cost_model, best_plan_left, best_plan_right, predicates, *_statistics_cache);
-    const auto current_best_plan = _subplan_cache->get_best_plan(csg_cmp_pair.first | csg_cmp_pair.second);
+    const auto current_plan = build_join_plan_join_node(*_cost_model, *best_plan_left, *best_plan_right, predicates, *_statistics_cache);
 
 #if VERBOSE
     std::cout << "Cost=" << current_plan->cost() << std::endl;

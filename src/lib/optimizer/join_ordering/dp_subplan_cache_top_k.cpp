@@ -14,16 +14,17 @@ const DpSubplanCacheTopK::JoinPlanSet& DpSubplanCacheTopK::get_best_plans(
   return _plans_by_vertex_set[vertex_set];
 }
 
-std::shared_ptr<const AbstractJoinPlanNode> DpSubplanCacheTopK::get_best_plan(
+std::optional<JoinPlanNode> DpSubplanCacheTopK::get_best_plan(
     const boost::dynamic_bitset<>& vertex_set) const {
   const auto plans = get_best_plans(vertex_set);
-  return plans.empty() ? nullptr : *plans.begin();
+  if (plans.empty()) return std::nullopt;
+  return *plans.begin();
 }
 
 void DpSubplanCacheTopK::clear() { _plans_by_vertex_set.clear(); }
 
 void DpSubplanCacheTopK::cache_plan(const boost::dynamic_bitset<>& vertex_set,
-                                    const std::shared_ptr<const AbstractJoinPlanNode>& plan) {
+                                    const JoinPlanNode& plan) {
   auto& plans = _plans_by_vertex_set[vertex_set];
   plans.insert(plan);
   if (plans.size() > _max_entry_count_per_set) {
@@ -32,11 +33,11 @@ void DpSubplanCacheTopK::cache_plan(const boost::dynamic_bitset<>& vertex_set,
   }
 }
 
-bool DpSubplanCacheTopK::JoinPlanCostCompare::operator()(const std::shared_ptr<const AbstractJoinPlanNode>& lhs,
-                                                         const std::shared_ptr<const AbstractJoinPlanNode>& rhs) const {
-  if (lhs->plan_cost() == rhs->plan_cost()) return lhs.get() < rhs.get();
+bool DpSubplanCacheTopK::JoinPlanCostCompare::operator()(const JoinPlanNode& lhs,
+                                                         const JoinPlanNode& rhs) const {
+  if (lhs.plan_cost == rhs.plan_cost) return lhs.lqp.get() < rhs.lqp.get();
 
-  return lhs->plan_cost() < rhs->plan_cost();
+  return lhs.plan_cost < rhs.plan_cost;
 }
 
 }  // namespace opossum

@@ -12,7 +12,7 @@ AbstractDpAlgorithm::AbstractDpAlgorithm(const std::shared_ptr<AbstractDpSubplan
 const std::shared_ptr<const TableStatisticsCache>& statistics_cache)
     : _subplan_cache(subplan_cache), _cost_model(cost_model), _statistics_cache(statistics_cache) {}
 
-std::shared_ptr<const AbstractJoinPlanNode> AbstractDpAlgorithm::operator()(
+JoinPlanNode AbstractDpAlgorithm::operator()(
     const std::shared_ptr<const JoinGraph>& join_graph) {
   _subplan_cache->clear();
   _join_graph = join_graph;
@@ -41,7 +41,7 @@ std::shared_ptr<const AbstractJoinPlanNode> AbstractDpAlgorithm::operator()(
   const auto best_plan = _subplan_cache->get_best_plan(all_vertices_set);
   Assert(best_plan, "No plan for all vertices generated. Maybe JoinGraph isn't connected?");
 
-  return best_plan;
+  return *best_plan;
 }
 
 }  // namespace opossum

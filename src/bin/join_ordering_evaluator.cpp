@@ -247,7 +247,7 @@ int main(int argc, char ** argv) {
         for (const auto &join_plan : join_plans) {
           out() << "-- Plan Index: " << current_plan_idx << std::endl;
 
-          const auto join_ordered_sub_lqp = join_plan->to_lqp();
+          const auto join_ordered_sub_lqp = join_plan.lqp;
           for (const auto &parent_relation : join_graph->output_relations) {
             parent_relation.output->set_input(parent_relation.input_side, join_ordered_sub_lqp);
           }

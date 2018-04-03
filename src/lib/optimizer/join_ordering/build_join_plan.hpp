@@ -3,6 +3,8 @@
 #include <memory>
 #include <vector>
 
+#include "join_plan_node.hpp"
+
 namespace opossum {
 
 class AbstractCostModel;
@@ -13,13 +15,13 @@ class JoinPlanJoinNode;
 class JoinPlanVertexNode;
 class TableStatisticsCache;
 
-std::shared_ptr<JoinPlanJoinNode> build_join_plan_join_node(
+JoinPlanNode build_join_plan_join_node(
     const AbstractCostModel& cost_model,
-    const std::shared_ptr<const AbstractJoinPlanNode>& left_child,
-    const std::shared_ptr<const AbstractJoinPlanNode>& right_child,
+    const JoinPlanNode& left_input,
+    const JoinPlanNode& right_input,
     const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates, const TableStatisticsCache& statistics_cache);
 
-std::shared_ptr<JoinPlanVertexNode> build_join_plan_vertex_node(
+JoinPlanNode build_join_plan_vertex_node(
     const AbstractCostModel& cost_model,
     const std::shared_ptr<AbstractLQPNode>& vertex_node,
     std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> predicates, const TableStatisticsCache& statistics_cache);

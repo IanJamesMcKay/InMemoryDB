@@ -9,7 +9,8 @@ std::shared_ptr<TableStatistics> TableStatisticsCache::get(const std::shared_ptr
   const auto cache_iter = _cache.find(lqp);
   if (cache_iter != _cache.end()) {
     ++_hit_count;
-    return cache_iter->second;
+    const auto table_statistics = cache_iter->second;
+    lqp->set_statistics(table_statistics);
   }
   ++_miss_count;
   return lqp->get_statistics();

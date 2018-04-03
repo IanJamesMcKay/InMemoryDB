@@ -24,7 +24,7 @@ bool JoinOrderingRule::apply_to(const std::shared_ptr<AbstractLQPNode>& root) {
   }
 
   const auto join_plan = (*_join_ordering_algorithm)(join_graph);
-  const auto lqp = join_plan->to_lqp();
+  const auto lqp = join_plan.lqp;
 
   for (const auto& parent_relation : join_graph->output_relations) {
     parent_relation.output->set_input(parent_relation.input_side, lqp);
