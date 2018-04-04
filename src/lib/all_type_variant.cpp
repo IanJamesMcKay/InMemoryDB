@@ -26,7 +26,7 @@ namespace std {
 
 size_t hash<opossum::AllTypeVariant>::operator()(const opossum::AllTypeVariant& all_type_variant) const {
   auto hash = all_type_variant.type().hash_code();
-  boost::hash_combine(hash, boost::hash_value(boost::lexical_cast<std::string>(all_type_variant)));
+  boost::hash_combine(hash, boost::apply_visitor([](const auto& value) { return std::hash<std::decay_t<decltype(value)>>{}(value); }, all_type_variant));
   return hash;
 }
 

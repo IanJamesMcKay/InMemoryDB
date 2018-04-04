@@ -107,12 +107,6 @@ const std::optional<PredicateCondition>& JoinNode::predicate_condition() const {
 
 JoinMode JoinNode::join_mode() const { return _join_mode; }
 
-std::optional<JoinOperatorImplementation> JoinNode::implementation() const { return _implementation; }
-
-void JoinNode::set_implementation(const std::optional<JoinOperatorImplementation>& implementation) {
-  _implementation = implementation;
-}
-
 std::string JoinNode::get_verbose_column_name(ColumnID column_id) const {
   Assert(left_input() && right_input(), "Can't generate column names without inputs being set");
 
@@ -139,12 +133,21 @@ void JoinNode::_on_input_changed() { _output_column_names.reset(); }
 
 size_t JoinNode::_on_hash() const {
   auto hash = boost::hash_value(_join_mode);
+
   if (_join_column_references) {
-    boost::hash_combine(hash, std::hash<decltype(_join_column_references->first)>{}(_join_column_references->first));
-    boost::hash_combine(hash, std::hash<decltype(_join_column_references->second)>{}(_join_column_references->second));
+    boost::hash_combine(hash, std::hash<LQPColumnReference>{}(_join_column_references->first));
+    boost::hash_combine(hash, std::hash<LQPColumnReference>{}(_join_column_references->second));
+  } else {
+    boost::hash_combine(hash, 0);
+    boost::hash_combine(hash, 0);
   }
-  if (_predicate_condition) boost::hash_combine(hash, boost::hash_value(static_cast<size_t>(*_predicate_condition)));
-  if (_implementation) boost::hash_combine(hash, boost::hash_value(static_cast<size_t>(*_implementation)));
+
+  if (_predicate_condition) {
+    boost::hash_combine(hash, boost::hash_value(static_cast<size_t>(*_predicate_condition)));
+  } else {
+    boost::hash_combine(hash, 0);
+  }
+
   return hash;
 }
 

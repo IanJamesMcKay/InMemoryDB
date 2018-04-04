@@ -93,6 +93,8 @@ void SQLQueryPlanVisualizer::_add_operator(const std::shared_ptr<const AbstractO
   if (op->lqp_node()) {
     auto& optimizer_info = layout.add_sublayout();
 
+    optimizer_info.add_label("Hash: " + std::to_string(op->lqp_node()->hash()));
+
     auto& comparisons = optimizer_info.add_sublayout();
 
     auto& row_count_info = comparisons.add_sublayout();

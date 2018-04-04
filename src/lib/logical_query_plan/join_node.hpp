@@ -15,9 +15,6 @@ namespace opossum {
 
 using LQPColumnReferencePair = std::pair<LQPColumnReference, LQPColumnReference>;
 
-// The Optimizer might select a preferred Operator for this JoinNode.
-enum class JoinOperatorImplementation { NestedLoop, Hash, SortMerge };
-
 /**
  * This node type is used to represent any type of Join, including cross products.
  * The Optimizer might select a preferred implementation (JoinOperatorImplementation), otherwise the LQPTranslator will
@@ -35,9 +32,6 @@ class JoinNode : public EnableMakeForLQPNode<JoinNode>, public AbstractLQPNode {
   const std::optional<LQPColumnReferencePair>& join_column_references() const;
   const std::optional<PredicateCondition>& predicate_condition() const;
   JoinMode join_mode() const;
-  std::optional<JoinOperatorImplementation> implementation() const;
-
-  void set_implementation(const std::optional<JoinOperatorImplementation>& implementation);
 
   std::string description() const override;
   const std::vector<std::string>& output_column_names() const override;
@@ -62,7 +56,6 @@ class JoinNode : public EnableMakeForLQPNode<JoinNode>, public AbstractLQPNode {
   JoinMode _join_mode;
   std::optional<LQPColumnReferencePair> _join_column_references;
   std::optional<PredicateCondition> _predicate_condition;
-  std::optional<JoinOperatorImplementation> _implementation;
 
   mutable std::optional<std::vector<std::string>> _output_column_names;
 

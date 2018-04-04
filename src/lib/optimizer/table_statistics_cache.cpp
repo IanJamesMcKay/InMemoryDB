@@ -11,6 +11,7 @@ std::shared_ptr<TableStatistics> TableStatisticsCache::get(const std::shared_ptr
     ++_hit_count;
     const auto table_statistics = cache_iter->second;
     lqp->set_statistics(table_statistics);
+    return table_statistics;
   }
   ++_miss_count;
   return lqp->get_statistics();

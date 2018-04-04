@@ -52,3 +52,15 @@ template <>
 struct is_stateless<opossum::NullValue> : mpl::true_ {};
 
 }  // namespace boost
+
+
+namespace std {
+
+template<>
+struct hash<opossum::NullValue> {
+  size_t operator()(const opossum::NullValue& null_value) const {
+    return typeid(opossum::NullValue).hash_code();
+  }
+};
+
+}  // namespace std

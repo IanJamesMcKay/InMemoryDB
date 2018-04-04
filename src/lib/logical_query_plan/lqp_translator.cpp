@@ -243,27 +243,13 @@ std::shared_ptr<AbstractOperator> LQPTranslator::_translate_join_node(
   join_column_ids.first = join_node->left_input()->get_output_column_id(join_node->join_column_references()->first);
   join_column_ids.second = join_node->right_input()->get_output_column_id(join_node->join_column_references()->second);
 
-  if (join_node->implementation()) {
-    switch (*join_node->implementation()) {
-      case JoinOperatorImplementation::NestedLoop:
-        return std::make_shared<JoinNestedLoop>(input_left_operator, input_right_operator, join_node->join_mode(),
-                                                join_column_ids, *(join_node->predicate_condition()));
-      case JoinOperatorImplementation::SortMerge:
-        return std::make_shared<JoinSortMerge>(input_left_operator, input_right_operator, join_node->join_mode(),
-                                               join_column_ids, *(join_node->predicate_condition()));
-      case JoinOperatorImplementation::Hash:
-        return std::make_shared<JoinHash>(input_left_operator, input_right_operator, join_node->join_mode(),
-                                          join_column_ids, *(join_node->predicate_condition()));
-    }
-  } else {
-    if (*join_node->predicate_condition() == PredicateCondition::Equals && join_node->join_mode() != JoinMode::Outer) {
-      return std::make_shared<JoinHash>(input_left_operator, input_right_operator, join_node->join_mode(),
-                                        join_column_ids, *(join_node->predicate_condition()));
-    }
-
-    return std::make_shared<JoinSortMerge>(input_left_operator, input_right_operator, join_node->join_mode(),
-                                           join_column_ids, *(join_node->predicate_condition()));
+  if (*join_node->predicate_condition() == PredicateCondition::Equals && join_node->join_mode() != JoinMode::Outer) {
+    return std::make_shared<JoinHash>(input_left_operator, input_right_operator, join_node->join_mode(),
+                                      join_column_ids, *(join_node->predicate_condition()));
   }
+
+  return std::make_shared<JoinSortMerge>(input_left_operator, input_right_operator, join_node->join_mode(),
+                                         join_column_ids, *(join_node->predicate_condition()));
 }
 
 std::shared_ptr<AbstractOperator> LQPTranslator::_translate_aggregate_node(

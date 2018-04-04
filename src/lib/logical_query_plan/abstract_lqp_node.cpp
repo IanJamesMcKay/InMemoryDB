@@ -520,6 +520,7 @@ size_t AbstractLQPNode::hash() const {
     boost::hash_combine(hash, _on_hash());
     _hash = hash;
   }
+
   return *_hash;
 }
 
