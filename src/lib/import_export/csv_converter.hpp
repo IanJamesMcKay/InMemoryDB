@@ -50,12 +50,10 @@ class CsvConverter : public BaseCsvConverter {
       : _parsed_values(size), _null_values(size, false), _is_nullable(is_nullable), _config(config) {}
 
   void insert(std::string& value, ChunkOffset position) override {
-    if (_is_nullable && value.length() == 0) {
+    if (_is_nullable && (value.length() == 0 || boost::to_lower_copy(value) == ParseConfig::NULL_STRING)) {
       _null_values[position] = true;
       return;
     }
-    Assert(boost::to_lower_copy(value) != ParseConfig::NULL_STRING,
-           "Unquoted null found in CSV file. Either quote it for string literal \"null\" or leave field empty.");
 
     // clang-format off
     if constexpr(std::is_same_v<T, std::string>) {

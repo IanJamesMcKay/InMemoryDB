@@ -2,65 +2,53 @@
 
 #include <memory>
 
-#include "all_parameter_variant.hpp"
 #include "cost.hpp"
-#include "types.hpp"
 
 namespace opossum {
 
 class AbstractLQPNode;
 class AbstractOperator;
-class JoinHash;
-class UnionPositions;
-class Product;
-class TableStatistics;
-class TableScan;
+class AbstractCostFeatureProxy;
+enum class OperatorType;
 
-enum class OperatorCostMode {
-  TargetCost, PredictedCost
-};
-
+/**
+ * Interface of an algorithm that predicts Cost for operators.
+ *
+ * Additionally, it can assume which operator the LQPTranslator will use for an LQPNode and thus estimate the cost
+ * of it as well (estimate_lqp_node_cost())
+ */
 class AbstractCostModel {
  public:
   virtual ~AbstractCostModel() = default;
 
+  /**
+   * @return the name of the CostModel, e.g. "CostModelClever", "CostModelDumb", etc.
+   */
   virtual std::string name() const = 0;
 
-  virtual Cost cost_join_hash(const std::shared_ptr<TableStatistics>& table_statistics_left,
-                              const std::shared_ptr<TableStatistics>& table_statistics_right, const JoinMode join_mode,
-                              const ColumnIDPair& join_column_ids,
-                              const PredicateCondition predicate_condition) const = 0;
-
-  virtual Cost cost_table_scan(const std::shared_ptr<TableStatistics>& table_statistics, const ColumnID column,
-                               const PredicateCondition predicate_condition, const AllParameterVariant& value) const = 0;
-
-  virtual Cost cost_join_sort_merge(const std::shared_ptr<TableStatistics>& table_statistics_left,
-                                    const std::shared_ptr<TableStatistics>& table_statistics_right,
-                                    const JoinMode join_mode, const ColumnIDPair& join_column_ids,
-                                    const PredicateCondition predicate_condition) const = 0;
-
-  virtual Cost cost_product(const std::shared_ptr<TableStatistics>& table_statistics_left,
-                            const std::shared_ptr<TableStatistics>& table_statistics_right) const = 0;
-
-  virtual Cost cost_union_positions(const std::shared_ptr<TableStatistics>& table_statistics_left,
-                                    const std::shared_ptr<TableStatistics>& table_statistics_right) const = 0;
+  /**
+   * Used e.g., to verify estimations of `estimate_operator_cost()` and `estimate_lqp_node_cost()`
+   * @return the actual Cost of an **executed** operator
+   */
+  Cost get_actual_operator_cost(const std::shared_ptr<AbstractOperator>& op) const;
 
   /**
-   * @defgroup Operator Costing
-   * Deriving Cost Models don't necessarily need to implement these, they are used for debugging/visualiuation
-   *
-   * @{
+   * Used e.g., to verify estimations of `estimate_lqp_node_cost()`
+   * @return    the estimated Cost of an **executed** operator based on the features of its **executed** input(s) and
+   *            the features of its output.
    */
+  Cost estimate_operator_cost(const std::shared_ptr<AbstractOperator>& op) const;
 
-  virtual std::optional<Cost> cost_table_scan_op(const TableScan& table_scan, const OperatorCostMode operator_cost_mode) const;
-  virtual std::optional<Cost> cost_join_hash_op(const JoinHash& join_hash, const OperatorCostMode operator_cost_mode) const;
-  virtual std::optional<Cost> cost_product_op(const Product& product, const OperatorCostMode operator_cost_mode) const;
-  virtual std::optional<Cost> cost_union_positions_op(const UnionPositions& union_positions, const OperatorCostMode operator_cost_mode) const;
+  /**
+   * @return the Cost of an LQP node based on its input's statistics and its output statistics
+   */
+  Cost estimate_lqp_node_cost(const std::shared_ptr<AbstractLQPNode>& node) const;
 
-  /**@}*/
-
-  std::optional<Cost> get_node_cost(const AbstractLQPNode& node) const;
-  std::optional<Cost> get_operator_cost(const AbstractOperator& op, const OperatorCostMode operator_cost_mode) const;
+ protected:
+  /**
+   * Override to implement the actual cost model
+   */
+  virtual Cost _cost_model_impl(const OperatorType operator_type, const AbstractCostFeatureProxy& feature_proxy) = 0;
 };
 
 }  // namespace opossum

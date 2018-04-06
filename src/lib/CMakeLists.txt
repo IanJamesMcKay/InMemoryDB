@@ -169,6 +169,7 @@ set(
     optimizer/chunk_statistics/range_filter.hpp
     optimizer/column_statistics.cpp
     optimizer/column_statistics.hpp
+    optimizer/join_ordering/abstract_cost_feature_proxy.hpp
     optimizer/join_ordering/abstract_cost_model.cpp
     optimizer/join_ordering/abstract_cost_model.hpp
     optimizer/join_ordering/abstract_cost_model_sampler.cpp
@@ -181,9 +182,15 @@ set(
     optimizer/join_ordering/abstract_join_plan_node.hpp
     optimizer/join_ordering/build_join_plan.cpp
     optimizer/join_ordering/build_join_plan.hpp
+    optimizer/join_ordering/cost_feature.hpp
+    optimizer/join_ordering/cost_feature_lqp_node_proxy.cpp
+    optimizer/join_ordering/cost_feature_lqp_node_proxy.hpp
+    optimizer/join_ordering/cost_feature_operator_proxy.cpp
+    optimizer/join_ordering/cost_feature_operator_proxy.hpp
     optimizer/join_ordering/cost_model_naive.cpp
     optimizer/join_ordering/cost_model_naive.hpp
-    optimizer/join_ordering/cost_model_segmented.cpp
+    optimizer/join_ordering/cost_model_linear.cpp
+    optimizer/join_ordering/cost_model_linear.hpp
     optimizer/join_ordering/cost_model_segmented.hpp
     optimizer/join_ordering/cost_model_segmented_sampler.cpp
     optimizer/join_ordering/cost_model_segmented_sampler.hpp
