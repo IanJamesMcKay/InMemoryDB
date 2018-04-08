@@ -18,11 +18,20 @@ CostFeatureLQPNodeProxy::CostFeatureLQPNodeProxy(const std::shared_ptr<AbstractL
 
 CostFeatureVariant CostFeatureLQPNodeProxy::_extract_feature_impl(const CostFeature cost_feature) const  {
   switch (cost_feature) {
-    case CostFeature::LeftInputRowCount: return _node->left_input()->get_statistics()->row_count();
-    case CostFeature::RightInputRowCount: return _node->right_input()->get_statistics()->row_count();
-    case CostFeature::LeftInputIsReferences: return _node->left_input()->get_statistics()->table_type() == TableType::References;
-    case CostFeature::RightInputIsReferences: return _node->right_input()->get_statistics()->table_type() == TableType::References;
-    case CostFeature::OutputRowCount: return _node->get_statistics()->row_count();
+    case CostFeature::LeftInputRowCount:
+      Assert(_node->left_input(), "Node doesn't have left input");
+      return _node->left_input()->get_statistics()->row_count();
+    case CostFeature::RightInputRowCount:
+      Assert(_node->right_input(), "Node doesn't have left input");
+      return _node->right_input()->get_statistics()->row_count();
+    case CostFeature::LeftInputIsReferences:
+      Assert(_node->left_input(), "Node doesn't have left input");
+      return _node->left_input()->get_statistics()->table_type() == TableType::References;
+    case CostFeature::RightInputIsReferences:
+      Assert(_node->right_input(), "Node doesn't have left input");
+      return _node->right_input()->get_statistics()->table_type() == TableType::References;
+    case CostFeature::OutputRowCount:
+      return _node->get_statistics()->row_count();
 
     case CostFeature::LeftDataType:
     case CostFeature::RightDataType: {
@@ -30,8 +39,12 @@ CostFeatureVariant CostFeatureLQPNodeProxy::_extract_feature_impl(const CostFeat
 
       if (_node->type() == LQPNodeType::Join) {
         const auto join_node = std::static_pointer_cast<JoinNode>(_node);
-        column_reference = cost_feature == CostFeature::LeftDataType ? join_node->join_column_references().first :
-                           join_node->join_column_references().second;
+        const auto column_references = join_node->join_column_references();
+        Assert(column_references, "No columns referenced in this JoinMode");
+
+        column_reference = cost_feature == CostFeature::LeftDataType ?
+                           column_references->first :
+                           column_references->second;
       } else if (_node->type() == LQPNodeType::Predicate) {
         const auto predicate_node = std::static_pointer_cast<PredicateNode>(_node);
         if (cost_feature == CostFeature::LeftDataType) {
@@ -54,7 +67,9 @@ CostFeatureVariant CostFeatureLQPNodeProxy::_extract_feature_impl(const CostFeat
 
     case CostFeature::PredicateCondition:
       if (_node->type() == LQPNodeType::Join) {
-        return std::static_pointer_cast<JoinNode>(_node)->predicate_condition();
+        const auto predicate_condition = std::static_pointer_cast<JoinNode>(_node)->predicate_condition();
+        Assert(predicate_condition, "No PredicateCondition in this JoinMode");
+        return *predicate_condition;
       } else if (_node->type() == LQPNodeType::Predicate) {
         return std::static_pointer_cast<PredicateNode>(_node)->predicate_condition();
       } else {
@@ -74,4 +89,3 @@ CostFeatureVariant CostFeatureLQPNodeProxy::_extract_feature_impl(const CostFeat
 }
 
 }  // namespace opossum
-<

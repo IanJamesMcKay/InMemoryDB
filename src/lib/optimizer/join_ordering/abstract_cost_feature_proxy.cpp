@@ -10,7 +10,7 @@ namespace opossum {
 CostFeatureVariant AbstractCostFeatureProxy::extract_feature(const CostFeature cost_feature) const {
   switch (cost_feature) {
     case CostFeature::InputRowCountProduct:
-      return extract_feature(CostFeature::LeftInputRowCount).scalar() * extract_feature(CostFeature::RightInputRowCount).scalar();
+      return {extract_feature(CostFeature::LeftInputRowCount).scalar() * extract_feature(CostFeature::RightInputRowCount).scalar()};
     case CostFeature::LeftInputReferenceRowCount:
       return extract_feature(CostFeature::LeftInputIsReferences).boolean() ?
              extract_feature(CostFeature::LeftInputRowCount).scalar() : 0.0f;
@@ -46,17 +46,17 @@ CostFeatureVariant AbstractCostFeatureProxy::extract_feature(const CostFeature c
              extract_feature(CostFeature::LeftInputReferenceRowCount).scalar();
     }
     case CostFeature::OutputDereferenceRowCount: {
-      return extract_feature(CostFeature::LeftInputIsReferences).boolean() ||
-      extract_feature(CostFeature::RightInputIsReferences).boolean() ? extract_feature(CostFeature::OutputRowCount).scalar() : 0.0f;
+      return extract_feature(CostFeature::LeftInputIsReferences).boolean() ? extract_feature(CostFeature::OutputRowCount).scalar() : 0.0f;
     }
 
-    case CostFeature::LeftInputIsMajor:
+    case CostFeature::LeftInputIsMajor: {
       const auto left_input_row_count = extract_feature(CostFeature::LeftInputRowCount).scalar();
       const auto right_input_row_count = extract_feature(CostFeature::RightInputRowCount).scalar();
       return left_input_row_count > right_input_row_count;
+    }
 
     default:
-      return extract_feature(cost_feature);
+      return _extract_feature_impl(cost_feature);
   }
 }
 

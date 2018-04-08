@@ -27,7 +27,7 @@ Cost AbstractCostModel::estimate_lqp_node_cost(const std::shared_ptr<AbstractLQP
    */
 
   switch (node->type()) {
-    case LQPNodeType::Predicate: operator_type = OperatorType::TableScan;
+    case LQPNodeType::Predicate: operator_type = OperatorType::TableScan; break;
 
     case LQPNodeType::Join: {
       const auto join_node = std::static_pointer_cast<JoinNode>(node);
@@ -39,11 +39,11 @@ Cost AbstractCostModel::estimate_lqp_node_cost(const std::shared_ptr<AbstractLQP
       } else {
         operator_type = OperatorType::JoinSortMerge;
       }
-    }
+    } break;
 
     case LQPNodeType::Union: {
       operator_type = OperatorType::UnionPositions;
-    }
+    } break;
 
     default:
       // TODO(anybody) we're not costing this OperatorType yet (since it is not involved in JoinOrdering and all

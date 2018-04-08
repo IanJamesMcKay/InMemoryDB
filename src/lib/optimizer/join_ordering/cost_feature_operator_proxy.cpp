@@ -20,10 +20,10 @@ CostFeatureVariant CostFeatureOperatorProxy::_extract_feature_impl(const CostFea
   switch (cost_feature) {
     case CostFeature::LeftInputRowCount:
       Assert(_op->input_table_left(), "Can't extract CostFeature since the input table is not available");
-      return _op->input_table_left()->row_count();
+      return static_cast<float>(_op->input_table_left()->row_count());
     case CostFeature::RightInputRowCount:
       Assert(_op->input_table_right(), "Can't extract CostFeature since the input table is not available");
-      return _op->input_table_right()->row_count();
+      return static_cast<float>(_op->input_table_right()->row_count());
     case CostFeature::LeftInputIsReferences:
       Assert(_op->input_table_left(), "Can't extract CostFeature since the input table is not available");
       return _op->input_table_left()->type() == TableType::References;
@@ -32,7 +32,7 @@ CostFeatureVariant CostFeatureOperatorProxy::_extract_feature_impl(const CostFea
       return _op->input_table_right()->type() == TableType::References;
     case CostFeature::OutputRowCount:
       Assert(_op->get_output(), "Can't extract CostFeature since the output table is not available");
-      return _op->get_output()->row_count();
+      return static_cast<float>(_op->get_output()->row_count());
 
     case CostFeature::LeftDataType:
     case CostFeature::RightDataType: {

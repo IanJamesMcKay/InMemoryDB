@@ -11,7 +11,7 @@
 
 namespace opossum {
 
-CostModelLinear CostModelLinear::create_debug_build_model() {
+CostModelLinearConfig CostModelLinear::create_debug_build_config() {
   CostModelLinearConfig config;
 
   config.table_scan_models[CostModelLinearTableScanType::ColumnValueNumeric] = CostFeatureWeights{
@@ -63,10 +63,10 @@ CostModelLinear CostModelLinear::create_debug_build_model() {
     {CostFeature::OutputRowCount, 0.4f}
   };
 
-  return CostModelLinear(config);
+  return config;
 }
 
-CostModelLinear CostModelLinear::create_release_build_model() {
+CostModelLinearConfig CostModelLinear::create_release_build_config() {
   CostModelLinearConfig config;
 
   config.table_scan_models[CostModelLinearTableScanType::ColumnValueNumeric] = CostFeatureWeights{
@@ -118,20 +118,24 @@ CostModelLinear CostModelLinear::create_release_build_model() {
   {CostFeature::OutputRowCount, 0.0025f}
   };
 
-  return CostModelLinear(config);
+  return config;
 }
 
-CostModelLinear CostModelLinear::create_current_build_type_model() {
+CostModelLinearConfig CostModelLinear::create_current_build_type_config() {
 #if IS_DEBUG
-  return create_debug_build_model();
+  return create_debug_build_config();
 #else
-  return create_release_build_model();
+  return create_release_build_config();
 #endif
 }
 
 CostModelLinear::CostModelLinear(const CostModelLinearConfig& config):
   _config(config) {
 
+}
+
+std::string CostModelLinear::name() const {
+  return "CostModelLinear";
 }
 
 Cost CostModelLinear::get_reference_operator_cost(const std::shared_ptr<AbstractOperator>& op) const {

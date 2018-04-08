@@ -108,7 +108,7 @@ std::ostream &operator<<(std::ostream &stream, const PlanCostSample &sample) {
 
 int main(int argc, char ** argv) {
   auto scale_factor = 0.1f;
-  auto cost_model_str = "segmented"s;
+  auto cost_model_str = "linear"s;
   auto visualize = false;
   auto timeout_seconds = std::optional<long>{0};
 
@@ -171,7 +171,7 @@ int main(int argc, char ** argv) {
   if (cli_parse_result.count("all-cost-models")) {
     out() << "-- Using all available cost models" << std::endl;
     cost_models.emplace_back(std::make_shared<CostModelNaive>());
-    cost_models.emplace_back(std::make_shared<CostModelLinear());
+    cost_models.emplace_back(std::make_shared<CostModelLinear>());
   } else {
     if (cost_model_str == "naive") {
       out() << "-- Using CostModelNaive" << std::endl;

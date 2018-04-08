@@ -26,15 +26,17 @@ struct CostModelLinearConfig final {
  */
 class CostModelLinear : public AbstractCostModel {
  public:
-  static CostModelLinear create_debug_build_model();
-  static CostModelLinear create_release_build_model();
+  static CostModelLinearConfig create_debug_build_config();
+  static CostModelLinearConfig create_release_build_config();
 
   /**
    * @return a CostModelLinear calibrated on the current build type (debug, release)
    */
-  static CostModelLinear create_current_build_type_model();
+  static CostModelLinearConfig create_current_build_type_config();
 
-  explicit CostModelLinear(const CostModelLinearConfig& config);
+  std::string name() const override;
+
+  explicit CostModelLinear(const CostModelLinearConfig& config = create_current_build_type_config());
 
   Cost get_reference_operator_cost(const std::shared_ptr<AbstractOperator>& op) const override;
 

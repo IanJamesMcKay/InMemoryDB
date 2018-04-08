@@ -45,10 +45,10 @@ void LQPVisualizer::_build_subtree(const std::shared_ptr<AbstractLQPNode>& node,
   record_layout.add_label(node->description());
 
   if (_cost_model) {
-    const auto cost = _cost_model->get_node_cost(*node);
+    const auto cost = _cost_model->estimate_lqp_node_cost(node);
     if (cost) {
       std::stringstream stream;
-      stream << "Cost: " << std::fixed << std::setprecision(1) << *cost;
+      stream << "Cost: " << std::fixed << std::setprecision(1) << cost;
       record_layout.add_label(stream.str());
     }
   }

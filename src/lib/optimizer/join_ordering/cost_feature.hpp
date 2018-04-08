@@ -47,6 +47,8 @@ using CostFeatureVariant = boost::variant<float, DataType, PredicateCondition, b
  */
 struct CostFeatureVariant {
  public:
+  template<typename T> CostFeatureVariant(const T& value): value(value) {} // NOLINT - implicit conversion is intended
+
   CostFeatureVariant(const detail::CostFeatureVariant& value); // NOLINT - implicit conversion is intended
 
   bool boolean() const;
