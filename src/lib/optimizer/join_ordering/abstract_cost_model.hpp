@@ -30,7 +30,7 @@ class AbstractCostModel {
    * Used e.g., to verify estimations of `estimate_operator_cost()` and `estimate_lqp_node_cost()`
    * @return the actual Cost of an **executed** operator
    */
-  Cost get_actual_operator_cost(const std::shared_ptr<AbstractOperator>& op) const;
+  virtual Cost get_reference_operator_cost(const std::shared_ptr<AbstractOperator>& op) const = 0;
 
   /**
    * Used e.g., to verify estimations of `estimate_lqp_node_cost()`
@@ -48,7 +48,7 @@ class AbstractCostModel {
   /**
    * Override to implement the actual cost model
    */
-  virtual Cost _cost_model_impl(const OperatorType operator_type, const AbstractCostFeatureProxy& feature_proxy) = 0;
+  virtual Cost _cost_model_impl(const OperatorType operator_type, const AbstractCostFeatureProxy& feature_proxy) const = 0;
 };
 
 }  // namespace opossum

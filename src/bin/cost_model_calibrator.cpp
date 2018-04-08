@@ -6,7 +6,6 @@
 #include "logical_query_plan/logical_plan_root_node.hpp"
 #include "logical_query_plan/lqp_translator.hpp"
 #include "optimizer/join_ordering/cost_model_segmented_sampler.hpp"
-#include "optimizer/join_ordering/cost_model_segmented.hpp"
 #include "optimizer/join_ordering/dp_ccp.hpp"
 #include "optimizer/join_ordering/dp_ccp_top_k.hpp"
 #include "optimizer/join_ordering/join_graph_builder.hpp"

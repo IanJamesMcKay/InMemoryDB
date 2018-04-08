@@ -20,7 +20,7 @@
 #include "optimizer/join_ordering/abstract_join_plan_node.hpp"
 #include "optimizer/join_ordering/cost.hpp"
 #include "optimizer/join_ordering/cost_model_naive.hpp"
-#include "optimizer/join_ordering/cost_model_segmented.hpp"
+#include "optimizer/join_ordering/cost_model_linear.hpp"
 #include "optimizer/join_ordering/dp_ccp.hpp"
 #include "optimizer/join_ordering/dp_ccp_top_k.hpp"
 #include "optimizer/strategy/join_ordering_rule.hpp"
@@ -80,28 +80,20 @@ PlanCostSample create_plan_cost_sample(const AbstractCostModel &cost_model,
   PlanCostSample sample;
 
   for (const auto &op : operators) {
-    const auto aim_cost = cost_model.get_operator_cost(*op, OperatorCostMode::TargetCost);
-    if (aim_cost) {
-      sample.aim_cost += *aim_cost;
-    }
+    const auto aim_cost = cost_model.get_reference_operator_cost(op);
+    sample.aim_cost += aim_cost;
 
     if (op->lqp_node()) {
-      const auto est_cost = cost_model.get_node_cost(*op->lqp_node());
-      if (est_cost) {
-        sample.est_cost += *est_cost;
+      const auto est_cost = cost_model.estimate_lqp_node_cost(op->lqp_node());
+        sample.est_cost += est_cost;
         if (aim_cost) {
-          sample.abs_est_cost_error += std::fabs(*est_cost - *aim_cost);
+          sample.abs_est_cost_error += std::fabs(est_cost - aim_cost);
         }
-      }
     }
 
-    const auto re_est_cost = cost_model.get_operator_cost(*op, OperatorCostMode::PredictedCost);
-    if (re_est_cost) {
-      sample.re_est_cost += *re_est_cost;
-      if (aim_cost) {
-        sample.abs_re_est_cost_error += std::fabs(*re_est_cost - *aim_cost);
-      }
-    }
+    const auto re_est_cost = cost_model.estimate_operator_cost(op);
+      sample.re_est_cost += re_est_cost;
+      sample.abs_re_est_cost_error += std::fabs(re_est_cost - aim_cost);
   }
 
   return sample;
@@ -127,7 +119,7 @@ int main(int argc, char ** argv) {
     ("help", "print this help message")
     ("v,verbose", "Print log messages", cxxopts::value<bool>(verbose)->default_value("true"))
     ("s,scale", "Database scale factor (1.0 ~ 1GB)", cxxopts::value<float>(scale_factor)->default_value("0.001"))
-    ("m,cost_model", "CostModel to use (naive, segmented)", cxxopts::value<std::string>(cost_model_str)->default_value(cost_model_str))  // NOLINT
+    ("m,cost_model", "CostModel to use (naive, linear)", cxxopts::value<std::string>(cost_model_str)->default_value(cost_model_str))  // NOLINT
     ("all-cost-models", "Use all cost models")  // NOLINT
     ("cache-statistics", "Optimize all queries twice, using the TableStatistics generated in the first run")  // NOLINT
     ("t,timeout", "Timeout per query, in seconds", cxxopts::value<long>(*timeout_seconds)->default_value("0"))  // NOLINT
@@ -179,14 +171,14 @@ int main(int argc, char ** argv) {
   if (cli_parse_result.count("all-cost-models")) {
     out() << "-- Using all available cost models" << std::endl;
     cost_models.emplace_back(std::make_shared<CostModelNaive>());
-    cost_models.emplace_back(std::make_shared<CostModelSegmented>());
+    cost_models.emplace_back(std::make_shared<CostModelLinear());
   } else {
     if (cost_model_str == "naive") {
       out() << "-- Using CostModelNaive" << std::endl;
       cost_models.emplace_back(std::make_shared<CostModelNaive>());
-    } else if (cost_model_str == "segmented") {
-      out() << "-- Using CostModelSegmented" << std::endl;
-      cost_models.emplace_back(std::make_shared<CostModelSegmented>());
+    } else if (cost_model_str == "linear") {
+      out() << "-- Using CostModelLinear" << std::endl;
+      cost_models.emplace_back(std::make_shared<CostModelLinear>());
     } else {
       Fail("Unknown cost model");
     }

@@ -8,17 +8,17 @@
 
 namespace opossum {
 
-enum class CostModelLinearSubOperator {
-  JoinHash,
-  JoinSortMerge,
-  Product,
-  UnionPosition,
-  TableScanColumnValueNumeric,
-  TableScanColumnColumnNumeric,
-  TableScanColumnValueString,
-  TableScanColumnColumnString,
-  TableScanLike,
-  TableScanFallback
+enum class CostModelLinearTableScanType {
+  ColumnValueNumeric,
+  ColumnColumnNumeric,
+  ColumnValueString,
+  ColumnColumnString,
+  Like
+};
+
+struct CostModelLinearConfig final {
+  std::map<CostModelLinearTableScanType, CostFeatureWeights> table_scan_models;
+  std::map<OperatorType, CostFeatureWeights> other_operator_models;
 };
 
 /**
@@ -34,13 +34,16 @@ class CostModelLinear : public AbstractCostModel {
    */
   static CostModelLinear create_current_build_type_model();
 
-  CostModelLinear(const std::map<CostModelLinearSubOperator, CostFeatureWeights>& sub_operator_models);
+  explicit CostModelLinear(const CostModelLinearConfig& config);
+
+  Cost get_reference_operator_cost(const std::shared_ptr<AbstractOperator>& op) const override;
 
  protected:
-   virtual Cost _cost_model_impl(const OperatorType operator_type, const AbstractCostFeatureProxy& feature_proxy) = 0;
+   virtual Cost _cost_model_impl(const OperatorType operator_type, const AbstractCostFeatureProxy& feature_proxy) const override;
+   Cost _predict_cost(const CostFeatureWeights& feature_weights, const AbstractCostFeatureProxy& feature_proxy) const;
 
  private:
-  std::map<CostModelLinearSubOperator, CostFeatureWeights> _sub_operator_models;
+  CostModelLinearConfig _config;
 };
 
 }  // namespace opossum

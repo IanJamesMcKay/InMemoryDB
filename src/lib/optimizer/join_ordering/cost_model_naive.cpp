@@ -1,12 +1,7 @@
 #include "cost_model_naive.hpp"
 
-#include <cmath>
-
-#include "operators/table_scan.hpp"
-#include "operators/product.hpp"
-#include "operators/join_hash.hpp"
-#include "operators/union_positions.hpp"
-#include "optimizer/table_statistics.hpp"
+#include "abstract_cost_feature_proxy.hpp"
+#include "operators/abstract_operator.hpp"
 
 namespace opossum {
 
@@ -14,67 +9,23 @@ std::string CostModelNaive::name() const {
   return "CostModelNaive";
 }
 
-Cost CostModelNaive::cost_join_hash(const std::shared_ptr<TableStatistics>& table_statistics_left,
-                                    const std::shared_ptr<TableStatistics>& table_statistics_right,
-                                    const JoinMode join_mode, const ColumnIDPair& join_column_ids,
-                                    const PredicateCondition predicate_condition) const {
-  return 1.2f * std::min(table_statistics_left->row_count(), table_statistics_right->row_count());
+Cost CostModelNaive::get_reference_operator_cost(const std::shared_ptr<AbstractOperator>& op) const {
+  return estimate_operator_cost(op);
 }
 
-Cost CostModelNaive::cost_table_scan(const std::shared_ptr<TableStatistics>& table_statistics, const ColumnID column,
-                                     const PredicateCondition predicate_condition, const AllParameterVariant& value) const {
-  return table_statistics->row_count();
-}
+Cost CostModelNaive::_cost_model_impl(const OperatorType operator_type, const AbstractCostFeatureProxy& feature_proxy) const {
+  switch (operator_type) {
+    case OperatorType::JoinHash: return 1.2f * feature_proxy.extract_feature(CostFeature::MajorInputRowCount).scalar();
+    case OperatorType::TableScan: return feature_proxy.extract_feature(CostFeature::LeftInputRowCount).scalar();
+    case OperatorType::JoinSortMerge:
+      return feature_proxy.extract_feature(CostFeature::LeftInputRowCountLogN).scalar() + feature_proxy.extract_feature(CostFeature::RightInputRowCount).scalar();
+    case OperatorType::Product: return feature_proxy.extract_feature(CostFeature::InputRowCountProduct).scalar();
+    case OperatorType::UnionPositions:
+      return feature_proxy.extract_feature(CostFeature::LeftInputRowCountLogN).scalar() + feature_proxy.extract_feature(CostFeature::RightInputRowCount).scalar();
 
-Cost CostModelNaive::cost_join_sort_merge(const std::shared_ptr<TableStatistics>& table_statistics_left,
-                                          const std::shared_ptr<TableStatistics>& table_statistics_right,
-                                          const JoinMode join_mode, const ColumnIDPair& join_column_ids,
-                                          const PredicateCondition predicate_condition) const {
-  const auto row_count_left = table_statistics_left->row_count();
-  const auto row_count_right = table_statistics_right->row_count();
-
-  return row_count_left * std::log(row_count_left) + row_count_right * std::log(row_count_right);
-}
-
-Cost CostModelNaive::cost_product(const std::shared_ptr<TableStatistics>& table_statistics_left,
-                                  const std::shared_ptr<TableStatistics>& table_statistics_right) const {
-  return table_statistics_left->row_count() * table_statistics_right->row_count();
-}
-
-Cost CostModelNaive::cost_union_positions(const std::shared_ptr<TableStatistics>& table_statistics_left,
-                          const std::shared_ptr<TableStatistics>& table_statistics_right) const {
-  return 0.0f; // TODO(moritz)
-}
-
-std::optional<Cost> CostModelNaive::cost_table_scan_op(const TableScan& table_scan, const OperatorCostMode operator_cost_mode) const {
-  switch (operator_cost_mode) {
-    case OperatorCostMode::PredictedCost: return table_scan.input_table_left()->row_count();
-    case OperatorCostMode::TargetCost: return std::nullopt;
+    default:
+      return 0.0f;
   }
-}
-
-std::optional<Cost> CostModelNaive::cost_join_hash_op(const JoinHash& join_hash, const OperatorCostMode operator_cost_mode) const {
-  switch (operator_cost_mode) {
-    case OperatorCostMode::PredictedCost:
-      return 1.2f * std::min(join_hash.input_table_left()->row_count(), join_hash.input_table_right()->row_count());
-    case OperatorCostMode::TargetCost:
-      return std::nullopt;
-  }
-}
-
-std::optional<Cost> CostModelNaive::cost_product_op(const Product& product, const OperatorCostMode operator_cost_mode) const {
-  switch (operator_cost_mode) {
-    case OperatorCostMode::PredictedCost: return product.input_table_left()->row_count() * product.input_table_right()->row_count();
-    case OperatorCostMode::TargetCost: return std::nullopt;
-  }
-}
-
-std::optional<Cost> CostModelNaive::cost_union_positions_op(const UnionPositions& union_positions, const OperatorCostMode operator_cost_mode) const  {
-  switch (operator_cost_mode) {
-    case OperatorCostMode::PredictedCost: return 0.0f;
-    case OperatorCostMode::TargetCost:  return std::nullopt;
-  }
-
 }
 
 }  // namespace opossum

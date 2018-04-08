@@ -4,33 +4,20 @@
 
 namespace opossum {
 
-class CostModelNaive : public AbstractCostModel {
+/**
+ * Cost model that returns the rough number of tuple accesses of the Operator.
+ *
+ * Research (e.g. "How Good Are Query Optimizers, Really?" by Leis et al) suggests very simple CostModels such as this
+ * one are "good enough". Especially cardinality estimation has a bigger impact on plan quality by orders of magnitude.
+ */
+class CostModelNaive: public AbstractCostModel {
  public:
   std::string name() const override;
 
-  Cost cost_join_hash(const std::shared_ptr<TableStatistics>& table_statistics_left,
-                      const std::shared_ptr<TableStatistics>& table_statistics_right, const JoinMode join_mode,
-                      const ColumnIDPair& join_column_ids, const PredicateCondition predicate_condition) const override;
+  Cost get_reference_operator_cost(const std::shared_ptr<AbstractOperator>& op) const override;
 
-  Cost cost_table_scan(const std::shared_ptr<TableStatistics>& table_statistics, const ColumnID column,
-                       const PredicateCondition predicate_condition, const AllParameterVariant& value) const override;
-
-  Cost cost_join_sort_merge(const std::shared_ptr<TableStatistics>& table_statistics_left,
-                            const std::shared_ptr<TableStatistics>& table_statistics_right, const JoinMode join_mode,
-                            const ColumnIDPair& join_column_ids,
-                            const PredicateCondition predicate_condition) const override;
-
-  Cost cost_product(const std::shared_ptr<TableStatistics>& table_statistics_left,
-                    const std::shared_ptr<TableStatistics>& table_statistics_right) const override;
-
-  Cost cost_union_positions(const std::shared_ptr<TableStatistics>& table_statistics_left,
-                                    const std::shared_ptr<TableStatistics>& table_statistics_right) const override;
-
-
-  std::optional<Cost> cost_table_scan_op(const TableScan& table_scan, const OperatorCostMode operator_cost_mode) const override;
-  std::optional<Cost> cost_join_hash_op(const JoinHash& join_hash, const OperatorCostMode operator_cost_mode) const override;
-  std::optional<Cost> cost_product_op(const Product& product, const OperatorCostMode operator_cost_mode) const override;
-  std::optional<Cost> cost_union_positions_op(const UnionPositions& union_positions, const OperatorCostMode operator_cost_mode) const override;
+ protected:
+  Cost _cost_model_impl(const OperatorType operator_type, const AbstractCostFeatureProxy& feature_proxy) const override;
 };
 
 }  // namespace opossum

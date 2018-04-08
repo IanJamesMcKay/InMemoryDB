@@ -27,10 +27,8 @@ JoinPlanNode add_predicate(const AbstractJoinPlanPredicate& predicate,
                                                atomic_predicate.right_operand,
                                                join_plan_node.lqp);
 
-      const auto predicate_cost = cost_model.get_node_cost(*join_plan_node.lqp);
-      Assert(predicate_cost, "Couldn't cost predicate");
-
-      join_plan_node.plan_cost += *predicate_cost;
+      const auto predicate_cost = cost_model.estimate_lqp_node_cost(join_plan_node.lqp);
+      join_plan_node.plan_cost += predicate_cost;
 
       return join_plan_node;
     }
@@ -49,10 +47,8 @@ JoinPlanNode add_predicate(const AbstractJoinPlanPredicate& predicate,
 
           join_plan_node.lqp = UnionNode::make(UnionMode::Positions, left_operand_join_plan.lqp, right_operand_join_plan.lqp);
 
-          const auto union_cost = cost_model.get_node_cost(*join_plan_node.lqp);
-          Assert(union_cost, "Couldn't cost union");
-
-          join_plan_node.plan_cost += *union_cost + left_operand_added_cost + right_operand_added_cost;
+          const auto union_cost = cost_model.estimate_lqp_node_cost(join_plan_node.lqp);
+          join_plan_node.plan_cost += union_cost + left_operand_added_cost + right_operand_added_cost;
           return join_plan_node;
         }
       }
@@ -145,10 +141,8 @@ JoinPlanNode build_join_plan_join_node(
                                         primary_join_predicate->predicate_condition, left_input.lqp, right_input.lqp);
   }
 
-  const auto join_cost = cost_model.get_node_cost(*join_plan_node.lqp);
-  Assert(join_cost, "Couldn't cost join");
-
-  join_plan_node.plan_cost += *join_cost;
+  const auto join_cost = cost_model.estimate_lqp_node_cost(join_plan_node.lqp);
+  join_plan_node.plan_cost += join_cost;
   order_predicates(secondary_predicates, join_plan_node, cost_model, statistics_cache);
 
   // Apply remaining predicates

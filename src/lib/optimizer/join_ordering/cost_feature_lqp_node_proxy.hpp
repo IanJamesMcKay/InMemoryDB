@@ -1,14 +1,22 @@
 #pragma once
 
+#include <memory>
+
 #include "abstract_cost_feature_proxy.hpp"
 
 namespace opossum {
 
+class AbstractLQPNode;
+
 class CostFeatureLQPNodeProxy : public AbstractCostFeatureProxy {
  public:
-  CostFeatureLQPNodeProxy(const std::shared_ptr<AbstractLPQNode>& node);
+  explicit CostFeatureLQPNodeProxy(const std::shared_ptr<AbstractLQPNode>& node);
 
-  float extract_feature(const CostFeature cost_feature) const override;
+ protected:
+  CostFeatureVariant _extract_feature_impl(const CostFeature cost_feature) const override;
+
+ private:
+  std::shared_ptr<AbstractLQPNode> _node;
 };
 
 }  // namespace opossum

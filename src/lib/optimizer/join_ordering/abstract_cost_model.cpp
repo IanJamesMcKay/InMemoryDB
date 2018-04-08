@@ -8,86 +8,52 @@
 #include "operators/table_scan.hpp"
 #include "operators/product.hpp"
 #include "operators/union_positions.hpp"
+#include "cost_feature_operator_proxy.hpp"
+#include "cost_feature_lqp_node_proxy.hpp"
 
 namespace opossum {
 
-std::optional<Cost> AbstractCostModel::cost_table_scan_op(const TableScan& table_scan, const OperatorCostMode operator_cost_mode) const {
-  return std::nullopt;
+Cost AbstractCostModel::estimate_operator_cost(const std::shared_ptr<AbstractOperator>& op) const {
+  CostFeatureOperatorProxy feature_proxy(op);
+  return _cost_model_impl(op->type(), feature_proxy);
 }
 
-std::optional<Cost> AbstractCostModel::cost_join_hash_op(const JoinHash& join_hash, const OperatorCostMode operator_cost_mode) const {
-  return std::nullopt;
-}
+Cost AbstractCostModel::estimate_lqp_node_cost(const std::shared_ptr<AbstractLQPNode>& node) const {
+  auto operator_type = OperatorType::Mock; // Use Mock just to have a valid initialisation
 
-std::optional<Cost> AbstractCostModel::cost_product_op(const Product& product, const OperatorCostMode operator_cost_mode) const {
-  return std::nullopt;
-}
+  /**
+   * The following switch makes assumptions about the concrete Operator that the LQPTranslator will choose.
+   * TODO(anybody) somehow ask the LQPTranslator about this instead of making assumptions.
+   */
 
-std::optional<Cost> AbstractCostModel::cost_union_positions_op(const UnionPositions& union_positions, const OperatorCostMode operator_cost_mode) const {
-  return std::nullopt;
-}
-
-std::optional<Cost> AbstractCostModel::get_node_cost(const AbstractLQPNode& node) const {
-  switch (node.type()) {
-    case LQPNodeType::Predicate: {
-      const auto& predicate_node = static_cast<const PredicateNode&>(node);
-      const auto left_column_id = predicate_node.get_output_column_id(predicate_node.column_reference());
-
-      auto value = predicate_node.value();
-      if (value.type() == typeid(LQPColumnReference)) {
-        value = predicate_node.get_output_column_id(boost::get<LQPColumnReference>(value));
-      }
-
-      return cost_table_scan(node.left_input()->get_statistics(), left_column_id, predicate_node.predicate_condition(), value);
-    }
+  switch (node->type()) {
+    case LQPNodeType::Predicate: operator_type = OperatorType::TableScan;
 
     case LQPNodeType::Join: {
-      const auto& join_node = static_cast<const JoinNode&>(node);
+      const auto join_node = std::static_pointer_cast<JoinNode>(node);
 
-      const auto left_statistics = node.left_input()->get_statistics();
-      const auto right_statistics = node.right_input()->get_statistics();
-
-      if (join_node.join_mode() == JoinMode::Cross) {
-        return cost_product(left_statistics, right_statistics);
+      if (join_node->join_mode() == JoinMode::Cross) {
+        operator_type = OperatorType::Product;
+      } else if (join_node->join_mode() == JoinMode::Inner && join_node->predicate_condition() == PredicateCondition::Equals) {
+        operator_type = OperatorType::JoinHash;
+      } else {
+        operator_type = OperatorType::JoinSortMerge;
       }
-
-      const auto left_column_id = join_node.left_input()->get_output_column_id(join_node.join_column_references()->first);
-      const auto right_column_id = join_node.right_input()->get_output_column_id(join_node.join_column_references()->second);
-
-      if (join_node.join_mode() == JoinMode::Inner && join_node.predicate_condition() == PredicateCondition::Equals) {
-        return cost_join_hash(left_statistics, right_statistics, join_node.join_mode(), {left_column_id, right_column_id}, *join_node.predicate_condition());
-      }
-
-      return cost_join_sort_merge(left_statistics, right_statistics, join_node.join_mode(), {left_column_id, right_column_id}, *join_node.predicate_condition());
     }
 
     case LQPNodeType::Union: {
-      const auto& union_node = static_cast<const UnionNode&>(node);
-
-      switch(union_node.union_mode()){
-        case UnionMode::Positions: return cost_union_positions(node.left_input()->get_statistics(), node.right_input()->get_statistics());
-      }
+      operator_type = OperatorType::UnionPositions;
     }
 
     default:
-      return std::nullopt;
+      // TODO(anybody) we're not costing this OperatorType yet (since it is not involved in JoinOrdering and all
+      //               costing is currently done for JoinOrdering only)
+      return 0.0f;
   }
+
+  CostFeatureLQPNodeProxy feature_proxy(node);
+  return _cost_model_impl(operator_type, feature_proxy);
 }
 
-std::optional<Cost> AbstractCostModel::get_operator_cost(const AbstractOperator& op, const OperatorCostMode operator_cost_mode) const {
-  switch (op.type()) {
-    case OperatorType::TableScan:
-      return cost_table_scan_op(static_cast<const TableScan&>(op), operator_cost_mode);
-    case OperatorType::JoinHash:
-      return cost_join_hash_op(static_cast<const JoinHash&>(op), operator_cost_mode);
-    case OperatorType::Product:
-      return cost_product_op(static_cast<const Product&>(op), operator_cost_mode);
-    case OperatorType::UnionPositions:
-      return cost_union_positions_op(static_cast<const UnionPositions&>(op), operator_cost_mode);
-
-    default:
-      return std::nullopt;
-  }
-}
 
 }
