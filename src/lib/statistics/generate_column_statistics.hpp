@@ -10,11 +10,36 @@
 
 namespace opossum {
 
+template<typename ColumnDataType>
+class ColumnStatisticsGenerator final {
+ public:
+  ColumnStatisticsGenerator(const Table& table, const ColumnID column_id, const size_t max_sample_count);
+
+  std::shared_ptr<AbstractColumnStatistics> operator()();
+
+ protected:
+  template<typename Value>
+  void process_sample(const Value& value) const;
+
+  std::unordered_set<ColumnDataType> _distinct_set;
+  size_t null_value_count{0};
+  ColumnDataType _min;
+  ColumnDataType _max;
+
+ private:
+  const Table& _table;
+  const ColumnID _column_id;
+  const size_t _max_sample_count;
+};
+
+
 /**
  * Generate the statistics of a single column. Used by generate_table_statistics()
  */
 template <typename ColumnDataType>
 std::shared_ptr<AbstractColumnStatistics> generate_column_statistics(const Table& table, const ColumnID column_id, const size_t max_sample_count) {
+  return ColumnStatisticsGenerator<ColumnDataType>{table, column_id, max_sample_count}();
+}
   std::unordered_set<ColumnDataType> distinct_set;
 
   auto null_value_count = size_t{0};

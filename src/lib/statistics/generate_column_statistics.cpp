@@ -2,10 +2,14 @@
 
 namespace opossum {
 
-/**
- * Specialisation for strings since they don't have numerical_limits and that's what the unspecialised implementation
- * uses.
- */
+ColumnStatisticsGenerator(const Table& table, const ColumnID column_id, const size_t max_sample_count);
+
+std::shared_ptr<AbstractColumnStatistics> operator()();
+
+protected:
+template<typename Value>
+void process_sample(const Value& value) const;
+
 template <>
 std::shared_ptr<AbstractColumnStatistics> generate_column_statistics<std::string>(const Table& table,
                                                                                   const ColumnID column_id, const size_t max_sample_count) {
