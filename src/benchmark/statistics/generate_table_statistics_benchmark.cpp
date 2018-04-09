@@ -13,7 +13,7 @@ BENCHMARK_DEFINE_F(BenchmarkBasicFixture, BM_GenerateTableStatistics_TPCH)(bench
 
   while (state.KeepRunning()) {
     for (const auto& pair : tables) {
-      generate_table_statistics(*pair.second);
+      generate_table_statistics(*pair.second, 5'000);
     }
   }
 }
