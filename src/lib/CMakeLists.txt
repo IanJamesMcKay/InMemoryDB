@@ -157,18 +157,6 @@ set(
     operators/utils/flatten_pqp.hpp
     operators/validate.cpp
     operators/validate.hpp
-    optimizer/base_column_statistics.cpp
-    optimizer/base_column_statistics.hpp
-    optimizer/chunk_statistics/abstract_filter.hpp
-    optimizer/chunk_statistics/chunk_column_statistics.cpp
-    optimizer/chunk_statistics/chunk_column_statistics.hpp
-    optimizer/chunk_statistics/chunk_statistics.cpp
-    optimizer/chunk_statistics/chunk_statistics.hpp
-    optimizer/chunk_statistics/min_max_filter.hpp
-    optimizer/chunk_statistics/range_filter.hpp
-    optimizer/chunk_statistics/range_filter.hpp
-    optimizer/column_statistics.cpp
-    optimizer/column_statistics.hpp
     optimizer/join_ordering/abstract_cost_feature_proxy.cpp
     optimizer/join_ordering/abstract_cost_feature_proxy.hpp
     optimizer/join_ordering/abstract_cost_model.cpp
@@ -239,8 +227,6 @@ set(
     optimizer/strategy/predicate_reordering_rule.hpp
     optimizer/strategy/rule_batch.cpp
     optimizer/strategy/rule_batch.hpp
-    optimizer/table_statistics.cpp
-    optimizer/table_statistics.hpp
     optimizer/table_statistics_cache.cpp
     optimizer/table_statistics_cache.hpp
     planviz/abstract_visualizer.hpp
@@ -257,6 +243,24 @@ set(
     planviz/viz_record_layout.cpp
     planviz/viz_record_layout.hpp
     resolve_type.hpp
+    statistics/chunk_statistics/abstract_filter.hpp
+    statistics/chunk_statistics/chunk_column_statistics.cpp
+    statistics/chunk_statistics/chunk_column_statistics.hpp
+    statistics/chunk_statistics/chunk_statistics.cpp
+    statistics/chunk_statistics/chunk_statistics.hpp
+    statistics/chunk_statistics/min_max_filter.hpp
+    statistics/chunk_statistics/range_filter.hpp
+    statistics/chunk_statistics/range_filter.hpp
+    statistics/table_statistics.cpp
+    statistics/table_statistics.hpp
+    statistics/column_statistics.cpp
+    statistics/column_statistics.hpp
+    statistics/abstract_column_statistics.cpp
+    statistics/abstract_column_statistics.hpp
+    statistics/generate_column_statistics.cpp
+    statistics/generate_column_statistics.hpp
+    statistics/generate_table_statistics.cpp
+    statistics/generate_table_statistics.hpp
     scheduler/abstract_scheduler.cpp
     scheduler/abstract_scheduler.hpp
     scheduler/abstract_task.cpp

@@ -3,7 +3,7 @@
 #include <cmath>
 
 #include "logical_query_plan/abstract_lqp_node.hpp"
-#include "optimizer/table_statistics.hpp"
+#include "statistics/table_statistics.hpp"
 
 namespace opossum {
 

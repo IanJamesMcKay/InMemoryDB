@@ -7,7 +7,7 @@
 
 #include "cost.hpp"
 #include "join_graph.hpp"
-#include "optimizer/table_statistics.hpp"
+#include "statistics/table_statistics.hpp"
 
 namespace opossum {
 

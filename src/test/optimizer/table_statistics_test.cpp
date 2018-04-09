@@ -9,7 +9,7 @@
 #include "gtest/gtest.h"
 #include "operators/table_scan.hpp"
 #include "operators/table_wrapper.hpp"
-#include "optimizer/table_statistics.hpp"
+#include "statistics/table_statistics.hpp"
 
 namespace opossum {
 
@@ -229,8 +229,8 @@ TEST_F(TableStatisticsTest, TableType) {
 
   const auto post_predicate_statistics =
       table_a_statistics->predicate_statistics(ColumnID{0}, PredicateCondition::Equals, 1);
-  const auto post_join_statistics = table_a_statistics->generate_predicated_join_statistics(
-      table_a_statistics, JoinMode::Inner, {ColumnID{0}, ColumnID{0}}, PredicateCondition::Equals);
+  const auto post_join_statistics = table_a_statistics->estimate_predicated_join(
+      *table_a_statistics, JoinMode::Inner, {ColumnID{0}, ColumnID{0}}, PredicateCondition::Equals);
 
   EXPECT_EQ(post_predicate_statistics->table_type(), TableType::References);
   EXPECT_EQ(post_join_statistics->table_type(), TableType::References);

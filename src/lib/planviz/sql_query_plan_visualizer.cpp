@@ -6,7 +6,7 @@
 #include "planviz/sql_query_plan_visualizer.hpp"
 #include "logical_query_plan/abstract_lqp_node.hpp"
 #include "optimizer/join_ordering/abstract_cost_model.hpp"
-#include "optimizer/table_statistics.hpp"
+#include "statistics/table_statistics.hpp"
 #include "sql/sql_query_plan.hpp"
 #include "utils/format_duration.hpp"
 #include "utils/format_integer.hpp"

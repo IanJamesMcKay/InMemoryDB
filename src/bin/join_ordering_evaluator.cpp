@@ -24,7 +24,7 @@
 #include "optimizer/join_ordering/dp_ccp.hpp"
 #include "optimizer/join_ordering/dp_ccp_top_k.hpp"
 #include "optimizer/strategy/join_ordering_rule.hpp"
-#include "optimizer/table_statistics.hpp"
+#include "statistics/table_statistics.hpp"
 #include "optimizer/table_statistics_cache.hpp"
 #include "planviz/lqp_visualizer.hpp"
 #include "planviz/sql_query_plan_visualizer.hpp"

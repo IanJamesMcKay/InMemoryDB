@@ -6,7 +6,7 @@
 #include "join_plan_join_node.hpp"
 #include "join_plan_predicate.hpp"
 #include "join_plan_vertex_node.hpp"
-#include "optimizer/table_statistics.hpp"
+#include "statistics/table_statistics.hpp"
 #include "optimizer/table_statistics_cache.hpp"
 #include "logical_query_plan/predicate_node.hpp"
 #include "logical_query_plan/union_node.hpp"

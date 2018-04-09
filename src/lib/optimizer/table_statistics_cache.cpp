@@ -1,6 +1,6 @@
 #include "table_statistics_cache.hpp"
 
-#include "table_statistics.hpp"
+#include "statistics/table_statistics.hpp"
 #include "logical_query_plan/abstract_lqp_node.hpp"
 
 namespace opossum {
