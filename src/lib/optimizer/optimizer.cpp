@@ -3,11 +3,14 @@
 #include <memory>
 
 #include "logical_query_plan/logical_plan_root_node.hpp"
+#include "optimizer/join_ordering/cost_model_linear.hpp"
+#include "optimizer/join_ordering/dp_ccp.hpp"
 #include "strategy/chunk_pruning_rule.hpp"
 #include "strategy/constant_calculation_rule.hpp"
 #include "strategy/index_scan_rule.hpp"
 #include "strategy/join_detection_rule.hpp"
 #include "strategy/predicate_reordering_rule.hpp"
+#include "strategy/join_ordering_rule.hpp"
 
 namespace opossum {
 
@@ -19,15 +22,18 @@ std::shared_ptr<Optimizer> Optimizer::get_dummy_optimizer() {
 std::shared_ptr<Optimizer> Optimizer::create_default_optimizer() {
   auto optimizer = std::make_shared<Optimizer>(10);
 
-  RuleBatch main_batch(RuleBatchExecutionPolicy::Iterative);
-  main_batch.add_rule(std::make_shared<PredicateReorderingRule>());
-  main_batch.add_rule(std::make_shared<JoinDetectionRule>());
-  optimizer->add_rule_batch(main_batch);
+//  RuleBatch main_batch(RuleBatchExecutionPolicy::Iterative);
+//  main_batch.add_rule(std::make_shared<PredicateReorderingRule>());
+//  main_batch.add_rule(std::make_shared<JoinDetectionRule>());
+//  optimizer->add_rule_batch(main_batch);
 
   RuleBatch final_batch(RuleBatchExecutionPolicy::Once);
-  final_batch.add_rule(std::make_shared<ChunkPruningRule>());
-  final_batch.add_rule(std::make_shared<ConstantCalculationRule>());
-  final_batch.add_rule(std::make_shared<IndexScanRule>());
+//  final_batch.add_rule(std::make_shared<ChunkPruningRule>());
+//  final_batch.add_rule(std::make_shared<ConstantCalculationRule>());
+//  final_batch.add_rule(std::make_shared<IndexScanRule>());
+  auto cost_model = std::make_shared<CostModelLinear>();
+  auto dp_ccp = std::make_shared<DpCcp>(cost_model);
+  final_batch.add_rule(std::make_shared<JoinOrderingRule>(dp_ccp));
   optimizer->add_rule_batch(final_batch);
 
   return optimizer;
