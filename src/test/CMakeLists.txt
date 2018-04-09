@@ -72,7 +72,7 @@ set(
     operators/update_test.cpp
     operators/validate_test.cpp
     operators/validate_visibility_test.cpp
-    optimizer/column_statistics_test.cpp
+    #optimizer/column_statistics_test.cpp
     optimizer/expression_test.cpp
     optimizer/join_ordering/dp_ccp_test.cpp
     optimizer/join_ordering/enumerate_ccp_test.cpp
@@ -89,8 +89,8 @@ set(
     optimizer/strategy/predicate_reordering_test.cpp
     optimizer/strategy/strategy_base_test.cpp
     optimizer/strategy/strategy_base_test.hpp
-    optimizer/table_statistics_join_test.cpp
-    optimizer/table_statistics_test.cpp
+    #optimizer/table_statistics_join_test.cpp
+    #optimizer/table_statistics_test.cpp
     scheduler/scheduler_test.cpp
     sql/sql_basic_cache_test.cpp
     sql/hsql_expression_translator_test.cpp

@@ -33,9 +33,9 @@ std::string QualifiedColumnName::as_string() const {
 AbstractLQPNode::AbstractLQPNode(LQPNodeType node_type) : _type(node_type) {}
 
 AbstractLQPNode::~AbstractLQPNode() {
-  for (auto& input : _inputs) {
-    if (input) input->_remove_output_pointer(*this);
-  }
+  Assert(_outputs.empty(), "Bug detected. There are outputs that should still reference to this node. Thus this node shouldn't get deleted");
+  if (_inputs[0]) _inputs[0]->_remove_output_pointer(*this);
+  if (_inputs[1]) _inputs[1]->_remove_output_pointer(*this);
 }
 
 LQPColumnReference AbstractLQPNode::adapt_column_reference_to_different_lqp(
@@ -478,7 +478,9 @@ void AbstractLQPNode::_input_changed() {
 
 void AbstractLQPNode::_remove_output_pointer(const AbstractLQPNode& output) {
   const auto iter =
-      std::find_if(_outputs.begin(), _outputs.end(), [&](const auto& other) { return &output == other.lock().get(); });
+      std::find_if(_outputs.begin(), _outputs.end(), [&](const auto& other) {
+        return &output == other.lock().get() || !other.lock().get();
+      });
   DebugAssert(iter != _outputs.end(), "Specified output node is not actually a output node of this node.");
 
   /**
