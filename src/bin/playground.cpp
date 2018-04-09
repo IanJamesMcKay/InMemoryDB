@@ -13,13 +13,13 @@ using namespace opossum;  // NOLINT
 
 int main() {
   const auto table_names = std::vector<std::string>{
-    "aka_name",
-    "aka_title",
-    //"cast_info",
-    "char_name",
-    "comp_cast_type",
-    "company_name",
-    "company_type",
+//    "aka_name",
+//    "aka_title",
+//    //"cast_info",
+//    "char_name",
+//    "comp_cast_type",
+//    "company_name",
+//    "company_type",
     "complete_cast",
     "info_type",
     "keyword",
