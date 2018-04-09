@@ -32,6 +32,12 @@ std::string QualifiedColumnName::as_string() const {
 
 AbstractLQPNode::AbstractLQPNode(LQPNodeType node_type) : _type(node_type) {}
 
+AbstractLQPNode::~AbstractLQPNode() {
+  for (auto& input : _inputs) {
+    if (input) input->_remove_output_pointer(*this);
+  }
+}
+
 LQPColumnReference AbstractLQPNode::adapt_column_reference_to_different_lqp(
     const LQPColumnReference& column_reference, const std::shared_ptr<AbstractLQPNode>& original_lqp,
     const std::shared_ptr<AbstractLQPNode>& copied_lqp) {
@@ -136,7 +142,7 @@ void AbstractLQPNode::set_input(LQPInputSide side, const std::shared_ptr<Abstrac
 
   // Untie from previous input
   if (current_input) {
-    current_input->_remove_output_pointer(shared_from_this());
+    current_input->_remove_output_pointer(*this);
   }
 
   /**
@@ -470,9 +476,9 @@ void AbstractLQPNode::_input_changed() {
   }
 }
 
-void AbstractLQPNode::_remove_output_pointer(const std::shared_ptr<AbstractLQPNode>& output) {
+void AbstractLQPNode::_remove_output_pointer(const AbstractLQPNode& output) {
   const auto iter =
-      std::find_if(_outputs.begin(), _outputs.end(), [&](const auto& other) { return output == other.lock(); });
+      std::find_if(_outputs.begin(), _outputs.end(), [&](const auto& other) { return &output == other.lock().get(); });
   DebugAssert(iter != _outputs.end(), "Specified output node is not actually a output node of this node.");
 
   /**
