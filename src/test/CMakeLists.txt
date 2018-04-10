@@ -90,7 +90,7 @@ set(
     statistics/table_statistics_test.cpp
     statistics/chunk_statistics/pruning_filters_test.cpp
     statistics/column_statistics_test.cpp
-    statistics/generate_table_statistics_test.cpp
+    statistics/generate_statistics_test.cpp
     scheduler/scheduler_test.cpp
     server/mock_connection.hpp
     server/mock_task_runner.hpp

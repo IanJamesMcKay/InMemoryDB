@@ -18,6 +18,6 @@ TableStatistics generate_table_statistics(const Table& table, const size_t max_s
 /**
  * Generate statistics about a Table by looking at every `max(1, <table_row_count> / <max_sample_count>`th row
  */
-TableStatistics generate_sampled_table_statistics(const Table& table, const size_t max_sample_count);
+TableStatistics generate_sampled_table_statistics(const Table& table, const size_t sample_count_hint);
 
 }  // namespace opossum

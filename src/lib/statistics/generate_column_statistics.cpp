@@ -1,63 +1,110 @@
 #include "generate_column_statistics.hpp"
 
+#include "storage/table.hpp"
+
 namespace opossum {
 
-ColumnStatisticsGenerator(const Table& table, const ColumnID column_id, const size_t max_sample_count);
+template<typename ColumnDataType>
+ColumnStatisticsGenerator<ColumnDataType>::ColumnStatisticsGenerator(const Table& table,
+                                                                     const ColumnID column_id,
+                                                                     const size_t sample_count_hint):
+  _table(table),
+  _column_id(column_id),
+  // sample_count_hint == 0 means "sample entire table"
+  _sample_count_hint(sample_count_hint > 0 ? sample_count_hint : table.row_count()) {
+}
 
-std::shared_ptr<AbstractColumnStatistics> operator()();
+template<typename ColumnDataType>
+typename ColumnStatisticsGenerator<ColumnDataType>::Result ColumnStatisticsGenerator<ColumnDataType>::operator()() {
+  init();
 
-protected:
-template<typename Value>
-void process_sample(const Value& value) const;
+  // Early out if there are no Rows in the table. Code below relies on _table.row_count() != 0
+  if (_table.empty()) {
+    return _result;
+  }
 
-template <>
-std::shared_ptr<AbstractColumnStatistics> generate_column_statistics<std::string>(const Table& table,
-                                                                                  const ColumnID column_id, const size_t max_sample_count) {
-  std::unordered_set<std::string> distinct_set;
+  const auto sampling_ratio_requested = static_cast<float>(std::min(_table.row_count(), _sample_count_hint)) / _table.row_count();
 
-  auto null_value_count = size_t{0};
+  for (ChunkID chunk_id{0}; chunk_id < _table.chunk_count(); ++chunk_id) {
+    const auto base_column = _table.get_chunk(chunk_id)->get_column(_column_id);
 
-  auto min = std::string{};
-  auto max = std::string{};
+    resolve_column_type<ColumnDataType>(*base_column, [&](auto& column) {
+      auto iterable = create_iterable_from_column<ColumnDataType>(column);
 
-  const auto sample_count = std::min(max_sample_count, table.row_count());
-  auto row_idx = size_t{0};
-  auto prev_sample_idx = size_t{0};
+      if (sampling_ratio_requested > FULL_SCAN_THRESHOLD) {
+        // Sample the entire Chunk
+        iterable.for_each([&](const auto& column_value) {
+          process_sample(column_value);
+        });
+        _result.sample_count += column.size();
+      } else {
+        // Determine the number of samples we're gonna take from this Chunk, making sure its at least one and max
+        // the number of rows in this Chunk.
+        const auto sample_count_this_chunk = std::min(column.size(),
+                                                      static_cast<size_t>(std::floor(static_cast<float>(column.size()) / _table.row_count()) *  _sample_count_hint)
+        + 1);
 
-  for (ChunkID chunk_id{0}; chunk_id < table.chunk_count(); ++chunk_id) {
-    const auto base_column = table.get_chunk(chunk_id)->get_column(column_id);
+        const auto sample_row_step = static_cast<float>(column.size()) / sample_count_this_chunk;
 
-    resolve_column_type<std::string>(*base_column, [&](auto& column) {
-      auto iterable = create_iterable_from_column<std::string>(column);
-      iterable.for_each([&](const auto& column_value) {
-        ++row_idx;
-        const auto current_sample_idx = (row_idx * sample_count) / table.row_count();
-        if (current_sample_idx == prev_sample_idx) return;
-        prev_sample_idx = current_sample_idx;
-
-        if (column_value.is_null()) {
-          ++null_value_count;
-        } else {
-          if (distinct_set.empty()) {
-            min = column_value.value();
-            max = column_value.value();
-          } else {
-            min = std::min(min, column_value.value());
-            max = std::max(min, column_value.value());
-          }
-          distinct_set.insert(column_value.value());
+        ChunkOffsetsList chunk_sample_list;
+        chunk_sample_list.reserve(sample_count_this_chunk);
+        for (auto row_idx_float = float(0); row_idx_float < column.size(); row_idx_float += sample_row_step) {
+          ChunkOffsetMapping mapping;
+          mapping.into_referenced = static_cast<ChunkOffset>(row_idx_float);
+          mapping.into_referencing = INVALID_CHUNK_OFFSET;
+          chunk_sample_list.emplace_back(mapping);
         }
-      });
+
+        iterable.for_each(&chunk_sample_list, [&](const auto& column_value) {
+          process_sample(column_value);
+        });
+
+        _result.sample_count += chunk_sample_list.size();
+      }
     });
   }
 
-  std::cout << prev_sample_idx << "/" << sample_count << " Samples taken from " << table.row_count() << " Rows" << std::endl;
-
-  const auto null_value_ratio =
-      table.row_count() > 0 ? static_cast<float>(null_value_count) / static_cast<float>(table.row_count()) : 0.0f;
-  const auto distinct_count = static_cast<float>(distinct_set.size());
-
-  return std::make_shared<ColumnStatistics<std::string>>(null_value_ratio, distinct_count, min, max);
+  return _result;
 }
 
+template<typename ColumnDataType>
+void ColumnStatisticsGenerator<ColumnDataType>::init() {
+  _result.min = std::numeric_limits<ColumnDataType>::max();
+  _result.max = std::numeric_limits<ColumnDataType>::lowest();
+}
+
+template<>
+void ColumnStatisticsGenerator<std::string>::init() {}
+
+template<typename ColumnDataType>
+template<typename Value>
+void ColumnStatisticsGenerator<ColumnDataType>::process_sample(const Value& value) {
+  if (value.is_null()) {
+    ++_result.null_value_count;
+  } else {
+    _result.distinct_set.insert(value.value());
+    _result.min = std::min(_result.min, value.value());
+    _result.max = std::max(_result.max, value.value());
+  }
+}
+
+template<>
+template<typename Value>
+void ColumnStatisticsGenerator<std::string>::process_sample(const Value& value) {
+  if (value.is_null()) {
+    ++_result.null_value_count;
+  } else {
+    if (_result.distinct_set.empty()) {
+      _result.min = value.value();
+      _result.max = value.value();
+    } else {
+      _result.min = std::min(_result.min, value.value());
+      _result.max = std::max(_result.max, value.value());
+    }
+
+    _result.distinct_set.insert(value.value());
+  }
+}
+
+EXPLICITLY_INSTANTIATE_DATA_TYPES(ColumnStatisticsGenerator);
 }  // namespace opossum

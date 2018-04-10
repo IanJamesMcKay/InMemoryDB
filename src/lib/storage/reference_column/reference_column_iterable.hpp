@@ -28,6 +28,10 @@ class ReferenceColumnIterable : public ColumnIterable<ReferenceColumnIterable<T>
     functor(begin, end);
   }
 
+  template <typename Functor>
+  void _on_with_iterators(const ChunkOffsetsList& mapped_chunk_offsets, const Functor& functor) const {
+  }
+
  private:
   const ReferenceColumn& _column;
 
