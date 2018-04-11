@@ -11,7 +11,7 @@
 
 namespace opossum {
 
-struct JoinHashPerformanceData : public BaseOperatorPerformanceData {
+struct JoinHashPerformanceData final {
   std::chrono::microseconds materialization{0};
   std::chrono::microseconds partitioning{0};
   std::chrono::microseconds build{0};
@@ -37,7 +37,7 @@ class JoinHash : public AbstractJoinOperator {
            const JoinMode mode, const ColumnIDPair& column_ids, const PredicateCondition predicate_condition);
 
   const std::string name() const override;
-  const JoinHashPerformanceData& performance_data() const override;
+  const JoinHashPerformanceData& join_hash_performance_data() const;
 
  protected:
   std::shared_ptr<const Table> _on_execute() override;
@@ -48,7 +48,7 @@ class JoinHash : public AbstractJoinOperator {
 
   std::unique_ptr<AbstractReadOnlyOperatorImpl> _impl;
 
-  JoinHashPerformanceData _performance_data;
+  JoinHashPerformanceData _join_hash_performance_data;
 
   template <typename LeftType, typename RightType>
   class JoinHashImpl;

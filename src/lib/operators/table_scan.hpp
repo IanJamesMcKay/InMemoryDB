@@ -15,7 +15,7 @@ namespace opossum {
 class BaseTableScanImpl;
 class Table;
 
-struct TableScanPerformanceData : public BaseOperatorPerformanceData {
+struct TableScanPerformanceData final {
   std::chrono::microseconds scan{0};
   std::chrono::microseconds output{0};
 };
@@ -52,7 +52,7 @@ class TableScan : public AbstractReadOnlyOperator {
   const std::string name() const override;
   const std::string description(DescriptionMode description_mode) const override;
 
-  const TableScanPerformanceData& performance_data() const override;
+  const TableScanPerformanceData& table_scan_performance_data() const;
 
  protected:
   std::shared_ptr<const Table> _on_execute() override;
@@ -76,7 +76,7 @@ class TableScan : public AbstractReadOnlyOperator {
   std::unique_ptr<BaseTableScanImpl> _impl;
   std::shared_ptr<Table> _output_table;
 
-  TableScanPerformanceData _performance_data;
+  TableScanPerformanceData _table_scan_performance_data;
 };
 
 }  // namespace opossum

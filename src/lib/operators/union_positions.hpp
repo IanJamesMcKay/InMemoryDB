@@ -8,7 +8,7 @@
 
 namespace opossum {
 
-struct UnionPositionsPerformanceData : public BaseOperatorPerformanceData {
+struct UnionPositionsPerformanceData final {
   std::chrono::microseconds init{0};
   std::chrono::microseconds sort{0};
   std::chrono::microseconds output{0};
@@ -79,7 +79,7 @@ class UnionPositions : public AbstractReadOnlyOperator {
 
   const std::string name() const override;
 
-  const UnionPositionsPerformanceData& performance_data() const override;
+  const UnionPositionsPerformanceData& union_positions_performance_data() const;
 
  private:
   // See docs at the top of the cpp
@@ -126,6 +126,6 @@ class UnionPositions : public AbstractReadOnlyOperator {
   // For each column_idx in the input tables, specifies the referenced column in the referenced table
   std::vector<ColumnID> _referenced_column_ids;
 
-  UnionPositionsPerformanceData _performance_data;
+  UnionPositionsPerformanceData _union_positions_performance_data;
 };
 }  // namespace opossum

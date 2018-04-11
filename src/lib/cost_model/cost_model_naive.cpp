@@ -20,6 +20,7 @@ Cost CostModelNaive::_cost_model_impl(const OperatorType operator_type, const Ab
     case OperatorType::JoinSortMerge:
       return feature_proxy.extract_feature(CostFeature::LeftInputRowCountLogN).scalar() + feature_proxy.extract_feature(CostFeature::RightInputRowCount).scalar();
     case OperatorType::Product: return feature_proxy.extract_feature(CostFeature::InputRowCountProduct).scalar();
+    case OperatorType::JoinNestedLoop: return feature_proxy.extract_feature(CostFeature::InputRowCountProduct).scalar();
     case OperatorType::UnionPositions:
       return feature_proxy.extract_feature(CostFeature::LeftInputRowCountLogN).scalar() + feature_proxy.extract_feature(CostFeature::RightInputRowCount).scalar();
 

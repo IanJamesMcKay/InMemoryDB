@@ -37,7 +37,7 @@ JoinHash::JoinHash(const std::shared_ptr<const AbstractOperator> left,
 
 const std::string JoinHash::name() const { return "JoinHash"; }
 
-const JoinHashPerformanceData& JoinHash::performance_data() const { return _performance_data; }
+const JoinHashPerformanceData& JoinHash::join_hash_performance_data() const { return _join_hash_performance_data; }
 
 std::shared_ptr<AbstractOperator> JoinHash::_on_recreate(
     const std::vector<AllParameterVariant>& args, const std::shared_ptr<AbstractOperator>& recreated_input_left,
@@ -82,7 +82,7 @@ std::shared_ptr<const Table> JoinHash::_on_execute() {
 
   _impl = make_unique_by_data_types<AbstractReadOnlyOperatorImpl, JoinHashImpl>(
       build_input->column_data_type(build_column_id), probe_input->column_data_type(probe_column_id), build_operator,
-      probe_operator, _mode, adjusted_column_ids, _predicate_condition, inputs_swapped, _performance_data, *this);
+      probe_operator, _mode, adjusted_column_ids, _predicate_condition, inputs_swapped, _join_hash_performance_data, *this);
 
   auto output_table = _impl->_on_execute();
 
@@ -111,14 +111,14 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
  public:
   JoinHashImpl(const std::shared_ptr<const AbstractOperator> left, const std::shared_ptr<const AbstractOperator> right,
                const JoinMode mode, const ColumnIDPair& column_ids, const PredicateCondition predicate_condition,
-               const bool inputs_swapped, JoinHashPerformanceData& performance_data, const JoinHash& join_hash)
+               const bool inputs_swapped, JoinHashPerformanceData& join_hash_performance_data, const JoinHash& join_hash)
       : _left(left),
         _right(right),
         _mode(mode),
         _column_ids(column_ids),
         _predicate_condition(predicate_condition),
         _inputs_swapped(inputs_swapped),
-        _performance_data(performance_data), _join_hash(join_hash) {}
+        _join_hash_performance_data(join_hash_performance_data), _join_hash(join_hash) {}
 
   virtual ~JoinHashImpl() = default;
 
@@ -128,7 +128,7 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
   const ColumnIDPair _column_ids;
   const PredicateCondition _predicate_condition;
   const bool _inputs_swapped;
-  JoinHashPerformanceData& _performance_data;
+  JoinHashPerformanceData& _join_hash_performance_data;
   const JoinHash& _join_hash;
 
   using PosListsPerColumn = std::unordered_map<ColumnID, std::shared_ptr<std::vector<const PosList*>>>;
@@ -665,7 +665,7 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
         _materialize_input<RightType>(_right_in_table, _column_ids.second, histograms_right, keep_nulls);
     if (_join_hash.aborted()) return nullptr;
 
-    _performance_data.materialization = performance_timer.lap();
+    _join_hash_performance_data.materialization = performance_timer.lap();
 
     // Radix Partitioning phase
     /*
@@ -685,7 +685,7 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
     if (_join_hash.aborted()) return nullptr;
 
 
-    _performance_data.partitioning = performance_timer.lap();
+    _join_hash_performance_data.partitioning = performance_timer.lap();
 
     // Build phase
     std::vector<std::shared_ptr<HashTable<HashedType>>> hashtables;
@@ -697,7 +697,7 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
     _build(radix_left, hashtables);
     if (_join_hash.aborted()) return nullptr;
 
-    _performance_data.build = performance_timer.lap();
+    _join_hash_performance_data.build = performance_timer.lap();
 
     // Probe phase
     std::vector<PosList> left_pos_lists;
@@ -716,7 +716,7 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
     }
     if (_join_hash.aborted()) return nullptr;
 
-    _performance_data.probe = performance_timer.lap();
+    _join_hash_performance_data.probe = performance_timer.lap();
 
     auto only_output_right_input = !_inputs_swapped || (_mode != JoinMode::Semi && _mode != JoinMode::Anti);
 
@@ -768,7 +768,7 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
       _output_table->append_chunk(output_columns);
     }
 
-    _performance_data.output = performance_timer.lap();
+    _join_hash_performance_data.output = performance_timer.lap();
 
     return _output_table;
   }

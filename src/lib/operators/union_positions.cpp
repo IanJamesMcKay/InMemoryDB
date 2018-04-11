@@ -68,8 +68,8 @@ std::shared_ptr<AbstractOperator> UnionPositions::_on_recreate(
 
 const std::string UnionPositions::name() const { return "UnionPositions"; }
 
-const UnionPositionsPerformanceData& UnionPositions::performance_data() const {
-  return _performance_data;
+const UnionPositionsPerformanceData& UnionPositions::union_positions_performance_data() const {
+  return _union_positions_performance_data;
 }
 
 std::shared_ptr<const Table> UnionPositions::_on_execute() {
@@ -94,7 +94,7 @@ std::shared_ptr<const Table> UnionPositions::_on_execute() {
   VirtualPosList virtual_pos_list_right(input_table_right()->row_count(), 0u);
   std::iota(virtual_pos_list_right.begin(), virtual_pos_list_right.end(), 0u);
 
-  _performance_data.init = timer.lap();
+  _union_positions_performance_data.init = timer.lap();
 
   /**
    * Sort the virtual pos lists so that they bring the rows in their respective ReferenceMatrix into order.
@@ -106,7 +106,7 @@ std::shared_ptr<const Table> UnionPositions::_on_execute() {
   std::sort(virtual_pos_list_right.begin(), virtual_pos_list_right.end(),
             VirtualPosListCmpContext{reference_matrix_right});
 
-  _performance_data.sort = timer.lap();
+  _union_positions_performance_data.sort = timer.lap();
 
   /**
    * Build result table
@@ -200,7 +200,7 @@ std::shared_ptr<const Table> UnionPositions::_on_execute() {
     emit_chunk();
   }
 
-  _performance_data.output = timer.lap();
+  _union_positions_performance_data.output = timer.lap();
 
   return out_table;
 }

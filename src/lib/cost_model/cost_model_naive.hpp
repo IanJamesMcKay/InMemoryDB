@@ -9,6 +9,8 @@ namespace opossum {
  *
  * Research (e.g. "How Good Are Query Optimizers, Really?" by Leis et al) suggests very simple CostModels such as this
  * one are "good enough". Especially cardinality estimation has a bigger impact on plan quality by orders of magnitude.
+ *
+ * Currently costs all Join Operators, TableScans and UnionPositions
  */
 class CostModelNaive: public AbstractCostModel {
  public:

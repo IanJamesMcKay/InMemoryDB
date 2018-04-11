@@ -34,10 +34,8 @@ struct CostModelLinearConfig final {
  * - Currently only support JoinHash, TableScan, UnionPosition and Product, i.e., the most essential operators for
  *      JoinPlans
  * - Calibrated on a specific machine on a specific hyrise code base - so not expected to yield reliable results
- * - For JoinHash - since it show erratic performance behaviour - only the runtime of some of the operators phases is
- *      begin predicated.
- *
- *
+ * - For JoinHash - since it shows erratic performance behaviour - only the runtime of some of the operators phases is
+ *      being predicted.
  */
 class CostModelLinear : public AbstractCostModel {
  public:
@@ -56,7 +54,7 @@ class CostModelLinear : public AbstractCostModel {
   Cost get_reference_operator_cost(const std::shared_ptr<AbstractOperator>& op) const override;
 
  protected:
-   virtual Cost _cost_model_impl(const OperatorType operator_type, const AbstractCostFeatureProxy& feature_proxy) const override;
+   Cost _cost_model_impl(const OperatorType operator_type, const AbstractCostFeatureProxy& feature_proxy) const override;
    Cost _predict_cost(const CostFeatureWeights& feature_weights, const AbstractCostFeatureProxy& feature_proxy) const;
 
  private:

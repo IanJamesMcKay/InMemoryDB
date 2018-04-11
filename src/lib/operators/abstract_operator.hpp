@@ -110,7 +110,9 @@ class AbstractOperator : public std::enable_shared_from_this<AbstractOperator>, 
   std::shared_ptr<const Table> input_table_left() const;
   std::shared_ptr<const Table> input_table_right() const;
 
-  virtual const BaseOperatorPerformanceData& performance_data() const;
+  // Return data about the operators performance (runtime, e.g.) AFTER it has been executed.
+  // Derived operators may produce more finely grained performance data (e.g. JoinHash::join_hash_performance_data())
+  const BaseOperatorPerformanceData& base_performance_data() const;
 
   void print(std::ostream& stream = std::cout) const;
 

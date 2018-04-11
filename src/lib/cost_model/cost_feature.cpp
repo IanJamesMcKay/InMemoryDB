@@ -4,9 +4,6 @@
 
 namespace opossum {
 
-CostFeatureVariant::CostFeatureVariant(const detail::CostFeatureVariant& value):
-  value(value) {}
-
 bool CostFeatureVariant::boolean() const {
   Assert(value.type() == typeid(bool), "CostFeatureVariant doesn't contain a bool");
   return boost::get<bool>(value);

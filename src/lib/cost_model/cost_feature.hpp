@@ -42,28 +42,20 @@ enum class CostFeature {
 
 using CostFeatureWeights = std::map<CostFeature, float>;
 
-namespace detail {
-
-using CostFeatureVariant = boost::variant<float, DataType, PredicateCondition, bool>;
-
-}
-
 /**
- * Wraps detail::CostFeatureVariant and provides getters for the member types of the variants that perform type checking
- * at runtime.
+ * Wraps a Variant of all data types for CostFeatues and provides getters for the member types of the variants that
+ * perform type checking at runtime.
  */
 struct CostFeatureVariant {
  public:
   template<typename T> CostFeatureVariant(const T& value): value(value) {} // NOLINT - implicit conversion is intended
-
-  CostFeatureVariant(const detail::CostFeatureVariant& value); // NOLINT - implicit conversion is intended
 
   bool boolean() const;
   float scalar() const;
   DataType data_type() const;
   PredicateCondition predicate_condition() const;
 
-  detail::CostFeatureVariant value;
+  boost::variant<float, DataType, PredicateCondition, bool> value;
 };
 
 }  // namespace opossum

@@ -74,8 +74,8 @@ const std::string TableScan::description(DescriptionMode description_mode) const
          " " + right_parameter_str + ")";
 }
 
-const TableScanPerformanceData& TableScan::performance_data() const {
-  return _performance_data;
+const TableScanPerformanceData& TableScan::table_scan_performance_data() const {
+  return _table_scan_performance_data;
 }
 
 std::shared_ptr<AbstractOperator> TableScan::_on_recreate(
@@ -186,8 +186,8 @@ std::shared_ptr<const Table> TableScan::_on_execute() {
 
   CurrentScheduler::wait_for_tasks(jobs);
 
-  _performance_data.scan = std::chrono::microseconds{accumulated_scan_duration.load()};
-  _performance_data.output = std::chrono::microseconds{accumulated_output_duration.load()};
+  _table_scan_performance_data.scan = std::chrono::microseconds{accumulated_scan_duration.load()};
+  _table_scan_performance_data.output = std::chrono::microseconds{accumulated_output_duration.load()};
 
   return _output_table;
 }

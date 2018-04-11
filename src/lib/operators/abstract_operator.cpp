@@ -47,7 +47,7 @@ void AbstractOperator::execute() {
   // release any temporary data if possible
   _on_cleanup();
 
-  const_cast<BaseOperatorPerformanceData&>(performance_data()).total = timer_total.lap();
+  const_cast<BaseOperatorPerformanceData&>(base_performance_data()).total = timer_total.lap();
 
   for (auto& callback : _post_operator_callbacks) {
     callback(shared_from_this());
@@ -111,7 +111,7 @@ std::shared_ptr<AbstractOperator> AbstractOperator::mutable_input_right() const 
   return std::const_pointer_cast<AbstractOperator>(_input_right);
 }
 
-const BaseOperatorPerformanceData& AbstractOperator::performance_data() const { return _base_performance_data; }
+const BaseOperatorPerformanceData& AbstractOperator::base_performance_data() const { return _base_performance_data; }
 
 std::shared_ptr<const AbstractOperator> AbstractOperator::input_left() const { return _input_left; }
 
@@ -135,7 +135,7 @@ void AbstractOperator::print(std::ostream& stream) const {
 
       stream << format_bytes(output->estimate_memory_usage());
       stream << "/";
-      stream << format_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(op->performance_data().total)) << ")";
+      stream << format_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(op->base_performance_data().total)) << ")";
     }
   };
 

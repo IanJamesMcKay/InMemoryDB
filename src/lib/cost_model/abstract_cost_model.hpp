@@ -14,8 +14,8 @@ enum class OperatorType;
 /**
  * Interface of an algorithm that predicts Cost for operators.
  *
- * Additionally, it can assume which operator the LQPTranslator will use for an LQPNode and thus estimate the cost
- * of it as well (estimate_lqp_node_cost()).
+ * Additionally, it can assume which operator the LQPTranslator will use for an LQPNode and thus estimate the Cost
+ * of the LQPNode as well (see estimate_lqp_node_cost()).
  * TODO(anybody) somehow stop to "assume which operator the LQPTranslator will use" and ask the LQPTranslator directly.
  *               Somehow.
  */

@@ -143,16 +143,21 @@ Cost CostModelLinear::get_reference_operator_cost(const std::shared_ptr<Abstract
 
   auto duration = std::chrono::microseconds{0};
 
+  /**
+   * Costs of all Operators are their runtime in microseconds. Except for the JoinHash, where we omit the output phase
+   * whose runtime was unpredictable with the available features.
+   */
+
   switch (op->type()) {
     case OperatorType::JoinHash: {
       const auto join_hash = std::static_pointer_cast<JoinHash>(op);
-      const auto &performance_data = join_hash->performance_data();
+      const auto &performance_data = join_hash->join_hash_performance_data();
       duration = performance_data.materialization + performance_data.partitioning + performance_data.build +
                  performance_data.probe;
     } break;
 
     default:
-      duration = op->performance_data().total;
+      duration = op->base_performance_data().total;
   }
 
   return static_cast<Cost>(duration.count());
