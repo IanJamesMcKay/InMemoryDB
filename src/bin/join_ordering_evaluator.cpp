@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include <cxxopts.hpp>
+#include <statistics/generate_table_statistics.hpp>
 
 #include "constant_mappings.hpp"
 #include "logical_query_plan/logical_plan_root_node.hpp"
@@ -281,7 +282,7 @@ int main(int argc, char ** argv) {
             if (cache_statistics && query_run_idx == 0) {
               for (const auto& op : operators) {
                 if (op->lqp_node()) {
-                  statistics_cache->put(op->lqp_node(), std::make_shared<TableStatistics>(std::const_pointer_cast<Table>(op->get_output())));
+                  statistics_cache->put(op->lqp_node(), std::make_shared<TableStatistics>(generate_table_statistics(*std::const_pointer_cast<Table>(op->get_output()))));
                 }
               }
             }

@@ -6,6 +6,8 @@
 #include <utility>
 #include <vector>
 
+#include "types.hpp"
+
 namespace opossum {
 
 class OperatorTask;
@@ -15,6 +17,8 @@ template <typename>
 class ValueColumn;
 
 }  // namespace opossum
+
+using namespace opossum;  // NOLINT
 
 namespace tpcc {
 

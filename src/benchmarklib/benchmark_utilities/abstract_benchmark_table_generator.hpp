@@ -13,6 +13,8 @@
 #include "storage/value_column.hpp"
 #include "types.hpp"
 
+using namespace opossum; // NOLINT
+
 namespace benchmark_utilities {
 
 class AbstractBenchmarkTableGenerator {
