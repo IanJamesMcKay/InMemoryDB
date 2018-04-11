@@ -58,12 +58,12 @@ CostFeatureVariant CostFeatureLQPNodeProxy::_extract_feature_impl(const CostFeat
             column_reference = boost::get<LQPColumnReference>(predicate_node->value());
           }
         }
-
-        auto column_id = _node->get_output_column_id(column_reference);
-        return _node->get_statistics()->column_statistics().at(column_id)->data_type();
       } else {
         Fail("CostFeature not defined for LQPNodeType");
       }
+
+      auto column_id = _node->get_output_column_id(column_reference);
+      return _node->get_statistics()->column_statistics().at(column_id)->data_type();
     }
 
     case CostFeature::PredicateCondition:
@@ -85,8 +85,9 @@ CostFeatureVariant CostFeatureLQPNodeProxy::_extract_feature_impl(const CostFeat
       }
 
     default:
-      Fail("Extraction of this feature is not implemented. Maybe it should be handled in AbstractCostFeatureProxy?");
+      break;
   }
+  Fail("Feature extraction failed. Maybe the Feature should be handled in AbstractCostFeatureProxy?");
 }
 
 }  // namespace opossum
