@@ -65,10 +65,6 @@ void _export_values(std::ofstream& ofstream, const std::vector<T, Alloc>& values
 
 // specialized implementation for string values
 template <>
-void _export_values(std::ofstream& ofstream, const opossum::pmr_vector<std::string>& values) {
-  _export_string_values(ofstream, values);
-}
-template <>
 void _export_values(std::ofstream& ofstream, const std::vector<std::string>& values) {
   _export_string_values(ofstream, values);
 }
@@ -82,7 +78,7 @@ void _export_values(std::ofstream& ofstream, const std::vector<bool>& values) {
 }
 
 template <typename T>
-void _export_values(std::ofstream& ofstream, const opossum::pmr_concurrent_vector<T>& values) {
+void _export_values(std::ofstream& ofstream, const opossum::pmr_vector<T>& values) {
   // TODO(all): could be faster if we directly write the values into the stream without prior conversion
   const auto value_block = std::vector<T>{values.begin(), values.end()};
   ofstream.write(reinterpret_cast<const char*>(value_block.data()), value_block.size() * sizeof(T));
@@ -90,7 +86,7 @@ void _export_values(std::ofstream& ofstream, const opossum::pmr_concurrent_vecto
 
 // specialized implementation for string values
 template <>
-void _export_values(std::ofstream& ofstream, const opossum::pmr_concurrent_vector<std::string>& values) {
+void _export_values(std::ofstream& ofstream, const opossum::pmr_vector<std::string>& values) {
   // TODO(all): could be faster if we directly write the values into the stream without prior conversion
   const auto value_block = std::vector<std::string>{values.begin(), values.end()};
   _export_string_values(ofstream, value_block);
@@ -98,7 +94,7 @@ void _export_values(std::ofstream& ofstream, const opossum::pmr_concurrent_vecto
 
 // specialized implementation for bool values
 template <>
-void _export_values(std::ofstream& ofstream, const opossum::pmr_concurrent_vector<bool>& values) {
+void _export_values(std::ofstream& ofstream, const opossum::pmr_vector<bool>& values) {
   // Cast to fixed-size format used in binary file
   const auto writable_bools = std::vector<opossum::BoolAsByteType>(values.begin(), values.end());
   _export_values(ofstream, writable_bools);

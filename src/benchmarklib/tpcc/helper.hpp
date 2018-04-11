@@ -23,7 +23,7 @@ void execute_tasks_with_context(std::vector<std::shared_ptr<opossum::OperatorTas
 
 template <typename T>
 std::shared_ptr<opossum::ValueColumn<T>> create_single_value_column(T value) {
-  tbb::concurrent_vector<T> column;
+  pmr_vector<T> column;
   column.push_back(value);
 
   return std::make_shared<opossum::ValueColumn<T>>(std::move(column));

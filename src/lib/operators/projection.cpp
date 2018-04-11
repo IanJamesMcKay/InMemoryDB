@@ -73,18 +73,18 @@ std::shared_ptr<BaseColumn> Projection::_create_column(boost::hana::basic_type<T
   if (expression->is_null_literal()) {
     // fill a nullable column with NULLs
     auto row_count = input_table_left->get_chunk(chunk_id)->size();
-    auto null_values = pmr_concurrent_vector<bool>(row_count, true);
+    auto null_values = pmr_vector<bool>(row_count, true);
     // Explicitly pass T{} because in some cases it won't initialize otherwise
-    auto values = pmr_concurrent_vector<T>(row_count, T{});
+    auto values = pmr_vector<T>(row_count, T{});
 
     return std::make_shared<ValueColumn<T>>(std::move(values), std::move(null_values));
   } else {
     // fill a value column with the specified expression
     auto values = _evaluate_expression<T>(expression, input_table_left, chunk_id);
 
-    pmr_concurrent_vector<T> non_null_values;
+    pmr_vector<T> non_null_values;
     non_null_values.reserve(values.size());
-    pmr_concurrent_vector<bool> null_values;
+    pmr_vector<bool> null_values;
     null_values.reserve(values.size());
 
     for (const auto value : values) {
@@ -183,7 +183,7 @@ DataType Projection::_get_type_of_expression(const std::shared_ptr<PQPExpression
 }
 
 template <typename T>
-const pmr_concurrent_vector<std::pair<bool, T>> Projection::_evaluate_expression(
+const pmr_vector<std::pair<bool, T>> Projection::_evaluate_expression(
     const std::shared_ptr<PQPExpression>& expression, const std::shared_ptr<const Table> table,
     const ChunkID chunk_id) {
   /**
@@ -192,7 +192,7 @@ const pmr_concurrent_vector<std::pair<bool, T>> Projection::_evaluate_expression
    * On the other hand this is not used for nested arithmetic Expressions, such as 'SELECT a + 5 FROM table_a'.
    */
   if (expression->type() == ExpressionType::Literal) {
-    return pmr_concurrent_vector<std::pair<bool, T>>(table->get_chunk(chunk_id)->size(),
+    return pmr_vector<std::pair<bool, T>>(table->get_chunk(chunk_id)->size(),
                                                      std::make_pair(false, boost::get<T>(expression->value())));
   }
 
@@ -202,7 +202,7 @@ const pmr_concurrent_vector<std::pair<bool, T>> Projection::_evaluate_expression
   if (expression->type() == ExpressionType::Column) {
     const auto chunk = table->get_chunk(chunk_id);
 
-    pmr_concurrent_vector<std::pair<bool, T>> values_and_nulls;
+    pmr_vector<std::pair<bool, T>> values_and_nulls;
     values_and_nulls.reserve(chunk->size());
 
     materialize_values_and_nulls(*chunk->get_column(expression->column_id()), values_and_nulls);
@@ -217,7 +217,7 @@ const pmr_concurrent_vector<std::pair<bool, T>> Projection::_evaluate_expression
 
   const auto& arithmetic_operator_function = function_for_arithmetic_expression<T>(expression->type());
 
-  pmr_concurrent_vector<std::pair<bool, T>> values;
+  pmr_vector<std::pair<bool, T>> values;
   values.resize(table->get_chunk(chunk_id)->size());
 
   const auto& left = expression->left_child();

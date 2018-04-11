@@ -56,30 +56,30 @@ using PolymorphicAllocator = boost::container::pmr::polymorphic_allocator<T>;
 template <typename T>
 using pmr_vector = std::vector<T, PolymorphicAllocator<T>>;
 
-// We are not using PMR here because of the problems described in #281.
-// Short version: The current TBB breaks with it, because it needs rebind.
-// Once that works, replace the class below with
-// using pmr_concurrent_vector = tbb::concurrent_vector<T, PolymorphicAllocator<T>>;
-template <typename T>
-class pmr_concurrent_vector : public tbb::concurrent_vector<T> {
- public:
-  pmr_concurrent_vector(PolymorphicAllocator<T> alloc = {}) : pmr_concurrent_vector(0, alloc) {}  // NOLINT
-  pmr_concurrent_vector(std::initializer_list<T> init_list, PolymorphicAllocator<T> alloc = {})
-      : tbb::concurrent_vector<T>(init_list), _alloc(alloc) {}         // NOLINT
-  pmr_concurrent_vector(size_t n, PolymorphicAllocator<T> alloc = {})  // NOLINT
-      : pmr_concurrent_vector(n, T{}, alloc) {}
-  pmr_concurrent_vector(size_t n, T val, PolymorphicAllocator<T> alloc = {})  // NOLINT
-      : tbb::concurrent_vector<T>(n, val),
-        _alloc(alloc) {}
-  pmr_concurrent_vector(tbb::concurrent_vector<T> other, PolymorphicAllocator<T> alloc = {})  // NOLINT
-      : tbb::concurrent_vector<T>(other),
-        _alloc(alloc) {}
+//// We are not using PMR here because of the problems described in #281.
+//// Short version: The current TBB breaks with it, because it needs rebind.
+//// Once that works, replace the class below with
+//// using pmr_vector = pmr_vector<T, PolymorphicAllocator<T>>;
+//template <typename T>
+//class pmr_vector : public pmr_vector<T> {
+// public:
+//  pmr_vector(PolymorphicAllocator<T> alloc = {}) : pmr_vector(0, alloc) {}  // NOLINT
+//  pmr_vector(std::initializer_list<T> init_list, PolymorphicAllocator<T> alloc = {})
+//      : pmr_vector<T>(init_list), _alloc(alloc) {}         // NOLINT
+//  pmr_vector(size_t n, PolymorphicAllocator<T> alloc = {})  // NOLINT
+//      : pmr_vector(n, T{}, alloc) {}
+//  pmr_vector(size_t n, T val, PolymorphicAllocator<T> alloc = {})  // NOLINT
+//      : pmr_vector<T>(n, val),
+//        _alloc(alloc) {}
+//  pmr_vector(pmr_vector<T> other, PolymorphicAllocator<T> alloc = {})  // NOLINT
+//      : pmr_vector<T>(other),
+//        _alloc(alloc) {}
 
-  const PolymorphicAllocator<T>& get_allocator() const { return _alloc; }
+//  const PolymorphicAllocator<T>& get_allocator() const { return _alloc; }
 
- protected:
-  PolymorphicAllocator<T> _alloc;
-};
+// protected:
+//  PolymorphicAllocator<T> _alloc;
+//};
 
 template <typename T>
 using pmr_ring_buffer = boost::circular_buffer<T, PolymorphicAllocator<T>>;

@@ -57,7 +57,7 @@ class DeprecatedDictionaryEncoder : public ColumnEncoder<DeprecatedDictionaryEnc
 
       /**
        * Iterators are used because values and null_values are of
-       * type tbb::concurrent_vector and thus index-based access isn’t in O(1)
+       * type pmr_vector and thus index-based access isn’t in O(1)
        */
       auto value_it = values.cbegin();
       auto null_value_it = null_values.cbegin();

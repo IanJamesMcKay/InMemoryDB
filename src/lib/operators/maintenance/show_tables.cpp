@@ -29,7 +29,7 @@ std::shared_ptr<const Table> ShowTables::_on_execute() {
 
   const auto table_names = StorageManager::get().table_names();
   const auto column = std::make_shared<ValueColumn<std::string>>(
-      tbb::concurrent_vector<std::string>(table_names.begin(), table_names.end()));
+      pmr_vector<std::string>(table_names.begin(), table_names.end()));
 
   ChunkColumns columns;
   columns.push_back(column);

@@ -28,7 +28,7 @@ TableGenerator::TableGenerator(const size_t num_columns, const size_t num_rows, 
 
 std::shared_ptr<Table> TableGenerator::generate_table(const ChunkOffset chunk_size,
                                                       std::optional<EncodingType> encoding_type) const {
-  std::vector<tbb::concurrent_vector<int>> value_vectors;
+  std::vector<pmr_vector<int>> value_vectors;
   auto vector_size = std::min(static_cast<size_t>(chunk_size), _num_rows);
   /*
    * Generate table layout with enumerated column names (i.e., "col_1", "col_2", ...)
@@ -38,7 +38,7 @@ std::shared_ptr<Table> TableGenerator::generate_table(const ChunkOffset chunk_si
   for (size_t i = 0; i < _num_columns; i++) {
     auto column_name = std::string(1, static_cast<char>(static_cast<int>('a') + i));
     column_definitions.emplace_back(column_name, DataType::Int);
-    value_vectors.emplace_back(tbb::concurrent_vector<int>(vector_size));
+    value_vectors.emplace_back(pmr_vector<int>(vector_size));
   }
   const auto table = std::make_shared<Table>(column_definitions, TableType::Data, chunk_size);
 
@@ -53,7 +53,7 @@ std::shared_ptr<Table> TableGenerator::generate_table(const ChunkOffset chunk_si
       ChunkColumns columns;
       for (size_t j = 0; j < _num_columns; j++) {
         columns.push_back(std::make_shared<ValueColumn<int>>(std::move(value_vectors[j])));
-        value_vectors[j] = tbb::concurrent_vector<int>(vector_size);
+        value_vectors[j] = pmr_vector<int>(vector_size);
       }
       table->append_chunk(columns);
     }
@@ -89,14 +89,14 @@ std::shared_ptr<Table> TableGenerator::generate_table(
   const auto num_chunks = std::ceil(static_cast<double>(num_rows) / static_cast<double>(chunk_size));
 
   // create result table and container for vectors holding the generated values for the columns
-  std::vector<tbb::concurrent_vector<int>> value_vectors;
+  std::vector<pmr_vector<int>> value_vectors;
 
   // add column definitions and initialize each value vector
   TableColumnDefinitions column_definitions;
   for (size_t column = 1; column <= num_columns; ++column) {
     auto column_name = "col_" + std::to_string(column);
     column_definitions.emplace_back(column_name, DataType::Int);
-    value_vectors.emplace_back(tbb::concurrent_vector<int>(chunk_size));
+    value_vectors.emplace_back(pmr_vector<int>(chunk_size));
   }
   std::shared_ptr<Table> table = std::make_shared<Table>(column_definitions, TableType::Data, chunk_size);
 
@@ -158,7 +158,7 @@ std::shared_ptr<Table> TableGenerator::generate_table(
 
       // add values to column in chunk, reset value vector
       columns.push_back(std::make_shared<ValueColumn<int>>(std::move(value_vectors[column_index])));
-      value_vectors[column_index] = tbb::concurrent_vector<int>(chunk_size);
+      value_vectors[column_index] = pmr_vector<int>(chunk_size);
 
       // add full chunk to table
       if (column_index == num_columns - 1) {

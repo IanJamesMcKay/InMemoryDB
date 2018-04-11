@@ -18,9 +18,9 @@ void MvccColumns::shrink() {
 
 void MvccColumns::grow_by(size_t delta, CommitID begin_cid) {
   _size += delta;
-  tids.grow_to_at_least(_size);
-  begin_cids.grow_to_at_least(_size, begin_cid);
-  end_cids.grow_to_at_least(_size, MAX_COMMIT_ID);
+  tids.resize(_size);
+  begin_cids.resize(_size, begin_cid);
+  end_cids.resize(_size, MAX_COMMIT_ID);
 }
 
 void MvccColumns::print(std::ostream& stream) const {

@@ -16,19 +16,19 @@ namespace opossum {
 
 template <typename T>
 ValueColumn<T>::ValueColumn(bool nullable) {
-  if (nullable) _null_values = pmr_concurrent_vector<bool>();
+  if (nullable) _null_values = pmr_vector<bool>();
 }
 
 template <typename T>
 ValueColumn<T>::ValueColumn(const PolymorphicAllocator<T>& alloc, bool nullable) : _values(alloc) {
-  if (nullable) _null_values = pmr_concurrent_vector<bool>(alloc);
+  if (nullable) _null_values = pmr_vector<bool>(alloc);
 }
 
 template <typename T>
-ValueColumn<T>::ValueColumn(pmr_concurrent_vector<T>&& values) : _values(std::move(values)) {}
+ValueColumn<T>::ValueColumn(pmr_vector<T>&& values) : _values(std::move(values)) {}
 
 template <typename T>
-ValueColumn<T>::ValueColumn(pmr_concurrent_vector<T>&& values, pmr_concurrent_vector<bool>&& null_values)
+ValueColumn<T>::ValueColumn(pmr_vector<T>&& values, pmr_vector<bool>&& null_values)
     : _values(std::move(values)), _null_values(std::move(null_values)) {}
 
 template <typename T>
@@ -94,12 +94,12 @@ void ValueColumn<std::string>::append(const AllTypeVariant& val) {
 }
 
 template <typename T>
-const pmr_concurrent_vector<T>& ValueColumn<T>::values() const {
+const pmr_vector<T>& ValueColumn<T>::values() const {
   return _values;
 }
 
 template <typename T>
-pmr_concurrent_vector<T>& ValueColumn<T>::values() {
+pmr_vector<T>& ValueColumn<T>::values() {
   return _values;
 }
 
@@ -109,14 +109,14 @@ bool ValueColumn<T>::is_nullable() const {
 }
 
 template <typename T>
-const pmr_concurrent_vector<bool>& ValueColumn<T>::null_values() const {
+const pmr_vector<bool>& ValueColumn<T>::null_values() const {
   DebugAssert(is_nullable(), "This ValueColumn does not support null values.");
 
   return *_null_values;
 }
 
 template <typename T>
-pmr_concurrent_vector<bool>& ValueColumn<T>::null_values() {
+pmr_vector<bool>& ValueColumn<T>::null_values() {
   DebugAssert(is_nullable(), "This ValueColumn does not support null values.");
 
   return *_null_values;
@@ -134,9 +134,9 @@ void ValueColumn<T>::visit(ColumnVisitable& visitable, std::shared_ptr<ColumnVis
 
 template <typename T>
 std::shared_ptr<BaseColumn> ValueColumn<T>::copy_using_allocator(const PolymorphicAllocator<size_t>& alloc) const {
-  pmr_concurrent_vector<T> new_values(_values, alloc);
+  pmr_vector<T> new_values(_values, alloc);
   if (is_nullable()) {
-    pmr_concurrent_vector<bool> new_null_values(*_null_values, alloc);
+    pmr_vector<bool> new_null_values(*_null_values, alloc);
     return std::allocate_shared<ValueColumn<T>>(alloc, std::move(new_values), std::move(new_null_values));
   } else {
     return std::allocate_shared<ValueColumn<T>>(alloc, std::move(new_values));

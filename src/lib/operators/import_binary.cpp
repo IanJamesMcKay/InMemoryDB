@@ -177,17 +177,17 @@ std::shared_ptr<BaseCompressedVector> ImportBinary::_import_attribute_vector(
 template <typename T>
 std::shared_ptr<ValueColumn<T>> ImportBinary::_import_value_column(std::ifstream& file, ChunkOffset row_count,
                                                                    bool is_nullable) {
-  // TODO(unknown): Ideally _read_values would directly write into a tbb::concurrent_vector so that no conversion is
+  // TODO(unknown): Ideally _read_values would directly write into a pmr_vector so that no conversion is
   // needed
   if (is_nullable) {
     const auto nullables = _read_values<bool>(file, row_count);
     const auto values = _read_values<T>(file, row_count);
 
-    tbb::concurrent_vector<T> tbb_values;
+    pmr_vector<T> tbb_values;
     tbb_values.reserve(static_cast<size_t>(values.size()));
     tbb_values.assign(values.begin(), values.end());
 
-    tbb::concurrent_vector<bool> tbb_nullables;
+    pmr_vector<bool> tbb_nullables;
     tbb_nullables.reserve(static_cast<size_t>(nullables.size()));
     tbb_nullables.assign(nullables.begin(), nullables.end());
 
@@ -196,7 +196,7 @@ std::shared_ptr<ValueColumn<T>> ImportBinary::_import_value_column(std::ifstream
   } else {
     const auto values = _read_values<T>(file, row_count);
 
-    tbb::concurrent_vector<T> tbb_values;
+    pmr_vector<T> tbb_values;
     tbb_values.reserve(static_cast<size_t>(values.size()));
     tbb_values.assign(values.begin(), values.end());
 

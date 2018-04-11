@@ -19,9 +19,9 @@ struct MvccColumns {
   // The last commit id is reserved for uncommitted changes
   static constexpr CommitID MAX_COMMIT_ID = std::numeric_limits<CommitID>::max() - 1;
 
-  pmr_concurrent_vector<copyable_atomic<TransactionID>> tids;  ///< 0 unless locked by a transaction
-  pmr_concurrent_vector<CommitID> begin_cids;                  ///< commit id when record was added
-  pmr_concurrent_vector<CommitID> end_cids;                    ///< commit id when record was deleted
+  pmr_vector<copyable_atomic<TransactionID>> tids;  ///< 0 unless locked by a transaction
+  pmr_vector<CommitID> begin_cids;                  ///< commit id when record was added
+  pmr_vector<CommitID> end_cids;                    ///< commit id when record was deleted
 
   explicit MvccColumns(const size_t size);
 

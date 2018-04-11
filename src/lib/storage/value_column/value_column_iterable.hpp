@@ -46,7 +46,7 @@ class ValueColumnIterable : public PointAccessibleColumnIterable<ValueColumnIter
  private:
   class NonNullIterator : public BaseColumnIterator<NonNullIterator, NonNullColumnIteratorValue<T>> {
    public:
-    using ValueIterator = typename pmr_concurrent_vector<T>::const_iterator;
+    using ValueIterator = typename pmr_vector<T>::const_iterator;
 
    public:
     explicit NonNullIterator(const ValueIterator begin_value_it, const ValueIterator value_it)
@@ -72,8 +72,8 @@ class ValueColumnIterable : public PointAccessibleColumnIterable<ValueColumnIter
 
   class Iterator : public BaseColumnIterator<Iterator, ColumnIteratorValue<T>> {
    public:
-    using ValueIterator = typename pmr_concurrent_vector<T>::const_iterator;
-    using NullValueIterator = pmr_concurrent_vector<bool>::const_iterator;
+    using ValueIterator = typename pmr_vector<T>::const_iterator;
+    using NullValueIterator = pmr_vector<bool>::const_iterator;
 
    public:
     explicit Iterator(const ValueIterator begin_value_it, const ValueIterator value_it,
@@ -106,7 +106,7 @@ class ValueColumnIterable : public PointAccessibleColumnIterable<ValueColumnIter
   class NonNullPointAccessIterator
       : public BasePointAccessColumnIterator<NonNullPointAccessIterator, ColumnIteratorValue<T>> {
    public:
-    using ValueVector = pmr_concurrent_vector<T>;
+    using ValueVector = pmr_vector<T>;
 
    public:
     explicit NonNullPointAccessIterator(const ValueVector& values, const ChunkOffsetsIterator& chunk_offsets_it)
@@ -128,8 +128,8 @@ class ValueColumnIterable : public PointAccessibleColumnIterable<ValueColumnIter
 
   class PointAccessIterator : public BasePointAccessColumnIterator<PointAccessIterator, ColumnIteratorValue<T>> {
    public:
-    using ValueVector = pmr_concurrent_vector<T>;
-    using NullValueVector = pmr_concurrent_vector<bool>;
+    using ValueVector = pmr_vector<T>;
+    using NullValueVector = pmr_vector<bool>;
 
    public:
     explicit PointAccessIterator(const ValueVector& values, const NullValueVector& null_values,

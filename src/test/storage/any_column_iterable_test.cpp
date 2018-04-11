@@ -19,8 +19,8 @@ class AnyColumnIterableTest : public BaseTest {
   void SetUp() override { _column = create_int_w_null_value_column(); }
 
   std::shared_ptr<ValueColumn<int32_t>> create_int_w_null_value_column() {
-    auto values = pmr_concurrent_vector<int32_t>(row_count);
-    auto null_values = pmr_concurrent_vector<bool>(row_count);
+    auto values = pmr_vector<int32_t>(row_count);
+    auto null_values = pmr_vector<bool>(row_count);
 
     std::default_random_engine engine{};
     std::uniform_int_distribution<int32_t> dist{0u, 10u};

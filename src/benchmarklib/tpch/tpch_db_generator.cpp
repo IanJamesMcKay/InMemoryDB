@@ -115,7 +115,7 @@ class TableBuilder {
  private:
   std::shared_ptr<opossum::Table> _table;
   opossum::UseMvcc _use_mvcc;
-  boost::hana::tuple<opossum::pmr_concurrent_vector<DataTypes>...> _column_vectors;
+  boost::hana::tuple<opossum::pmr_vector<DataTypes>...> _column_vectors;
 
   size_t _current_chunk_row_count() const { return _column_vectors[boost::hana::llong_c<0>].size(); }
 

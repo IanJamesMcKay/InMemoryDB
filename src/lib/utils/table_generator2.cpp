@@ -64,7 +64,7 @@ std::shared_ptr<Table> TableGenerator2::generate_table() const {
             std::default_random_engine engine;
             typename UniformDistribution<ColumnDataType>::type dist(min_value, max_value);
 
-            pmr_concurrent_vector<ColumnDataType> values;
+            pmr_vector<ColumnDataType> values;
             values.reserve(_num_rows_per_chunk);
 
             for (ChunkOffset chunk_offset{0}; chunk_offset < _num_rows_per_chunk; ++chunk_offset) {

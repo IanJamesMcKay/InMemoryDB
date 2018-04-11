@@ -14,7 +14,7 @@ namespace opossum {
  */
 class NullValueVectorIterable : public PointAccessibleColumnIterable<NullValueVectorIterable> {
  public:
-  explicit NullValueVectorIterable(const pmr_concurrent_vector<bool>& null_values) : _null_values{null_values} {}
+  explicit NullValueVectorIterable(const pmr_vector<bool>& null_values) : _null_values{null_values} {}
 
   template <typename Functor>
   void _on_with_iterators(const Functor& functor) const {
@@ -31,12 +31,12 @@ class NullValueVectorIterable : public PointAccessibleColumnIterable<NullValueVe
   }
 
  private:
-  const pmr_concurrent_vector<bool>& _null_values;
+  const pmr_vector<bool>& _null_values;
 
  private:
   class Iterator : public BaseColumnIterator<Iterator, ColumnIteratorNullValue> {
    public:
-    using NullValueIterator = pmr_concurrent_vector<bool>::const_iterator;
+    using NullValueIterator = pmr_vector<bool>::const_iterator;
 
    public:
     explicit Iterator(const NullValueIterator& begin_null_value_it, const NullValueIterator& null_value_it)
@@ -60,7 +60,7 @@ class NullValueVectorIterable : public PointAccessibleColumnIterable<NullValueVe
 
   class PointAccessIterator : public BasePointAccessColumnIterator<PointAccessIterator, ColumnIteratorNullValue> {
    public:
-    using NullValueVector = pmr_concurrent_vector<bool>;
+    using NullValueVector = pmr_vector<bool>;
 
    public:
     explicit PointAccessIterator(const NullValueVector& null_values, const ChunkOffsetsIterator& chunk_offsets_it)

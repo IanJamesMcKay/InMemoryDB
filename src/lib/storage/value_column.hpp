@@ -18,8 +18,8 @@ class ValueColumn : public BaseValueColumn {
   explicit ValueColumn(const PolymorphicAllocator<T>& alloc, bool nullable = false);
 
   // Create a ValueColumn with the given values.
-  explicit ValueColumn(pmr_concurrent_vector<T>&& values);
-  explicit ValueColumn(pmr_concurrent_vector<T>&& values, pmr_concurrent_vector<bool>&& null_values);
+  explicit ValueColumn(pmr_vector<T>&& values);
+  explicit ValueColumn(pmr_vector<T>&& values, pmr_vector<bool>&& null_values);
 
   // Return the value at a certain position. If you want to write efficient operators, back off!
   // Use values() and null_values() to get the vectors and check the content yourself.
@@ -38,8 +38,8 @@ class ValueColumn : public BaseValueColumn {
   // Return all values. This is the preferred method to check a value at a certain index. Usually you need to
   // access more than a single value anyway.
   // e.g. auto& values = col.values(); and then: values.at(i); in your loop.
-  const pmr_concurrent_vector<T>& values() const;
-  pmr_concurrent_vector<T>& values();
+  const pmr_vector<T>& values() const;
+  pmr_vector<T>& values();
 
   // Return whether column supports null values.
   bool is_nullable() const final;
@@ -48,8 +48,8 @@ class ValueColumn : public BaseValueColumn {
   // Throws exception if is_nullable() returns false
   // This is the preferred method to check a for a null value at a certain index.
   // Usually you need to access more than a single value anyway.
-  const pmr_concurrent_vector<bool>& null_values() const final;
-  pmr_concurrent_vector<bool>& null_values() final;
+  const pmr_vector<bool>& null_values() const final;
+  pmr_vector<bool>& null_values() final;
 
   // Return the number of entries in the column.
   size_t size() const final;
@@ -63,12 +63,12 @@ class ValueColumn : public BaseValueColumn {
   size_t estimate_memory_usage() const override;
 
  protected:
-  pmr_concurrent_vector<T> _values;
+  pmr_vector<T> _values;
 
   // While a ValueColumn knows if it is nullable or not by looking at this optional, most other column types
   // (e.g. DictionaryColumn) does not. For this reason, we need to store the nullable information separately
   // in the table's definition.
-  std::optional<pmr_concurrent_vector<bool>> _null_values;
+  std::optional<pmr_vector<bool>> _null_values;
 };
 
 }  // namespace opossum
