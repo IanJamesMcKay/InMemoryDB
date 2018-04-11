@@ -15,14 +15,28 @@ Cost CostModelNaive::get_reference_operator_cost(const std::shared_ptr<AbstractO
 
 Cost CostModelNaive::_cost_model_impl(const OperatorType operator_type, const AbstractCostFeatureProxy& feature_proxy) const {
   switch (operator_type) {
-    case OperatorType::JoinHash: return 1.2f * feature_proxy.extract_feature(CostFeature::MajorInputRowCount).scalar();
-    case OperatorType::TableScan: return feature_proxy.extract_feature(CostFeature::LeftInputRowCount).scalar();
+    case OperatorType::JoinHash:
+      return feature_proxy.extract_feature(CostFeature::LeftInputRowCount).scalar() +
+             feature_proxy.extract_feature(CostFeature::RightInputRowCount).scalar() ;
+
+    case OperatorType::TableScan:
+      return feature_proxy.extract_feature(CostFeature::LeftInputRowCount).scalar();
+
     case OperatorType::JoinSortMerge:
-      return feature_proxy.extract_feature(CostFeature::LeftInputRowCountLogN).scalar() + feature_proxy.extract_feature(CostFeature::RightInputRowCount).scalar();
-    case OperatorType::Product: return feature_proxy.extract_feature(CostFeature::InputRowCountProduct).scalar();
-    case OperatorType::JoinNestedLoop: return feature_proxy.extract_feature(CostFeature::InputRowCountProduct).scalar();
+      // Model the cost of the sorting as the dominant cost
+      return feature_proxy.extract_feature(CostFeature::LeftInputRowCountLogN).scalar() +
+             feature_proxy.extract_feature(CostFeature::RightInputRowCountLogN).scalar();
+
+    case OperatorType::Product:
+      return feature_proxy.extract_feature(CostFeature::InputRowCountProduct).scalar();
+
+    case OperatorType::JoinNestedLoop:
+      return feature_proxy.extract_feature(CostFeature::InputRowCountProduct).scalar();
+
     case OperatorType::UnionPositions:
-      return feature_proxy.extract_feature(CostFeature::LeftInputRowCountLogN).scalar() + feature_proxy.extract_feature(CostFeature::RightInputRowCount).scalar();
+      // Model the cost of the sorting as the dominant cost
+      return feature_proxy.extract_feature(CostFeature::LeftInputRowCountLogN).scalar() +
+             feature_proxy.extract_feature(CostFeature::RightInputRowCountLogN).scalar();
 
     default:
       return 0.0f;
