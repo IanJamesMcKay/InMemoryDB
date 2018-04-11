@@ -11,7 +11,6 @@ enum class CostFeature {
   /**
    * Numerical features
    */
-
   LeftInputRowCount, RightInputRowCount,
   InputRowCountProduct,
   LeftInputReferenceRowCount, RightInputReferenceRowCount,
@@ -42,7 +41,7 @@ using CostFeatureVariant = boost::variant<float, DataType, PredicateCondition, b
 }
 
 /**
- * Wraps detail::CostFeatureVariant and provides getter for the member types of the variants that perform type checking
+ * Wraps detail::CostFeatureVariant and provides getters for the member types of the variants that perform type checking
  * at runtime
  */
 struct CostFeatureVariant {

@@ -3,7 +3,7 @@
 #include "join_graph_visualizer.hpp"
 #include "join_plan_visualizer.hpp"
 #include "lqp_visualizer.hpp"
-#include "optimizer/join_ordering/cost_model_naive.hpp"
+#include "cost_model/cost_model_naive.hpp"
 #include "optimizer/join_ordering/dp_ccp.hpp"
 #include "optimizer/join_ordering/join_graph_builder.hpp"
 #include "sql/sql_pipeline.hpp"

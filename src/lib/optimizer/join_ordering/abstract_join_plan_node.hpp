@@ -5,7 +5,7 @@
 #include <optional>
 #include <ostream>
 
-#include "cost.hpp"
+#include "cost_model/cost.hpp"
 #include "join_graph.hpp"
 #include "statistics/table_statistics.hpp"
 

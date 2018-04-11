@@ -55,5 +55,4 @@ Cost AbstractCostModel::estimate_lqp_node_cost(const std::shared_ptr<AbstractLQP
   return _cost_model_impl(operator_type, feature_proxy);
 }
 
-
 }

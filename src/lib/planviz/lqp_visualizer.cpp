@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-#include "optimizer/join_ordering/abstract_cost_model.hpp"
+#include "cost_model/abstract_cost_model.hpp"
 #include "planviz/viz_record_layout.hpp"
 
 namespace opossum {

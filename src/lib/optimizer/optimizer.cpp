@@ -3,7 +3,7 @@
 #include <memory>
 
 #include "logical_query_plan/logical_plan_root_node.hpp"
-#include "optimizer/join_ordering/cost_model_linear.hpp"
+#include "cost_model/cost_model_linear.hpp"
 #include "optimizer/join_ordering/dp_ccp.hpp"
 #include "strategy/chunk_pruning_rule.hpp"
 #include "strategy/constant_calculation_rule.hpp"

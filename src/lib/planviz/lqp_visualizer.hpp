@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "logical_query_plan/abstract_lqp_node.hpp"
-#include "optimizer/join_ordering/cost.hpp"
+#include "cost_model/cost.hpp"
 #include "statistics/table_statistics.hpp"
 #include "planviz/abstract_visualizer.hpp"
 

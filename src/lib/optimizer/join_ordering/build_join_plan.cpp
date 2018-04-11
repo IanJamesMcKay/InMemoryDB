@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include "abstract_cost_model.hpp"
+#include "cost_model/abstract_cost_model.hpp"
 #include "join_plan_join_node.hpp"
 #include "join_plan_predicate.hpp"
 #include "join_plan_vertex_node.hpp"

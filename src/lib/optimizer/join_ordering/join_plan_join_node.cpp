@@ -1,6 +1,6 @@
 #include "join_plan_join_node.hpp"
 
-#include "abstract_cost_model.hpp"
+#include "cost_model/abstract_cost_model.hpp"
 
 namespace opossum {
 

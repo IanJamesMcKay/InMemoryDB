@@ -5,7 +5,7 @@
 #include "types.hpp"
 
 #include "import_export/csv_parser.hpp"
-#include "optimizer/join_ordering/cost_model_linear.hpp"
+#include "cost_model/cost_model_linear.hpp"
 #include "operators/table_wrapper.hpp"
 #include "operators/print.hpp"
 #include "operators/export_binary.hpp"

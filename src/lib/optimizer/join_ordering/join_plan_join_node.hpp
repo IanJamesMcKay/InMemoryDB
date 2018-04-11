@@ -1,7 +1,7 @@
 #pragma once
 
 #include "abstract_join_plan_node.hpp"
-#include "cost.hpp"
+#include "cost_model/cost.hpp"
 #include "join_plan_predicate.hpp"
 
 namespace opossum {

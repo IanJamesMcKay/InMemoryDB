@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "cost.hpp"
+#include "cost_model/cost.hpp"
 
 namespace opossum {
 
