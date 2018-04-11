@@ -7,29 +7,37 @@
 
 namespace opossum {
 
+/**
+ * List of features usable in AbstractCostModels.
+ *
+ * Using enum to provide the unified "AbstractCostFeatureProxy" to access the same features for LQPs and PQPs.
+ * Also, this makes it easy to specify Cost formulas from data only, as e.g. CostModelLinear does.
+ */
 enum class CostFeature {
   /**
    * Numerical features
    */
   LeftInputRowCount, RightInputRowCount,
-  InputRowCountProduct,
-  LeftInputReferenceRowCount, RightInputReferenceRowCount,
-  LeftInputRowCountLogN, RightInputRowCountLogN,
-  MajorInputRowCount, MinorInputRowCount,
+  InputRowCountProduct, // LeftInputRowCount * RightInputRowCount
+  LeftInputReferenceRowCount, RightInputReferenceRowCount, // *InputRowCount if the input is References, 0 otherwise
+  LeftInputRowCountLogN, RightInputRowCountLogN, // *InputRowCount * log(*InputRowCount)
+  MajorInputRowCount, MinorInputRowCount, // Major = Input with more rows, Minor = Input with less rows
   MajorInputReferenceRowCount, MinorInputReferenceRowCount,
-  OutputRowCount, OutputDereferenceRowCount,
+  OutputRowCount,
+  OutputDereferenceRowCount, // If input is References, then OutputRowCount. 0 otherwise.
 
   /**
    * Categorical features
    */
-  LeftDataType, RightDataType,
-  PredicateCondition,
+  LeftDataType, RightDataType, // Only valid for Predicated Joins, TableScans
+  PredicateCondition, // Only valid for Predicated Joins, TableScans
 
   /**
    * Boolean features
    */
-  LeftInputIsReferences, RightInputIsReferences,
-  RightOperandIsColumn, LeftInputIsMajor
+  LeftInputIsReferences, RightInputIsReferences, // *Input is References
+  RightOperandIsColumn, // Only valid for TableScans
+  LeftInputIsMajor // LeftInputRowCount > RightInputRowCount
 };
 
 using CostFeatureWeights = std::map<CostFeature, float>;
@@ -42,7 +50,7 @@ using CostFeatureVariant = boost::variant<float, DataType, PredicateCondition, b
 
 /**
  * Wraps detail::CostFeatureVariant and provides getters for the member types of the variants that perform type checking
- * at runtime
+ * at runtime.
  */
 struct CostFeatureVariant {
  public:
