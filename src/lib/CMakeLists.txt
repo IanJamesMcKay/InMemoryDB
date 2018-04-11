@@ -255,6 +255,8 @@ set(
     statistics/table_statistics.hpp
     statistics/column_statistics.cpp
     statistics/column_statistics.hpp
+    statistics/statistics_import_export.cpp
+    statistics/statistics_import_export.hpp
     statistics/abstract_column_statistics.cpp
     statistics/abstract_column_statistics.hpp
     statistics/generate_column_statistics.cpp

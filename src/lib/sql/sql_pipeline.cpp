@@ -15,11 +15,7 @@ SQLPipeline::SQLPipeline(const std::string& sql, std::shared_ptr<TransactionCont
               "Transaction context without MVCC enabled makes no sense");
 
   hsql::SQLParserResult parse_result;
-  try {
-    hsql::SQLParser::parse(sql, &parse_result);
-  } catch (const std::exception& exception) {
-    throw std::runtime_error("Error while parsing SQL query:\n  " + std::string(exception.what()));
-  }
+  hsql::SQLParser::parse(sql, &parse_result);
 
   if (!parse_result.isValid()) {
     throw std::runtime_error(SQLPipelineStatement::create_parse_error_message(sql, parse_result));
@@ -95,15 +91,7 @@ const std::vector<std::shared_ptr<hsql::SQLParserResult>>& SQLPipeline::get_pars
 
   _parsed_sql_statements.reserve(statement_count());
   for (auto& pipeline_statement : _sql_pipeline_statements) {
-    try {
-      _parsed_sql_statements.push_back(pipeline_statement->get_parsed_sql_statement());
-    } catch (const std::exception& exception) {
-      _failed_pipeline_statement = pipeline_statement;
-
-      // Don't keep bad values
-      _parsed_sql_statements.clear();
-      throw;
-    }
+    _parsed_sql_statements.push_back(pipeline_statement->get_parsed_sql_statement());
   }
 
   return _parsed_sql_statements;
@@ -119,15 +107,7 @@ const std::vector<std::shared_ptr<AbstractLQPNode>>& SQLPipeline::get_unoptimize
 
   _unoptimized_logical_plans.reserve(statement_count());
   for (auto& pipeline_statement : _sql_pipeline_statements) {
-    try {
-      _unoptimized_logical_plans.push_back(pipeline_statement->get_unoptimized_logical_plan());
-    } catch (const std::exception& exception) {
-      _failed_pipeline_statement = pipeline_statement;
-
-      // Don't keep bad values
-      _unoptimized_logical_plans.clear();
-      throw;
-    }
+    _unoptimized_logical_plans.push_back(pipeline_statement->get_unoptimized_logical_plan());
   }
 
   return _unoptimized_logical_plans;
@@ -144,15 +124,7 @@ const std::vector<std::shared_ptr<AbstractLQPNode>>& SQLPipeline::get_optimized_
 
   _optimized_logical_plans.reserve(statement_count());
   for (auto& pipeline_statement : _sql_pipeline_statements) {
-    try {
       _optimized_logical_plans.push_back(pipeline_statement->get_optimized_logical_plan());
-    } catch (const std::exception& exception) {
-      _failed_pipeline_statement = pipeline_statement;
-
-      // Don't keep bad values
-      _optimized_logical_plans.clear();
-      throw;
-    }
   }
 
   // The optimizer works on the original unoptimized LQP nodes. After optimizing, the unoptimized version is also
@@ -174,15 +146,7 @@ const std::vector<std::shared_ptr<SQLQueryPlan>>& SQLPipeline::get_query_plans()
 
   _query_plans.reserve(statement_count());
   for (auto& pipeline_statement : _sql_pipeline_statements) {
-    try {
-      _query_plans.push_back(pipeline_statement->get_query_plan());
-    } catch (const std::exception& exception) {
-      _failed_pipeline_statement = pipeline_statement;
-
-      // Don't keep bad values
-      _query_plans.clear();
-      throw;
-    }
+    _query_plans.push_back(pipeline_statement->get_query_plan());
   }
 
   return _query_plans;
@@ -199,15 +163,7 @@ const std::vector<std::vector<std::shared_ptr<OperatorTask>>>& SQLPipeline::get_
 
   _tasks.reserve(statement_count());
   for (auto& pipeline_statement : _sql_pipeline_statements) {
-    try {
-      _tasks.push_back(pipeline_statement->get_tasks());
-    } catch (const std::exception& exception) {
-      _failed_pipeline_statement = pipeline_statement;
-
-      // Don't keep bad values
-      _tasks.clear();
-      throw;
-    }
+    _tasks.push_back(pipeline_statement->get_tasks());
   }
 
   return _tasks;
@@ -219,12 +175,7 @@ const std::shared_ptr<const Table>& SQLPipeline::get_result_table() {
   }
 
   for (auto& pipeline_statement : _sql_pipeline_statements) {
-    try {
-      pipeline_statement->get_result_table();
-    } catch (const std::exception& exception) {
-      _failed_pipeline_statement = pipeline_statement;
-      throw;
-    }
+    pipeline_statement->get_result_table();
   }
 
   _result_table = _sql_pipeline_statements.back()->get_result_table();

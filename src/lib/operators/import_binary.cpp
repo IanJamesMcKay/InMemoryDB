@@ -182,11 +182,25 @@ std::shared_ptr<ValueColumn<T>> ImportBinary::_import_value_column(std::ifstream
   if (is_nullable) {
     const auto nullables = _read_values<bool>(file, row_count);
     const auto values = _read_values<T>(file, row_count);
-    return std::make_shared<ValueColumn<T>>(tbb::concurrent_vector<T>{values.begin(), values.end()},
-                                            tbb::concurrent_vector<bool>{nullables.begin(), nullables.end()});
+
+    tbb::concurrent_vector<T> tbb_values;
+    tbb_values.reserve(static_cast<size_t>(values.size()));
+    tbb_values.assign(values.begin(), values.end());
+
+    tbb::concurrent_vector<bool> tbb_nullables;
+    tbb_nullables.reserve(static_cast<size_t>(nullables.size()));
+    tbb_nullables.assign(nullables.begin(), nullables.end());
+
+    return std::make_shared<ValueColumn<T>>(std::move(tbb_values),
+                                            std::move(tbb_nullables));
   } else {
     const auto values = _read_values<T>(file, row_count);
-    return std::make_shared<ValueColumn<T>>(tbb::concurrent_vector<T>{values.begin(), values.end()});
+
+    tbb::concurrent_vector<T> tbb_values;
+    tbb_values.reserve(static_cast<size_t>(values.size()));
+    tbb_values.assign(values.begin(), values.end());
+
+    return std::make_shared<ValueColumn<T>>(std::move(tbb_values));
   }
 }
 
