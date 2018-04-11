@@ -532,6 +532,20 @@ size_t AbstractLQPNode::hash() const {
   return *_hash;
 }
 
+const std::optional<Cost>& AbstractLQPNode::node_cost() const {
+
+}
+
+Cost AbstractLQPNode::plan_cost() const {
+  auto plan_cost = _node_cost ? *_node_cost : Cost{0};
+
+  if (left_input()) plan_cost += left_input()->plan_cost();
+}
+
+void AbstractLQPNode::set_node_cost(const std::optional<Cost>& node_cost) {
+  _node_cost = node_cost;
+}
+
 size_t AbstractLQPNode::_on_hash() const {
   return 0;
 }

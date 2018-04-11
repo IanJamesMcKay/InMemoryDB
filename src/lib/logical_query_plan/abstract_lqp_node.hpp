@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "optimizer/join_ordering/cost.hpp"
 #include "lqp_column_reference.hpp"
 #include "lqp_expression.hpp"
 #include "types.hpp"
@@ -309,6 +310,17 @@ class AbstractLQPNode : public std::enable_shared_from_this<AbstractLQPNode>, pr
 
   size_t hash() const;
 
+  /**
+   * @defgroup LQP Cost
+   * LQPNodes can be annotated with a Cost that can be used in the Optimizer
+   * @{
+   */
+  const std::optional<Cost>& node_cost() const;
+  Cost plan_cost() const;
+
+  void set_node_cost(const std::optional<Cost>& node_cost);
+  /** @} */
+
  protected:
   // Holds the actual implementation of deep_copy
   using PreviousCopiesMap =
@@ -376,6 +388,7 @@ class AbstractLQPNode : public std::enable_shared_from_this<AbstractLQPNode>, pr
   std::array<std::shared_ptr<AbstractLQPNode>, 2> _inputs;
   mutable std::shared_ptr<TableStatistics> _statistics;
   mutable std::optional<size_t> _hash;
+  std::optional<Cost> _node_cost;
 
   /**
    * Reset statistics, call _on_input_changed() for node specific behaviour and call _input_changed() on outputs
