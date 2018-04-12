@@ -45,7 +45,6 @@ int main() {
     "title"
   };
 
-
   const auto csvs_path = "/home/Moritz.Eyssen/imdb/csv/";
 
   for (const auto& table_name : table_names) {

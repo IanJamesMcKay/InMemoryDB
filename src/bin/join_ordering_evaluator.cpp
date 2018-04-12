@@ -6,6 +6,7 @@
 
 #include <cxxopts.hpp>
 #include <statistics/generate_table_statistics.hpp>
+#include <experimental/filesystem>
 
 #include "constant_mappings.hpp"
 #include "logical_query_plan/logical_plan_root_node.hpp"
@@ -18,10 +19,13 @@
 #include "operators/table_scan.hpp"
 #include "operators/table_wrapper.hpp"
 #include "operators/utils/flatten_pqp.hpp"
+#include "operators/export_binary.hpp"
+#include "operators/import_binary.hpp"
 #include "optimizer/join_ordering/abstract_join_plan_node.hpp"
 #include "cost_model/cost.hpp"
 #include "cost_model/cost_model_naive.hpp"
 #include "cost_model/cost_model_linear.hpp"
+#include "import_export/csv_parser.hpp"
 #include "optimizer/join_ordering/dp_ccp.hpp"
 #include "optimizer/join_ordering/dp_ccp_top_k.hpp"
 #include "optimizer/strategy/join_ordering_rule.hpp"
@@ -30,6 +34,7 @@
 #include "planviz/lqp_visualizer.hpp"
 #include "planviz/sql_query_plan_visualizer.hpp"
 #include "scheduler/current_scheduler.hpp"
+#include "statistics/statistics_import_export.hpp"
 #include "sql/sql_pipeline_statement.hpp"
 #include "sql/sql.hpp"
 #include "storage/storage_manager.hpp"
@@ -37,6 +42,7 @@
 #include "tpch/tpch_queries.hpp"
 #include "utils/timer.hpp"
 #include "utils/table_generator2.hpp"
+#include "utils/format_duration.hpp"
 
 namespace {
 using namespace std::string_literals;  // NOLINT
@@ -105,6 +111,229 @@ std::ostream &operator<<(std::ostream &stream, const PlanCostSample &sample) {
          << sample.abs_est_cost_error << "," << sample.abs_re_est_cost_error;
   return stream;
 }
+
+class AbstractJoinOrderingWorkload {
+ public:
+  virtual ~AbstractJoinOrderingWorkload() = default;
+
+  virtual void setup() = 0;
+  virtual size_t query_count() const = 0;
+  virtual std::string get_query(const size_t query_idx) const = 0;
+  virtual std::string get_query_name(const size_t query_idx) const = 0;
+};
+
+class TpchJoinOrderingWorkload : public AbstractJoinOrderingWorkload {
+ public:
+  TpchJoinOrderingWorkload(float scale_factor, const std::optional<std::vector<QueryID>>& query_ids):
+    _scale_factor(scale_factor)
+  {
+    if (!query_ids) {
+      std::copy(std::begin(tpch_supported_queries), std::end(tpch_supported_queries),
+                std::back_inserter(_query_ids));
+    }
+  }
+
+  void setup() override {
+    out() << "-- Generating TPCH tables with scale factor " << _scale_factor << std::endl;
+    TpchDbGenerator{_scale_factor}.generate_and_store();
+    out() << "-- Done." << std::endl;
+  }
+
+  size_t query_count() const override {
+    return _query_ids.size();
+  }
+
+  std::string get_query(const size_t query_idx) const override {
+    return tpch_queries[_query_ids[query_idx]];
+  }
+
+  std::string get_query_name(const size_t query_idx) const override {
+    return "TPCH"s + "-" + std::to_string(_query_ids[query_idx] + 1);
+  }
+
+ private:
+  float _scale_factor;
+  std::vector<QueryID> _query_ids;
+};
+
+class JobWorkload : public AbstractJoinOrderingWorkload {
+ public:
+  JobWorkload(const std::optional<std::vector<std::string>>& query_names)
+  {
+    if (query_names) {
+      _query_names = *query_names;
+    } else {
+      _query_names = {
+      "1a.sql", "1b.sql", "1c.sql", "1d.sql", "2a.sql", "2b.sql", "2c.sql", "2d.sql",
+      // "3a.sql", "3b.sql", "3c.sql"
+      "4a.sql", "4b.sql", "4c.sql",
+      // "5a.sql", "5b.sql", "5c.sql",
+      "6a.sql",
+      // "6b.sql",
+      "6c.sql",
+      //"6d.sql",
+      "6e.sql",
+      //"6f.sql",
+      "7a.sql", "7b.sql",
+      //"7c.sql",
+      "8a.sql", "8b.sql", "8c.sql", "8d.sql",
+      //"9a.sql",
+      "9b.sql",
+      // "9c.sql", "9d.sql",
+      "10a.sql", "10b.sql", "10c.sql", "11a.sql", "11b.sql",
+      //"11c.sql", "11d.sql", "12a.sql", "12b.sql", "12c.sql",
+      "13a.sql", "13b.sql", "13c.sql", "13d.sql",
+      //"14a.sql", "14b.sql", "14c.sql",
+      "15a.sql", "15b.sql", "15c.sql", "15d.sql", "16a.sql", "16b.sql", "16c.sql", "16d.sql", "17a.sql", "17b.sql",
+      "17c.sql", "17d.sql", "17e.sql", "17f.sql",
+      //"18a.sql","18b.sql", "18c.sql", "19a.sql",
+      "19b.sql",
+      //"19c.sql","19d.sql", "20a.sql", "20b.sql", "20c.sql", "21a.sql", "21b.sql", "21c.sql", "22a.sql", "22b.sql",
+      //"22c.sql","22d.sql", "23a.sql", "23b.sql", "23c.sql", "24a.sql",
+//     "24b.sql",
+//     "25a.sql",
+//     "25b.sql",
+//     "25c.sql",
+//     "26a.sql",
+//     "26b.sql",
+//     "26c.sql",
+//     "27a.sql",
+//     "27b.sql",
+//     "27c.sql",
+//     "28a.sql",
+//     "28b.sql",
+//     "28c.sql",
+//     "29a.sql",
+//     "29b.sql",
+//     "29c.sql",
+//     "30a.sql",
+//     "30b.sql",
+//     "30c.sql",
+//     "31a.sql",
+//     "31b.sql",
+//     "31c.sql",
+      "32a.sql",
+      "32b.sql",
+      //"33a.sql",
+      "33b.sql",
+      // "33c.sql"
+      };
+    }
+  }
+
+  void setup() override {
+    const auto table_names = std::vector<std::string>{
+    "aka_name",
+    "aka_title",
+    "cast_info",
+    "char_name",
+    "comp_cast_type",
+    "company_name",
+    "company_type",
+    "complete_cast",
+    "info_type",
+    "keyword",
+    "kind_type",
+    "link_type",
+    "movie_companies",
+    "movie_info",
+    "movie_info_idx",
+    "movie_keyword",
+    "movie_link",
+    "name",
+    "person_info",
+    "role_type",
+    "title"
+    };
+
+    const auto csvs_path = "/home/moritz/Coding/imdb/csv/";
+
+    for (const auto& table_name : table_names) {
+      const auto table_csv_path = csvs_path + table_name + ".csv";
+      const auto table_binary_path = csvs_path + table_name + ".bin";
+      const auto table_statistics_path = csvs_path + table_name + ".statistics.json";
+
+      out() << "Processing '" << table_name << "'" << std::endl;
+
+      Timer timer;
+      auto table = std::shared_ptr<Table>();
+      if (std::experimental::filesystem::exists(table_binary_path.c_str())) {
+        out() << "  Loading Binary" << std::endl;
+        auto import_binary = std::make_shared<ImportBinary>(table_binary_path);
+        import_binary->execute();
+        table = std::const_pointer_cast<Table>(import_binary->get_output());
+      } else {
+        out() << "  Loading CSV" << std::endl;
+        table = CsvParser{}.parse(table_csv_path);
+      }
+      out() << "   Done: " << table->row_count() << " rows" << std::endl;
+      out() << "   Duration: " << format_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(timer.lap()))
+                << std::endl;
+
+      try {
+        if (std::experimental::filesystem::exists(table_statistics_path.c_str())) {
+          out() << "  Loading Statistics" << std::endl;
+          const auto table_statistics = import_table_statistics(table_statistics_path);
+          table->set_table_statistics(std::make_shared<TableStatistics>(table_statistics));
+          out() << "   Done" << std::endl;
+        }
+      } catch (const std::exception& e) {
+        out() << "ERROR while importing statistics: " << e.what() << std::endl;
+      }
+
+      out() << "  Adding to StorageManager" << std::endl;
+      StorageManager::get().add_table(table_name, std::const_pointer_cast<Table>(table));
+      out() << "   Done" << std::endl;
+      out() << "   Duration: " << format_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(timer.lap()))
+                << std::endl;
+
+      if (!std::experimental::filesystem::exists(table_statistics_path.c_str())) {
+        out() << "  Exporting Statistics" << std::endl;
+        export_table_statistics(*table->table_statistics(), table_statistics_path);
+        out() << "   Done" << std::endl;
+      }
+
+      if (!std::experimental::filesystem::exists(table_binary_path.c_str())) {
+        out() << "  Saving binary" << std::endl;
+        auto table_wrapper = std::make_shared<TableWrapper>(table);
+        table_wrapper->execute();
+        auto export_binary = std::make_shared<ExportBinary>(table_wrapper, table_binary_path);
+        export_binary->execute();
+        out() << "   Done" << std::endl;
+        out() << "   Duration: " << format_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(timer.lap()))
+                  << std::endl;
+      }
+    }
+  }
+
+  size_t query_count() const override {
+    return _query_names.size();
+  }
+
+  std::string get_query(const size_t query_idx) const override {
+    auto query_file_directory = std::string{"/home/moritz/Coding/hyrise/third_party/join-order-benchmark/"};
+
+    const auto query_file_path = query_file_directory + _query_names[query_idx];
+
+    std::ifstream query_file(query_file_path);
+
+    query_file.seekg(0, std::ios::end);
+    const auto size = query_file.tellg();
+    auto query_string = std::string(static_cast<size_t>(size), ' ');
+    query_file.seekg(0, std::ios::beg);
+    query_file.read(&query_string[0], size);
+
+    return query_string;
+  }
+
+  std::string get_query_name(const size_t query_idx) const override {
+    return "JOB"s + "-" + _query_names[query_idx];
+  }
+
+ private:
+  std::vector<std::string> _query_names;
+};
+
 }
 
 int main(int argc, char ** argv) {
@@ -112,6 +341,7 @@ int main(int argc, char ** argv) {
   auto cost_model_str = "linear"s;
   auto visualize = false;
   auto timeout_seconds = std::optional<long>{0};
+  auto workload_str = "tpch"s;
 
   cxxopts::Options cli_options_description{"Hyrise Join Ordering Evaluator", ""};
 
@@ -119,13 +349,12 @@ int main(int argc, char ** argv) {
   cli_options_description.add_options()
     ("help", "print this help message")
     ("v,verbose", "Print log messages", cxxopts::value<bool>(verbose)->default_value("true"))
-    ("s,scale", "Database scale factor (1.0 ~ 1GB)", cxxopts::value<float>(scale_factor)->default_value("0.001"))
-    ("m,cost_model", "CostModel to use (naive, linear)", cxxopts::value<std::string>(cost_model_str)->default_value(cost_model_str))  // NOLINT
-    ("all-cost-models", "Use all cost models")  // NOLINT
-    ("cache-statistics", "Optimize all queries twice, using the TableStatistics generated in the first run")  // NOLINT
+    ("s,scale", "Database scale factor (1.0 ~ 1GB). TPCH only", cxxopts::value<float>(scale_factor)->default_value("0.001"))
+    ("m,cost_model", "CostModel to use (all, naive, linear)", cxxopts::value<std::string>(cost_model_str)->default_value(cost_model_str))  // NOLINT
     ("t,timeout", "Timeout per query, in seconds", cxxopts::value<long>(*timeout_seconds)->default_value("0"))  // NOLINT
-    ("visualize", "Visualize query plan", cxxopts::value<bool>(visualize)->default_value("false"))  // NOLINT
-    ("queries", "Specify queries to run, default is all that are supported", cxxopts::value<std::vector<QueryID>>()); // NOLINT
+    ("visualize", "Visualize every query plan", cxxopts::value<bool>(visualize)->default_value("false"))  // NOLINT
+    ("w,workload", "Workload to run (tpch, job). Default: tpch", cxxopts::value(workload_str)->default_value(workload_str))  // NOLINT
+    ("queries", "Specify queries to run, default is all of the workload that are supported", cxxopts::value<std::vector<std::string>>()); // NOLINT
   ;
   // clang-format on
 
@@ -140,23 +369,42 @@ int main(int argc, char ** argv) {
 
   out() << "- Hyrise Join Ordering Evaluator" << std::endl;
 
-  // Build list of query ids to be benchmarked and display it
-  std::vector<QueryID> query_ids;
+  // Process "queries" parameter
+  std::optional<std::vector<std::string>> query_name_strs;
   if (cli_parse_result.count("queries")) {
-    const auto cli_query_ids = cli_parse_result["queries"].as<std::vector<QueryID>>();
-    for (const auto cli_query_id : cli_query_ids) {
-      query_ids.emplace_back(cli_query_id - 1);  // Offset because TPC-H query 1 has index 0
-    }
-  } else {
-    std::copy(std::begin(opossum::tpch_supported_queries), std::end(opossum::tpch_supported_queries),
-              std::back_inserter(query_ids));
+    query_name_strs = cli_parse_result["queries"].as<std::vector<std::string>>();
   }
-  out() << "-- Benchmarking Queries ";
-  for (const auto query_id : query_ids) {
-    out() << (query_id + 1) << " ";
-  }
-  out() << std::endl;
 
+  if (query_name_strs) {
+    out() << "-- Benchmarking queries ";
+    for (const auto& query_name : *query_name_strs) {
+      out() << query_name << " ";
+    }
+    out() << std::endl;
+  } else {
+    out() << "-- Benchmarking all supported queries of workload" << std::endl;
+  }
+
+  // Initialise workload
+  auto workload = std::shared_ptr<AbstractJoinOrderingWorkload>();
+  if (workload_str == "tpch") {
+    out() << "-- Using TPCH workload" << std::endl;
+    std::optional<std::vector<QueryID>> query_ids;
+    if (query_name_strs) {
+      query_ids.emplace();
+      for (const auto& query_name : *query_name_strs) {
+        query_ids->emplace_back(std::stoi(query_name) - 1);  // Offset because TPC-H query 1 has index 0
+      }
+    }
+    workload = std::make_shared<TpchJoinOrderingWorkload>(scale_factor, query_ids);
+  } else if (workload_str == "job") {
+    out() << "-- Using Join Order Benchmark workload" << std::endl;
+    workload = std::make_shared<JobWorkload>(query_name_strs);
+  } else {
+    Fail("Unknown workload");
+  }
+
+  // Process "timeout" parameter
   if (*timeout_seconds <= 0) {
     timeout_seconds.reset();
     out() << "-- No timeout" << std::endl;
@@ -164,158 +412,126 @@ int main(int argc, char ** argv) {
     out() << "-- Queries will timeout after " << *timeout_seconds << std::endl;
   }
 
-  out() << "-- Generating TPCH tables with scale factor " << scale_factor << std::endl;
-  TpchDbGenerator{scale_factor}.generate_and_store();
-  out() << "-- Done." << std::endl;
-
+  // Process "cost-model" parameter
   auto cost_models = std::vector<std::shared_ptr<AbstractCostModel>>{};
-  if (cli_parse_result.count("all-cost-models")) {
-    out() << "-- Using all available cost models" << std::endl;
+  if (cost_model_str == "naive" || cost_model_str == "all") {
+    out() << "-- Using CostModelNaive" << std::endl;
     cost_models.emplace_back(std::make_shared<CostModelNaive>());
+  }
+  if (cost_model_str == "linear" || cost_model_str == "all") {
+    out() << "-- Using CostModelLinear" << std::endl;
     cost_models.emplace_back(std::make_shared<CostModelLinear>());
-  } else {
-    if (cost_model_str == "naive") {
-      out() << "-- Using CostModelNaive" << std::endl;
-      cost_models.emplace_back(std::make_shared<CostModelNaive>());
-    } else if (cost_model_str == "linear") {
-      out() << "-- Using CostModelLinear" << std::endl;
-      cost_models.emplace_back(std::make_shared<CostModelLinear>());
-    } else {
-      Fail("Unknown cost model");
-    }
   }
+  Assert(!cost_models.empty(), "No CostModel specified");
 
-  auto cache_statistics = false;
-  auto per_query_runs = size_t{1};
-  if (cli_parse_result.count("cache-statistics")) {
-    out() << "-- Using cached statistics for second optimization" << std::endl;
-    cache_statistics = true;
-    per_query_runs = size_t{2};
-  } else {
-    out() << "-- No statistics caching" << std::endl;
-  }
+  // Setup workload
+  out() << "-- Setting up workload" << std::endl;
+  workload->setup();
 
+  out() << std::endl;
 
-  for (const auto cost_model : cost_models) {
-    for (const auto tpch_query_idx : query_ids) {
-      auto statistics_cache = std::make_shared<TableStatisticsCache>();
+  for (const auto& cost_model : cost_models) {
+    out() << "-- Evaluating Cost Model " << cost_model->name() << std::endl;
 
-      for (auto query_run_idx = size_t{0}; query_run_idx < per_query_runs; ++query_run_idx) {
-        const auto sql = tpch_queries[tpch_query_idx];
-        const auto query_name = "TPCH-"s + std::to_string(tpch_query_idx + 1);
+    for (auto query_idx = size_t{0}; query_idx < workload->query_count(); ++query_idx) {
+      const auto sql = workload->get_query(query_idx);
+      const auto query_name = workload->get_query_name(query_idx);
+      const auto evaluation_name = query_name + "-" + cost_model->name() + "-" + (IS_DEBUG ? "debug"s : "release"s);
 
-        auto evaluation_name =
-        (IS_DEBUG ? "debug"s : "release"s) + "-" + query_name + "-" + cost_model->name() + "-sf" +
-        std::to_string(scale_factor);
-        if (query_run_idx == 1) {
-          evaluation_name += "-cached-statistics";
+      out() << "--- Evaluating Query: " << evaluation_name << std::endl;
+
+      auto plan_durations = std::vector<long>();
+      auto plan_cost_samples = std::vector<PlanCostSample>();
+
+      auto pipeline_statement = SQL{sql}.disable_mvcc().pipeline_statement();
+
+      const auto lqp = pipeline_statement.get_optimized_logical_plan();
+      const auto lqp_root = LogicalPlanRootNode::make(lqp);
+      const auto join_graph = JoinGraph::from_lqp(lqp);
+
+      DpCcpTopK dp_ccp_top_k{DpSubplanCacheTopK::NO_ENTRY_LIMIT, cost_model};
+
+      dp_ccp_top_k(join_graph);
+
+      JoinVertexSet all_vertices{join_graph->vertices.size()};
+      all_vertices.flip();
+      const auto join_plans = dp_ccp_top_k.subplan_cache()->get_best_plans(all_vertices);
+
+      out() << "----- Generated plans: " << join_plans.size() << std::endl;
+
+      auto current_plan_idx = 0;
+      for (const auto &join_plan : join_plans) {
+        out() << "------- Plan " << current_plan_idx << ", estimated cost: " << join_plan.plan_cost << std::endl;
+
+        const auto join_ordered_sub_lqp = join_plan.lqp;
+        for (const auto &parent_relation : join_graph->output_relations) {
+          parent_relation.output->set_input(parent_relation.input_side, join_ordered_sub_lqp);
         }
 
-        out() << "-- Evaluating: " << evaluation_name << std::endl;
+        const auto pqp = LQPTranslator{}.translate_node(lqp_root->left_input());
 
-        auto plan_durations = std::vector<long>();
-        auto plan_cost_samples = std::vector<PlanCostSample>();
+        auto transaction_context = TransactionManager::get().new_transaction_context();
+        pqp->set_transaction_context_recursively(transaction_context);
 
-        auto pipeline_statement = SQL{sql}.disable_mvcc().pipeline_statement();
-
-        const auto lqp = pipeline_statement.get_optimized_logical_plan();
-        const auto lqp_root = LogicalPlanRootNode::make(lqp);
-        const auto join_graph = JoinGraph::from_lqp(lqp);
-
-        out() << "-- StatisticsCache: " << statistics_cache->hit_count() << "/" << statistics_cache->miss_count() << " -> ";
-        DpCcpTopK dp_ccp_top_k{DpSubplanCacheTopK::NO_ENTRY_LIMIT, cost_model, statistics_cache};
-
-        dp_ccp_top_k(join_graph);
-        std::cout << statistics_cache->hit_count() << "/" << statistics_cache->miss_count() << std::endl;
-
-        JoinVertexSet all_vertices{join_graph->vertices.size()};
-        all_vertices.flip();
-        const auto join_plans = dp_ccp_top_k.subplan_cache()->get_best_plans(all_vertices);
-
-        out() << "-- Generated plans: " << join_plans.size() << std::endl;
-
-        auto current_plan_idx = 0;
-
-        for (const auto &join_plan : join_plans) {
-          out() << "-- Plan " << current_plan_idx << ", estimated cost: " << join_plan.plan_cost << std::endl;
-
-          const auto join_ordered_sub_lqp = join_plan.lqp;
-          for (const auto &parent_relation : join_graph->output_relations) {
-            parent_relation.output->set_input(parent_relation.input_side, join_ordered_sub_lqp);
-          }
-
-          const auto pqp = LQPTranslator{}.translate_node(lqp_root->left_input());
-
-          auto transaction_context = TransactionManager::get().new_transaction_context();
-          pqp->set_transaction_context_recursively(transaction_context);
-
-          if (timeout_seconds) {
-            const auto seconds = *timeout_seconds;
-            std::thread timeout_thread([transaction_context, seconds]() {
-              std::this_thread::sleep_for(std::chrono::seconds(seconds));
-              if (transaction_context->rollback(TransactionPhaseSwitch::Lenient)) {
-                out() << "-- Query timeout signalled" << std::endl;
-              }
-            });
-            timeout_thread.detach();
-          }
-
-          SQLQueryPlan plan;
-          plan.add_tree_by_root(pqp);
-
-          Timer timer;
-          CurrentScheduler::schedule_and_wait_for_tasks(plan.create_tasks());
-
-          if (!transaction_context->commit(TransactionPhaseSwitch::Lenient)) {
-            out() << "-- Query timeout accepted" << std::endl;
-            plan_durations.emplace_back(std::numeric_limits<long>::max());
-            plan_cost_samples.emplace_back(PlanCostSample{});
-          } else {
-            const auto plan_duration = timer.lap();
-
-            plan_durations.emplace_back(plan_duration.count());
-
-            const auto operators = flatten_pqp(pqp);
-            const auto plan_cost_sample = create_plan_cost_sample(*cost_model, operators);
-            plan_cost_samples.emplace_back(plan_cost_sample);
-
-            if (cache_statistics && query_run_idx == 0) {
-              for (const auto& op : operators) {
-                if (op->lqp_node()) {
-                  statistics_cache->put(op->lqp_node(), std::make_shared<TableStatistics>(generate_table_statistics(*std::const_pointer_cast<Table>(op->get_output()))));
-                }
-              }
+        // Schedule timeout
+        if (timeout_seconds) {
+          const auto seconds = *timeout_seconds;
+          std::thread timeout_thread([transaction_context, seconds]() {
+            std::this_thread::sleep_for(std::chrono::seconds(seconds));
+            if (transaction_context->rollback(TransactionPhaseSwitch::Lenient)) {
+              out() << "-------- Query timeout signalled" << std::endl;
             }
+          });
+          timeout_thread.detach();
+        }
 
-            /**
-             * Visualize
-             */
-            if (visualize) {
-              GraphvizConfig graphviz_config;
-              graphviz_config.format = "svg";
-              VizGraphInfo viz_graph_info;
-              viz_graph_info.bg_color = "black";
+        SQLQueryPlan plan;
+        plan.add_tree_by_root(pqp);
 
-              SQLQueryPlanVisualizer visualizer{graphviz_config, viz_graph_info, {}, {}};
-              visualizer.set_cost_model(cost_model);
-              visualizer.visualize(plan, "tmp.dot",
-                                   std::string("viz/") + evaluation_name + "_" + std::to_string(current_plan_idx) + "_" +
-                                   std::to_string(plan_duration.count()) + ".svg");
-            }
-          }
+        Timer timer;
+        CurrentScheduler::schedule_and_wait_for_tasks(plan.create_tasks());
+
+        if (!transaction_context->commit(TransactionPhaseSwitch::Lenient)) {
+          out() << "-------- Query timeout accepted" << std::endl;
+          plan_durations.emplace_back(std::numeric_limits<long>::max());
+          plan_cost_samples.emplace_back(PlanCostSample{});
+        } else {
+          const auto plan_duration = timer.lap();
+
+          plan_durations.emplace_back(plan_duration.count());
+
+          const auto operators = flatten_pqp(pqp);
+          const auto plan_cost_sample = create_plan_cost_sample(*cost_model, operators);
+          plan_cost_samples.emplace_back(plan_cost_sample);
 
           /**
-           * CSV
+           * Visualize
            */
-          auto csv = std::ofstream{evaluation_name + ".csv"};
-          csv << "Idx,Duration,EstCost,ReEstCost,AimCost,AbsEstCostError,AbsReEstCostError" << "\n";
-          for (auto plan_idx = size_t{0}; plan_idx < plan_durations.size(); ++plan_idx) {
-            csv << plan_idx << "," << plan_durations[plan_idx] << "," << plan_cost_samples[plan_idx] << "\n";
-          }
-          csv.close();
+          if (visualize) {
+            GraphvizConfig graphviz_config;
+            graphviz_config.format = "svg";
+            VizGraphInfo viz_graph_info;
+            viz_graph_info.bg_color = "black";
 
-          ++current_plan_idx;
+            SQLQueryPlanVisualizer visualizer{graphviz_config, viz_graph_info, {}, {}};
+            visualizer.set_cost_model(cost_model);
+            visualizer.visualize(plan, "tmp.dot",
+                                 std::string("viz/") + evaluation_name + "_" + std::to_string(current_plan_idx) + "_" +
+                                 std::to_string(plan_duration.count()) + ".svg");
+          }
         }
+
+        /**
+         * CSV
+         */
+        auto csv = std::ofstream{evaluation_name + ".csv"};
+        csv << "Idx,Duration,EstCost,ReEstCost,AimCost,AbsEstCostError,AbsReEstCostError" << "\n";
+        for (auto plan_idx = size_t{0}; plan_idx < plan_durations.size(); ++plan_idx) {
+          csv << plan_idx << "," << plan_durations[plan_idx] << "," << plan_cost_samples[plan_idx] << "\n";
+        }
+        csv.close();
+
+        ++current_plan_idx;
       }
     }
   }

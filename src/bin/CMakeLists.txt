@@ -29,6 +29,7 @@ add_executable(
 )
 target_link_libraries(
     hyriseJoinOrderingEvaluator
+    ${FILESYSTEM_LIBRARY}
     hyrise
     hyriseBenchmarkLib
 )
