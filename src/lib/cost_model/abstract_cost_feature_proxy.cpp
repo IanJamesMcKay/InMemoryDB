@@ -19,11 +19,11 @@ CostFeatureVariant AbstractCostFeatureProxy::extract_feature(const CostFeature c
              extract_feature(CostFeature::RightInputRowCount).scalar() : 0.0f;
     case CostFeature::LeftInputRowCountLogN: {
       const auto row_count = extract_feature(CostFeature::LeftInputRowCount).scalar();
-      return row_count * std::log(row_count);
+      return row_count == 0 ? 0.0f : row_count * std::log(row_count);
     }
     case CostFeature::RightInputRowCountLogN:{
       const auto row_count = extract_feature(CostFeature::RightInputRowCount).scalar();
-      return row_count * std::log(row_count);
+      return row_count == 0 ? 0.0f : row_count * std::log(row_count);
     }
     case CostFeature::MajorInputRowCount: {
       const auto left_input_row_count = extract_feature(CostFeature::LeftInputRowCount).scalar();

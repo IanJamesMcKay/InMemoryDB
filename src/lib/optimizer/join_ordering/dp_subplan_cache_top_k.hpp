@@ -20,7 +20,7 @@ class DpSubplanCacheTopK : public AbstractDpSubplanCache {
                     const JoinPlanNode& rhs) const;
   };
 
-  using JoinPlanSet = std::set<JoinPlanNode, JoinPlanCostCompare>;
+  using JoinPlanSet = std::multiset<JoinPlanNode, JoinPlanCostCompare>;
 
   explicit DpSubplanCacheTopK(const size_t max_entry_count_per_set);
 

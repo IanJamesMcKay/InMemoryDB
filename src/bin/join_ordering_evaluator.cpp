@@ -7,6 +7,7 @@
 #include <cxxopts.hpp>
 #include <statistics/generate_table_statistics.hpp>
 #include <experimental/filesystem>
+#include <random>
 
 #include "constant_mappings.hpp"
 #include "logical_query_plan/logical_plan_root_node.hpp"
@@ -164,59 +165,59 @@ class JobWorkload : public AbstractJoinOrderingWorkload {
       _query_names = *query_names;
     } else {
       _query_names = {
-      "1a.sql", "1b.sql", "1c.sql", "1d.sql", "2a.sql", "2b.sql", "2c.sql", "2d.sql",
-      // "3a.sql", "3b.sql", "3c.sql"
-      "4a.sql", "4b.sql", "4c.sql",
-      // "5a.sql", "5b.sql", "5c.sql",
-      "6a.sql",
-      // "6b.sql",
-      "6c.sql",
-      //"6d.sql",
-      "6e.sql",
-      //"6f.sql",
-      "7a.sql", "7b.sql",
-      //"7c.sql",
-      "8a.sql", "8b.sql", "8c.sql", "8d.sql",
-      //"9a.sql",
-      "9b.sql",
-      // "9c.sql", "9d.sql",
-      "10a.sql", "10b.sql", "10c.sql", "11a.sql", "11b.sql",
-      //"11c.sql", "11d.sql", "12a.sql", "12b.sql", "12c.sql",
-      "13a.sql", "13b.sql", "13c.sql", "13d.sql",
-      //"14a.sql", "14b.sql", "14c.sql",
-      "15a.sql", "15b.sql", "15c.sql", "15d.sql", "16a.sql", "16b.sql", "16c.sql", "16d.sql", "17a.sql", "17b.sql",
-      "17c.sql", "17d.sql", "17e.sql", "17f.sql",
-      //"18a.sql","18b.sql", "18c.sql", "19a.sql",
-      "19b.sql",
-      //"19c.sql","19d.sql", "20a.sql", "20b.sql", "20c.sql", "21a.sql", "21b.sql", "21c.sql", "22a.sql", "22b.sql",
-      //"22c.sql","22d.sql", "23a.sql", "23b.sql", "23c.sql", "24a.sql",
-//     "24b.sql",
-//     "25a.sql",
-//     "25b.sql",
-//     "25c.sql",
-//     "26a.sql",
-//     "26b.sql",
-//     "26c.sql",
-//     "27a.sql",
-//     "27b.sql",
-//     "27c.sql",
-//     "28a.sql",
-//     "28b.sql",
-//     "28c.sql",
-//     "29a.sql",
-//     "29b.sql",
-//     "29c.sql",
-//     "30a.sql",
-//     "30b.sql",
-//     "30c.sql",
-//     "31a.sql",
-//     "31b.sql",
-//     "31c.sql",
-      "32a.sql",
-      "32b.sql",
-      //"33a.sql",
-      "33b.sql",
-      // "33c.sql"
+      "1a", "1b", "1c", "1d", "2a", "2b", "2c", "2d",
+      // "3a", "3b", "3c"
+      "4a", "4b", "4c",
+      // "5a", "5b", "5c",
+      "6a",
+      // "6b",
+      "6c",
+      //"6d",
+      "6e",
+      //"6f",
+      "7a", "7b",
+      //"7c",
+      "8a", "8b", "8c", "8d",
+      //"9a",
+      "9b",
+      // "9c", "9d",
+      "10a", "10b", "10c", "11a", "11b",
+      //"11c", "11d", "12a", "12b", "12c",
+      "13a", "13b", "13c", "13d",
+      //"14a", "14b", "14c",
+      "15a", "15b", "15c", "15d", "16a", "16b", "16c", "16d", "17a", "17b",
+      "17c", "17d", "17e", "17f",
+      //"18a","18b", "18c", "19a",
+      "19b",
+      //"19c","19d", "20a", "20b", "20c", "21a", "21b", "21c", "22a", "22b",
+      //"22c","22d", "23a", "23b", "23c", "24a",
+//     "24b",
+//     "25a",
+//     "25b",
+//     "25c",
+//     "26a",
+//     "26b",
+//     "26c",
+//     "27a",
+//     "27b",
+//     "27c",
+//     "28a",
+//     "28b",
+//     "28c",
+//     "29a",
+//     "29b",
+//     "29c",
+//     "30a",
+//     "30b",
+//     "30c",
+//     "31a",
+//     "31b",
+//     "31c",
+      "32a",
+      "32b",
+      //"33a",
+      "33b",
+      // "33c"
       };
     }
   }
@@ -246,7 +247,7 @@ class JobWorkload : public AbstractJoinOrderingWorkload {
     "title"
     };
 
-    const auto csvs_path = "/home/moritz/Coding/imdb/csv/";
+    const auto csvs_path = "/home/Moritz.Eyssen/imdb/csv/";
 
     for (const auto& table_name : table_names) {
       const auto table_csv_path = csvs_path + table_name + ".csv";
@@ -311,11 +312,12 @@ class JobWorkload : public AbstractJoinOrderingWorkload {
   }
 
   std::string get_query(const size_t query_idx) const override {
-    auto query_file_directory = std::string{"/home/moritz/Coding/hyrise/third_party/join-order-benchmark/"};
+    auto query_file_directory = std::string{"/home/Moritz.Eyssen/hyrise/third_party/join-order-benchmark/"};
 
-    const auto query_file_path = query_file_directory + _query_names[query_idx];
+    const auto query_file_path = query_file_directory + _query_names[query_idx] + ".sql";
 
     std::ifstream query_file(query_file_path);
+    Assert(query_file.good(), std::string("Failed to open '") + query_file_path + "'");
 
     query_file.seekg(0, std::ios::end);
     const auto size = query_file.tellg();
@@ -439,10 +441,6 @@ int main(int argc, char ** argv) {
       const auto evaluation_name = query_name + "-" + cost_model->name() + "-" + (IS_DEBUG ? "debug"s : "release"s);
 
       out() << "--- Evaluating Query: " << evaluation_name << std::endl;
-
-      auto plan_durations = std::vector<long>();
-      auto plan_cost_samples = std::vector<PlanCostSample>();
-
       auto pipeline_statement = SQL{sql}.disable_mvcc().pipeline_statement();
 
       const auto lqp = pipeline_statement.get_optimized_logical_plan();
@@ -457,10 +455,29 @@ int main(int argc, char ** argv) {
       all_vertices.flip();
       const auto join_plans = dp_ccp_top_k.subplan_cache()->get_best_plans(all_vertices);
 
-      out() << "----- Generated plans: " << join_plans.size() << std::endl;
+      out() << "----- Generated plans: " << join_plans.size() <<
+                   ", EstCostRange: " << join_plans.begin()->plan_cost << " -> " << join_plans.rbegin()->plan_cost << std::endl;
 
-      auto current_plan_idx = 0;
-      for (const auto &join_plan : join_plans) {
+      auto plan_durations = std::vector<long>(join_plans.size(), 0);
+      auto plan_cost_samples = std::vector<PlanCostSample>(join_plans.size());
+
+      std::vector<size_t> plan_indices(join_plans.size());
+      std::iota(plan_indices.begin(), plan_indices.end(), 0);
+
+      if (plan_indices.size() > 20) {
+        std::random_device rd;
+        std::mt19937 g(rd());
+        auto b = plan_indices.begin();
+        std::advance(b, 20);
+        std::shuffle(b, plan_indices.end(), g);
+      }
+
+      for (auto i = size_t{0}; i < plan_indices.size(); ++i) {
+        const auto current_plan_idx = plan_indices[i];
+        auto join_plan_iter = join_plans.begin();
+        std::advance(join_plan_iter, current_plan_idx);
+        const auto &join_plan = *join_plan_iter;
+
         out() << "------- Plan " << current_plan_idx << ", estimated cost: " << join_plan.plan_cost << std::endl;
 
         const auto join_ordered_sub_lqp = join_plan.lqp;
@@ -498,11 +515,11 @@ int main(int argc, char ** argv) {
         } else {
           const auto plan_duration = timer.lap();
 
-          plan_durations.emplace_back(plan_duration.count());
+          plan_durations[current_plan_idx] = plan_duration.count();
 
           const auto operators = flatten_pqp(pqp);
           const auto plan_cost_sample = create_plan_cost_sample(*cost_model, operators);
-          plan_cost_samples.emplace_back(plan_cost_sample);
+          plan_cost_samples[current_plan_idx] = plan_cost_sample;
 
           /**
            * Visualize
@@ -530,8 +547,6 @@ int main(int argc, char ** argv) {
           csv << plan_idx << "," << plan_durations[plan_idx] << "," << plan_cost_samples[plan_idx] << "\n";
         }
         csv.close();
-
-        ++current_plan_idx;
       }
     }
   }
