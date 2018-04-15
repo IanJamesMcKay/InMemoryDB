@@ -131,6 +131,8 @@ class TpchJoinOrderingWorkload : public AbstractJoinOrderingWorkload {
     if (!query_ids) {
       std::copy(std::begin(tpch_supported_queries), std::end(tpch_supported_queries),
                 std::back_inserter(_query_ids));
+    } else {
+      _query_ids = *query_ids;
     }
   }
 

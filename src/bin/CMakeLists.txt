@@ -20,6 +20,17 @@ target_link_libraries(
     hyrise
     hyriseBenchmarkLib
 )
+# Configure playground2
+add_executable(
+    hyrisePlayground2
+    playground2.cpp
+)
+target_link_libraries(
+    hyrisePlayground2
+     ${FILESYSTEM_LIBRARY}
+    hyrise
+    hyriseBenchmarkLib
+)
 
 # Configure hyriseJoinOrderingEvaluator
 add_executable(
