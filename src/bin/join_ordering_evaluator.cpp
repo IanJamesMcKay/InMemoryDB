@@ -346,6 +346,7 @@ int main(int argc, char ** argv) {
   auto visualize = false;
   auto plan_timeout_seconds = std::optional<long>{0};
   auto query_timeout_seconds = std::optional<long>{0};
+  auto dynamic_plan_timeout = true;
   auto workload_str = "tpch"s;
   auto max_plan_count = std::optional<size_t>{0};
 
@@ -358,6 +359,7 @@ int main(int argc, char ** argv) {
     ("s,scale", "Database scale factor (1.0 ~ 1GB). TPCH only", cxxopts::value<float>(scale_factor)->default_value("0.001"))
     ("m,cost_model", "CostModel to use (all, naive, linear)", cxxopts::value<std::string>(cost_model_str)->default_value(cost_model_str))  // NOLINT
     ("timeout-plan", "Timeout per plan, in seconds. Default: 120", cxxopts::value<long>(*plan_timeout_seconds)->default_value("120"))  // NOLINT
+    ("dynamic-timeout-plan", "If active, lower timeout to current fastest plan.", cxxopts::value<bool>(dynamic_plan_timeout)->default_value("true"))  // NOLINT
     ("timeout-query", "Timeout per plan, in seconds. Default: 1800", cxxopts::value<long>(*query_timeout_seconds)->default_value("1800"))  // NOLINT
     ("max-plan-count", "Maximum number of plans per query to execute. Default: 100", cxxopts::value<size_t>(*max_plan_count)->default_value("100"))  // NOLINT
     ("visualize", "Visualize every query plan", cxxopts::value<bool>(visualize)->default_value("false"))  // NOLINT
@@ -425,6 +427,11 @@ int main(int argc, char ** argv) {
   } else {
     out() << "-- Queries will timeout after " << *query_timeout_seconds << " seconds" << std::endl;
   }
+  if (dynamic_plan_timeout) {
+    out() << "-- Plan timeout is dynamic" << std::endl;
+  } else {
+    out() << "-- Dynamic plan timeout is disabled" << std::endl;
+  }
 
   // Process "max-plan-count" parameter
   if (*max_plan_count <= 0) {
@@ -480,12 +487,13 @@ int main(int argc, char ** argv) {
 
       auto plan_durations = std::vector<long>(join_plans.size(), 0);
       auto plan_cost_samples = std::vector<PlanCostSample>(join_plans.size());
+      auto best_plan_milliseconds = std::numeric_limits<long>::max();
 
       // Shuffle plans
       std::vector<size_t> plan_indices(join_plans.size());
       std::iota(plan_indices.begin(), plan_indices.end(), 0);
 
-      if (plan_indices.size() > 20) {
+      if (plan_indices.size() > 30) {
         std::random_device rd;
         std::mt19937 g(rd());
         auto b = plan_indices.begin();
@@ -577,6 +585,16 @@ int main(int argc, char ** argv) {
             } catch (const std::exception& e) {
               out() << "-------- Error while visualizing: " << e.what() << std::endl;
             }
+          }
+
+          /**
+           * Adjust dynamic timeout
+           */
+          const auto plan_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(plan_duration).count();
+          if (plan_milliseconds < best_plan_milliseconds) {
+            best_plan_milliseconds = plan_milliseconds;
+            plan_timeout_seconds = (best_plan_milliseconds / 1000) * 1.2f;
+            out() << "------- New dynamic timeout is " << *plan_timeout_seconds << " seconds" << std::endl;
           }
         }
 

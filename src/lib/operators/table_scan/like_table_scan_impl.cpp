@@ -29,7 +29,7 @@ LikeTableScanImpl::LikeTableScanImpl(std::shared_ptr<const Table> in_table, cons
       _invert_results(predicate_condition == PredicateCondition::NotLike) {
   // convert the given SQL-like search term into a c++11 regex to use it for the actual matching
   auto regex_string = sqllike_to_regex(_right_wildcard);
-  _regex = std::regex{regex_string, std::regex_constants::icase};  // case insensitivity
+  _regex = std::regex{regex_string};  // case insensitivity
 }
 
 void LikeTableScanImpl::handle_column(const BaseValueColumn& base_column,
