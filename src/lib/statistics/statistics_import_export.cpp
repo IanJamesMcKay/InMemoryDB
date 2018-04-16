@@ -2,6 +2,8 @@
 
 #include <fstream>
 
+#include "boost/locale.hpp"
+
 #include "column_statistics.hpp"
 #include "constant_mappings.hpp"
 #include "resolve_type.hpp"
@@ -63,8 +65,13 @@ std::shared_ptr<AbstractColumnStatistics> import_column_statistics(const nlohman
 
   resolve_data_type(data_type_iter->second, [&](const auto type) {
     using ColumnDataType = typename decltype(type)::type;
-    const auto min = json["min"].get<ColumnDataType>();
-    const auto max = json["max"].get<ColumnDataType>();
+    auto min = json["min"].get<ColumnDataType>();
+    auto max = json["max"].get<ColumnDataType>();
+
+    if constexpr (std::is_same_v<ColumnDataType, std::string>) {
+      min = boost::locale::conv::from_utf(min, "Latin1");
+      max = boost::locale::conv::from_utf(max, "Latin1");
+    }
 
     result_column_statistics =
         std::make_shared<ColumnStatistics<ColumnDataType>>(null_value_ratio, distinct_count, min, max);
@@ -96,8 +103,13 @@ nlohmann::json export_column_statistics(const AbstractColumnStatistics& abstract
   resolve_data_type(abstract_column_statistics.data_type(), [&](const auto type) {
     using ColumnDataType = typename decltype(type)::type;
     const auto& column_statistics = static_cast<const ColumnStatistics<ColumnDataType>&>(abstract_column_statistics);
-    column_statistics_json["min"] = column_statistics.min();
-    column_statistics_json["max"] = column_statistics.max();
+    if constexpr (std::is_same_v<ColumnDataType, std::string>) {
+      column_statistics_json["min"] = boost::locale::conv::to_utf<char>(column_statistics.min(), "Latin1");
+      column_statistics_json["max"] = boost::locale::conv::to_utf<char>(column_statistics.max(), "Latin1");
+    } else {
+      column_statistics_json["min"] = column_statistics.min();
+      column_statistics_json["max"] = column_statistics.max();
+    }
   });
 
   return column_statistics_json;

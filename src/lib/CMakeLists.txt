@@ -465,6 +465,7 @@ set(
     LIBRARIES
     pthread
     sqlparser
+    boost_locale
     ${TBB_LIBRARY}
 )
 
