@@ -45,230 +45,53 @@ int main() {
     "title"
   };
 
-  const auto csvs_path = "/home/Moritz.Eyssen/imdb/csv/";
+  const auto csvs_path = "statistics/";
 
   for (const auto& table_name : table_names) {
     const auto table_csv_path = csvs_path + table_name + ".csv";
-    const auto table_binary_path = csvs_path + table_name + ".bin";
     const auto table_statistics_path = csvs_path + table_name + ".statistics.json";
 
-    std::cout << "Processing '" << table_name << "'" << std::endl;
-
-    Timer timer;
     auto table = std::shared_ptr<Table>();
-    if (std::experimental::filesystem::exists(table_binary_path.c_str())) {
-      std::cout << "  Loading Binary" << std::endl;
-      auto import_binary = std::make_shared<ImportBinary>(table_binary_path);
-      import_binary->execute();
-      table = std::const_pointer_cast<Table>(import_binary->get_output());
-    } else {
-      std::cout << "  Loading CSV" << std::endl;
-      table = CsvParser{}.parse(table_csv_path);
-    }
-    std::cout << "   Done: " << table->row_count() << " rows" << std::endl;
-    std::cout << "   Duration: " << format_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(timer.lap()))
-              << std::endl;
+    table = CsvParser{}.parse(table_csv_path);
+    const auto table_statistics = import_table_statistics(table_statistics_path);
+    table->set_table_statistics(std::make_shared<TableStatistics>(table_statistics));
 
-    try {
-      if (std::experimental::filesystem::exists(table_statistics_path.c_str())) {
-        std::cout << "  Loading Statistics" << std::endl;
-        const auto table_statistics = import_table_statistics(table_statistics_path);
-        table->set_table_statistics(std::make_shared<TableStatistics>(table_statistics));
-        std::cout << "   Done" << std::endl;
-      }
-    } catch (const std::exception& e) {
-      std::cout << "ERROR while importing statistics: " << e.what() << std::endl;
-    }
-
-    std::cout << "  Adding to StorageManager" << std::endl;
-    StorageManager::get().add_table(table_name, std::const_pointer_cast<Table>(table));
-    std::cout << "   Done" << std::endl;
-    std::cout << "   Duration: " << format_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(timer.lap()))
-              << std::endl;
-
-    if (!std::experimental::filesystem::exists(table_statistics_path.c_str())) {
-      std::cout << "  Exporting Statistics" << std::endl;
-      export_table_statistics(*table->table_statistics(), table_statistics_path);
-      std::cout << "   Done" << std::endl;
-    }
-
-    if (!std::experimental::filesystem::exists(table_binary_path.c_str())) {
-      std::cout << "  Saving binary" << std::endl;
-      auto table_wrapper = std::make_shared<TableWrapper>(table);
-      table_wrapper->execute();
-      auto export_binary = std::make_shared<ExportBinary>(table_wrapper, table_binary_path);
-      export_binary->execute();
-      std::cout << "   Done" << std::endl;
-      std::cout << "   Duration: " << format_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(timer.lap()))
-                << std::endl;
-    }
+    StorageManager::get().add_table(table_name, table);
   }
 
-  /**
-   *
-   */
-  auto query_file_names = std::vector<std::string>({
-     "1a.sql",
-     "1b.sql",
-     "1c.sql",
-     "1d.sql",
-     "2a.sql",
-     "2b.sql",
-     "2c.sql",
-     "2d.sql",
-     // "3a.sql", Uses IN
-     // "3b.sql", Uses IN
-     // "3c.sql", Uses IN
-     "4a.sql",
-     "4b.sql",
-     "4c.sql",
-     // "5a.sql",
-     // "5b.sql",
-     // "5c.sql",
-     "6a.sql",
-     // "6b.sql",
-     "6c.sql",
-     //"6d.sql",
-     "6e.sql",
-     //"6f.sql",
-     "7a.sql",
-     "7b.sql",
-     //"7c.sql",
-     "8a.sql",
-     "8b.sql",
-     "8c.sql",
-     "8d.sql",
-     //"9a.sql",
-     "9b.sql",
-    // "9c.sql",
-    // "9d.sql",
-     "10a.sql",
-     "10b.sql",
-     "10c.sql",
-     "11a.sql",
-     "11b.sql",
-     //"11c.sql",
-     //"11d.sql",
-     //"12a.sql",
-     "12b.sql",
-     //"12c.sql",
-     "13a.sql",
-     "13b.sql",
-     "13c.sql",
-     "13d.sql",
-     //"14a.sql",
-     //"14b.sql",
-     //"14c.sql",
-     "15a.sql",
-     "15b.sql",
-     "15c.sql",
-     "15d.sql",
-     "16a.sql",
-     "16b.sql",
-     "16c.sql",
-     "16d.sql",
-     "17a.sql",
-     "17b.sql",
-     "17c.sql",
-     "17d.sql",
-     "17e.sql",
-     "17f.sql",
-     //"18a.sql",
-     //"18b.sql",
-     //"18c.sql",
-     //"19a.sql",
-     "19b.sql",
-     //"19c.sql",
-     //"19d.sql",
-     //"20a.sql",
-     //"20b.sql",
-     //"20c.sql",
-     //"21a.sql",
-     //"21b.sql",
-     //"21c.sql",
-     //"22a.sql",
-     //"22b.sql",
-     //"22c.sql",
-     //"22d.sql",
-     "23a.sql",
-     //"23b.sql",
-//     "23c.sql",
-//     "24a.sql",
-//     "24b.sql",
-//     "25a.sql",
-//     "25b.sql",
-//     "25c.sql",
-//     "26a.sql",
-//     "26b.sql",
-//     "26c.sql",
-//     "27a.sql",
-//     "27b.sql",
-//     "27c.sql",
-//     "28a.sql",
-//     "28b.sql",
-//     "28c.sql",
-//     "29a.sql",
-//     "29b.sql",
-//     "29c.sql",
-//     "30a.sql",
-//     "30b.sql",
-//     "30c.sql",
-//     "31a.sql",
-//     "31b.sql",
-//     "31c.sql",
-     "32a.sql",
-     "32b.sql",
-     //"33a.sql",
-     "33b.sql",
-    // "33c.sql",
-  });
+  const auto query = "SELECT mc.note AS production_note,\n"
+                     "       t.title AS movie_title,\n"
+                     "       t.production_year AS movie_year\n"
+                     "FROM company_type AS ct,\n"
+                     "     info_type AS it,\n"
+                     "     movie_companies AS mc,\n"
+                     "     movie_info_idx AS mi_idx,\n"
+                     "     title AS t\n"
+                     "WHERE ct.kind = 'production companies'\n"
+                     "  AND it.info = 'top 250 rank'\n"
+                     "  AND mc.note NOT LIKE '%(as Metro-Goldwyn-Mayer Pictures)%'\n"
+                     "  AND (mc.note LIKE '%(co-production)%'\n"
+                     "       OR mc.note LIKE '%(presents)%')\n"
+                     "  AND ct.id = mc.company_type_id\n"
+                     "  AND t.id = mc.movie_id\n"
+                     "  AND t.id = mi_idx.movie_id\n"
+                     "  AND mc.movie_id = mi_idx.movie_id\n"
+                     "  AND it.id = mi_idx.info_type_id;";
 
-  auto query_file_directory = std::string{"/home/Moritz.Eyssen/hyrise/third_party/join-order-benchmark/"};
+  auto pipeline_statement = SQL{query}.set_use_mvcc(UseMvcc::No).pipeline_statement();
+  auto lqp = pipeline_statement.get_optimized_logical_plan();
+  auto pqp = pipeline_statement.get_query_plan();
 
-  for (const auto& query_file_name : query_file_names) {
-   try {
-      const auto query_file_path = query_file_directory + query_file_name;
+  lqp->print();
 
-      std::ifstream query_file(query_file_path);
+  GraphvizConfig graphviz_config;
+  graphviz_config.format = "svg";
+  VizGraphInfo viz_graph_info;
+  viz_graph_info.bg_color = "black";
 
-      query_file.seekg(0, std::ios::end);
-      const auto size = query_file.tellg();
-      auto query_string = std::string(static_cast<size_t>(size), ' ');
-      query_file.seekg(0, std::ios::beg);
-      query_file.read(&query_string[0], size);
-
-      std::cout << "Running Query " << query_file_name << std::endl;
-
-      auto pipeline = SQL{query_string}.set_use_mvcc(UseMvcc::No).pipeline();
-
-      Timer execution_timer;
-      auto table = pipeline.get_result_table();
-
-      std::cout << "  Rows: " << table->row_count() << std::endl;
-      std::cout << "  Duration: " << format_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(execution_timer.lap())) << std::endl;
-
-      {
-        auto tw = std::make_shared<TableWrapper>(pipeline.get_result_table());
-        tw->execute();
-        auto limit = std::make_shared<Limit>(tw, 20'000);
-        limit->execute();
-        std::ofstream file(query_file_name + ".result");
-        Print::print(limit->get_output(), 0, file);
-      }
-
-      GraphvizConfig graphviz_config;
-      graphviz_config.format = "svg";
-      VizGraphInfo viz_graph_info;
-      viz_graph_info.bg_color = "black";
-
-      SQLQueryPlanVisualizer visualizer{graphviz_config, viz_graph_info, {}, {}};
-      visualizer.set_cost_model(std::make_shared<CostModelLinear>());
-      visualizer.visualize(*pipeline.get_query_plans().at(0), "tmp.dot",
-                           query_file_name + ".svg");
-    } catch (const std::exception& e) {
-    std::cout << "ERROR: " << e.what() << std::endl;
-    }
-  }
+  SQLQueryPlanVisualizer visualizer{graphviz_config, viz_graph_info, {}, {}};
+  visualizer.visualize(*pqp, "tmp.dot",
+                       "tmp.svg");
 
   return 0;
 }

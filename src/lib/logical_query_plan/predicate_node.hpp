@@ -43,6 +43,7 @@ class PredicateNode : public EnableMakeForLQPNode<PredicateNode>, public Abstrac
       const std::shared_ptr<AbstractLQPNode>& right_input = nullptr) const override;
 
   bool shallow_equals(const AbstractLQPNode& rhs) const override;
+  std::string cardinality_estimation_info() const override;
 
  protected:
   std::shared_ptr<AbstractLQPNode> _deep_copy_impl(

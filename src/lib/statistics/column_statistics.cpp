@@ -367,11 +367,11 @@ ColumnColumnEstimate ColumnStatistics<std::string>::estimate_predicate_with_colu
 template <typename ColumnDataType>
 std::string ColumnStatistics<ColumnDataType>::description() const {
   std::stringstream stream;
-  stream << "Col Stats: " << std::endl;
-  stream << "  dist.    " << _distinct_count << std::endl;
-  stream << "  min      " << _min << std::endl;
-  stream << "  max      " << _max << std::endl;
-  stream << "  non-null " << non_null_value_ratio() << std::endl;
+  stream << "Col Stats: " ;
+  stream << "dist. " << _distinct_count << ", ";
+  stream << "min " << _min << ", ";
+  stream << "max " << _max << ", ";
+  stream << "non-null " << non_null_value_ratio();
   return stream.str();
 }
 

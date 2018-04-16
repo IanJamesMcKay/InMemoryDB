@@ -107,7 +107,7 @@ void print_directed_acyclic_graph_impl(const std::shared_ptr<Node>& node,
  * @param stream            The stream to print on
  */
 template <typename Node>
-void print_directed_acyclic_graph(const std::shared_ptr<Node>& node, const NodeGetChildrenFn<Node>& get_children_fn,
+std::unordered_map<std::shared_ptr<Node>, size_t> print_directed_acyclic_graph(const std::shared_ptr<Node>& node, const NodeGetChildrenFn<Node>& get_children_fn,
                                   const NodePrintFn<Node>& print_node_fn, std::ostream& stream = std::cout) {
   std::vector<bool> levels;
   std::unordered_map<std::shared_ptr<Node>, size_t> id_by_node;
@@ -115,6 +115,8 @@ void print_directed_acyclic_graph(const std::shared_ptr<Node>& node, const NodeG
 
   detail::print_directed_acyclic_graph_impl<Node>(node, get_children_fn, print_node_fn, stream, levels, id_by_node,
                                                   id_counter);
+
+  return id_by_node;
 }
 
 }  //  namespace opossum

@@ -12,6 +12,7 @@
 #include "boost/functional/hash.hpp"
 
 #include "constant_mappings.hpp"
+#include "statistics/abstract_column_statistics.hpp"
 #include "statistics/table_statistics.hpp"
 #include "types.hpp"
 #include "utils/assert.hpp"
@@ -189,6 +190,28 @@ void JoinNode::_update_output() const {
                                       right_input()->output_column_references().begin(),
                                       right_input()->output_column_references().end());
   }
+}
+
+std::string JoinNode::cardinality_estimation_info() const {
+  std::stringstream stream;
+
+  if (_join_mode == JoinMode::Cross) {
+    stream << "Cross Join" << std::endl;
+    stream << left_input()->get_statistics()->description() << std::endl;
+    stream << right_input()->get_statistics()->description() << std::endl;
+    stream << get_statistics()->description() << std::endl;
+  } else {
+
+    ColumnIDPair join_colum_ids{left_input()->get_output_column_id(_join_column_references->first),
+                                right_input()->get_output_column_id(_join_column_references->second)};
+
+    stream << "Predicated Join " << left_input()->get_statistics()->row_count() << " x " << right_input()->get_statistics()->row_count() << std::endl;
+    stream << left_input()->get_statistics()->column_statistics()[join_colum_ids.first]->description() << std::endl;
+    stream << right_input()->get_statistics()->column_statistics()[join_colum_ids.second]->description() << std::endl;
+    stream << get_statistics()->description() << std::endl;
+  }
+
+  return stream.str();
 }
 
 }  // namespace opossum
