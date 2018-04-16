@@ -344,8 +344,10 @@ int main(int argc, char ** argv) {
   auto scale_factor = 0.1f;
   auto cost_model_str = "linear"s;
   auto visualize = false;
-  auto timeout_seconds = std::optional<long>{0};
+  auto plan_timeout_seconds = std::optional<long>{0};
+  auto query_timeout_seconds = std::optional<long>{0};
   auto workload_str = "tpch"s;
+  auto max_plan_count = std::optional<size_t>{0};
 
   cxxopts::Options cli_options_description{"Hyrise Join Ordering Evaluator", ""};
 
@@ -355,7 +357,9 @@ int main(int argc, char ** argv) {
     ("v,verbose", "Print log messages", cxxopts::value<bool>(verbose)->default_value("true"))
     ("s,scale", "Database scale factor (1.0 ~ 1GB). TPCH only", cxxopts::value<float>(scale_factor)->default_value("0.001"))
     ("m,cost_model", "CostModel to use (all, naive, linear)", cxxopts::value<std::string>(cost_model_str)->default_value(cost_model_str))  // NOLINT
-    ("t,timeout", "Timeout per query, in seconds", cxxopts::value<long>(*timeout_seconds)->default_value("0"))  // NOLINT
+    ("timeout-plan", "Timeout per plan, in seconds. Default: 120", cxxopts::value<long>(*plan_timeout_seconds)->default_value("120"))  // NOLINT
+    ("timeout-query", "Timeout per plan, in seconds. Default: 1800", cxxopts::value<long>(*query_timeout_seconds)->default_value("1800"))  // NOLINT
+    ("max-plan-count", "Maximum number of plans per query to execute. Default: 100", cxxopts::value<size_t>(*max_plan_count)->default_value("100"))  // NOLINT
     ("visualize", "Visualize every query plan", cxxopts::value<bool>(visualize)->default_value("false"))  // NOLINT
     ("w,workload", "Workload to run (tpch, job). Default: tpch", cxxopts::value(workload_str)->default_value(workload_str))  // NOLINT
     ("queries", "Specify queries to run, default is all of the workload that are supported", cxxopts::value<std::vector<std::string>>()); // NOLINT
@@ -408,12 +412,26 @@ int main(int argc, char ** argv) {
     Fail("Unknown workload");
   }
 
-  // Process "timeout" parameter
-  if (*timeout_seconds <= 0) {
-    timeout_seconds.reset();
-    out() << "-- No timeout" << std::endl;
+  // Process "timeout-plan/query" parameters
+  if (*plan_timeout_seconds <= 0) {
+    plan_timeout_seconds.reset();
+    out() << "-- No plan timeout" << std::endl;
   } else {
-    out() << "-- Queries will timeout after " << *timeout_seconds << std::endl;
+    out() << "-- Plans will timeout after " << *plan_timeout_seconds << " seconds" << std::endl;
+  }
+  if (*query_timeout_seconds <= 0) {
+    query_timeout_seconds.reset();
+    out() << "-- No query timeout" << std::endl;
+  } else {
+    out() << "-- Queries will timeout after " << *query_timeout_seconds << " seconds" << std::endl;
+  }
+
+  // Process "max-plan-count" parameter
+  if (*max_plan_count <= 0) {
+    max_plan_count.reset();
+    out() << "-- Executing all plans of a query" << std::endl;
+  } else {
+    out() << "-- Executing a maximum of " << *max_plan_count << " plans per query" << std::endl;
   }
 
   // Process "cost-model" parameter
@@ -463,6 +481,7 @@ int main(int argc, char ** argv) {
       auto plan_durations = std::vector<long>(join_plans.size(), 0);
       auto plan_cost_samples = std::vector<PlanCostSample>(join_plans.size());
 
+      // Shuffle plans
       std::vector<size_t> plan_indices(join_plans.size());
       std::iota(plan_indices.begin(), plan_indices.end(), 0);
 
@@ -474,6 +493,13 @@ int main(int argc, char ** argv) {
         std::shuffle(b, plan_indices.end(), g);
       }
 
+      if (max_plan_count) {
+        plan_indices.resize(std::min(plan_indices.size(), *max_plan_count));
+      }
+
+      //
+      const auto query_execution_begin = std::chrono::steady_clock::now();
+
       for (auto i = size_t{0}; i < plan_indices.size(); ++i) {
         const auto current_plan_idx = plan_indices[i];
         auto join_plan_iter = join_plans.begin();
@@ -482,6 +508,18 @@ int main(int argc, char ** argv) {
 
         out() << "------- Plan " << current_plan_idx << ", estimated cost: " << join_plan.plan_cost << std::endl;
 
+        // Timeout query
+        if (query_timeout_seconds) {
+          const auto now = std::chrono::steady_clock::now();
+          const auto query_duration = now - query_execution_begin;
+
+          if (std::chrono::duration_cast<std::chrono::seconds>(query_duration).count() >= *query_timeout_seconds) {
+            out() << "-------- Query timeout" << std::endl;
+            break;
+          }
+        }
+
+        // Create LQP from join plan
         const auto join_ordered_sub_lqp = join_plan.lqp;
         for (const auto &parent_relation : join_graph->output_relations) {
           parent_relation.output->set_input(parent_relation.input_side, join_ordered_sub_lqp);
@@ -493,8 +531,8 @@ int main(int argc, char ** argv) {
         pqp->set_transaction_context_recursively(transaction_context);
 
         // Schedule timeout
-        if (timeout_seconds) {
-          const auto seconds = *timeout_seconds;
+        if (plan_timeout_seconds) {
+          const auto seconds = *plan_timeout_seconds;
           std::thread timeout_thread([transaction_context, seconds]() {
             std::this_thread::sleep_for(std::chrono::seconds(seconds));
             if (transaction_context->rollback(TransactionPhaseSwitch::Lenient)) {
@@ -512,8 +550,6 @@ int main(int argc, char ** argv) {
 
         if (!transaction_context->commit(TransactionPhaseSwitch::Lenient)) {
           out() << "-------- Query timeout accepted" << std::endl;
-          plan_durations.emplace_back(std::numeric_limits<long>::max());
-          plan_cost_samples.emplace_back(PlanCostSample{});
         } else {
           const auto plan_duration = timer.lap();
 
@@ -531,12 +567,16 @@ int main(int argc, char ** argv) {
             graphviz_config.format = "svg";
             VizGraphInfo viz_graph_info;
             viz_graph_info.bg_color = "black";
-
-            SQLQueryPlanVisualizer visualizer{graphviz_config, viz_graph_info, {}, {}};
-            visualizer.set_cost_model(cost_model);
-            visualizer.visualize(plan, "tmp.dot",
-                                 std::string("viz/") + evaluation_name + "_" + std::to_string(current_plan_idx) + "_" +
-                                 std::to_string(plan_duration.count()) + ".svg");
+            try {
+              SQLQueryPlanVisualizer visualizer{graphviz_config, viz_graph_info, {}, {}};
+              visualizer.set_cost_model(cost_model);
+              visualizer.visualize(plan, "tmp.dot",
+                                   std::string("viz/") + evaluation_name + "_" + std::to_string(current_plan_idx) +
+                                   "_" +
+                                   std::to_string(plan_duration.count()) + ".svg");
+            } catch (const std::exception& e) {
+              out() << "-------- Error while visualizing: " << e.what() << std::endl;
+            }
           }
         }
 
