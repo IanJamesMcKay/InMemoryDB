@@ -21,6 +21,8 @@ if __name__ == "__main__":
 
     best_ranks = []
     best_rank_duration_ratios = []
+    better_ranks = []
+    better_rank_duration_ratios = []
 
     for file_name in file_names:
         try:
@@ -39,20 +41,32 @@ if __name__ == "__main__":
         best_duration = base_duration
         best_idx = 0
 
+        xlim=300
+        ylim=2.5
+
         for idx, duration in durations.iteritems():
             if duration == 0:
                 continue
             if duration < best_duration:
                 best_idx = idx
                 best_duration = duration
+            elif duration < base_duration:
+                better_ranks.append(min(idx, xlim))
+                ratio = float(base_duration) / duration
+                better_rank_duration_ratios.append(min(ylim, ratio))
+
 
         ratio = float(base_duration) / best_duration
 
-        best_ranks.append(min(best_idx, 300))
-        best_rank_duration_ratios.append(min(2.5, ratio))
+        best_ranks.append(min(best_idx, xlim))
+        best_rank_duration_ratios.append(min(ylim, ratio))
         print("{}: BestPlan: {}, Ratio: {}".format(file_name, best_idx, ratio))
 
-    plt.plot(best_ranks, best_rank_duration_ratios, "bo")
+    plt.plot(best_ranks, best_rank_duration_ratios, "bo", markersize=4.5, label="Best Plan")
+    plt.legend()
+    plt.xlabel("rank")
+    plt.ylabel("performance increase")
+    #plt.plot(better_ranks, better_rank_duration_ratios, "o", markersize=0.1)
     plt.grid(True)
-    plt.savefig("{}.svg".format("motivation_plot"), format="svg")
+    plt.savefig("{}.svg".format("where_is_the_best_plan"), format="svg")
 
