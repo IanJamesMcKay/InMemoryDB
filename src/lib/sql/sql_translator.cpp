@@ -970,7 +970,34 @@ std::shared_ptr<AbstractLQPNode> SQLTranslator::_translate_predicate(
     // change column reference to the correct expression
     column_ref_hsql_expr = hsql_expr.expr->expr;
   } else {
-    predicate_condition = translate_operator_type_to_predicate_condition(hsql_expr.opType);
+    if (hsql_expr.opType == hsql::kOpIn) {
+      Assert(hsql_expr.exprList, "Expect exprList for IN");
+      Assert(refers_to_column(*hsql_expr.expr), "For IN, hsql_expr.expr has to refer to a column");
+
+      std::vector<AllTypeVariant> array;
+      for (auto& array_element : *hsql_expr.exprList) {
+        auto value = HSQLExprTranslator::to_all_parameter_variant(*array_element);
+        Assert(is_variant(value), "Expected value in IN array");
+        array.emplace_back(boost::get<AllTypeVariant>(value));
+      }
+
+      const auto in_column = resolve_column(*column_ref_hsql_expr);
+      auto in_projection_expressions = LQPExpression::create_columns(input_node->output_column_references());
+      auto in_projection_expression = LQPExpression::create_in(in_column, array);
+      in_projection_expressions.emplace_back(in_projection_expression);
+
+      auto in_projection = ProjectionNode::make(in_projection_expressions, input_node);
+
+      const auto result_column = in_projection->output_column_references().back();
+
+      auto predicate = PredicateNode::make(result_column, PredicateCondition::NotEquals, 0, in_projection);
+
+      auto projection = ProjectionNode::make(LQPExpression::create_columns(input_node->output_column_references()), predicate);
+
+      return projection;
+    } else {
+      predicate_condition = translate_operator_type_to_predicate_condition(hsql_expr.opType);
+    }
   }
 
   // Indicates whether to use expr.expr or expr.expr2 as the main column to reference

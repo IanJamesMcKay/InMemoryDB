@@ -74,6 +74,9 @@ class Projection : public AbstractReadOnlyOperator {
   static const pmr_vector<std::pair<bool, T>> _evaluate_expression(
       const std::shared_ptr<PQPExpression>& expression, const std::shared_ptr<const Table> table,
       const ChunkID chunk_id);
+  static const pmr_vector<int32_t> _evaluate_in(
+      const std::shared_ptr<PQPExpression>& expression, const std::shared_ptr<const Table> table,
+      const ChunkID chunk_id);
 
   std::shared_ptr<const Table> _on_execute() override;
 

@@ -48,11 +48,11 @@ if __name__ == "__main__":
 
         ratio = float(base_duration) / best_duration
 
-        best_ranks.append(min(best_idx, 1000))
-        best_rank_duration_ratios.append(ratio)
+        best_ranks.append(min(best_idx, 300))
+        best_rank_duration_ratios.append(min(2.5, ratio))
         print("{}: BestPlan: {}, Ratio: {}".format(file_name, best_idx, ratio))
 
     plt.plot(best_ranks, best_rank_duration_ratios, "bo")
     plt.grid(True)
-    plt.show()
+    plt.savefig("{}.svg".format("motivation_plot"), format="svg")
 

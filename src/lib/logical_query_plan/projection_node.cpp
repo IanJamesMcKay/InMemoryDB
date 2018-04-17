@@ -11,6 +11,8 @@
 
 #include "lqp_expression.hpp"
 #include "types.hpp"
+#include "statistics/column_statistics.hpp"
+#include "statistics/table_statistics.hpp"
 #include "utils/assert.hpp"
 
 namespace opossum {
@@ -149,7 +151,7 @@ void ProjectionNode::_update_output() const {
       }
 
     } else if (expression->type() == ExpressionType::Literal || expression->type() == ExpressionType::Placeholder ||
-               expression->is_arithmetic_operator()) {
+               expression->is_arithmetic_operator() || expression->type() == ExpressionType::In) {
       _output_column_references->emplace_back(shared_from_this(), column_id);
 
       if (!expression->alias()) {
@@ -162,6 +164,24 @@ void ProjectionNode::_update_output() const {
 
     column_id++;
   }
+}
+
+std::shared_ptr<TableStatistics> ProjectionNode::derive_statistics_from(
+const std::shared_ptr<AbstractLQPNode>& left_input, const std::shared_ptr<AbstractLQPNode>& right_input) const {
+  DebugAssert(left_input && !right_input, "ProjectionNode need left_input and no right_input");
+
+  std::vector<std::shared_ptr<const AbstractColumnStatistics>> column_statistics;
+
+  for (const auto &expression : _column_expressions) {
+    if (expression->type() == ExpressionType::Column) {
+      auto column_id = left_input->get_output_column_id(expression->column_reference());
+      column_statistics.emplace_back(left_input->get_statistics()->column_statistics()[column_id]);
+    } else {
+      column_statistics.emplace_back(std::make_shared<ColumnStatistics<int32_t>>(0.0f, 1.0f, 0, 0));
+    }
+  }
+
+  return std::make_shared<TableStatistics>(TableType::Data, left_input->get_statistics()->row_count(), column_statistics);
 }
 
 size_t ProjectionNode::_on_hash() const {

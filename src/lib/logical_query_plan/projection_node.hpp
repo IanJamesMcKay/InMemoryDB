@@ -33,6 +33,9 @@ class ProjectionNode : public EnableMakeForLQPNode<ProjectionNode>, public Abstr
 
   bool shallow_equals(const AbstractLQPNode& rhs) const override;
 
+  std::shared_ptr<TableStatistics> derive_statistics_from(
+  const std::shared_ptr<AbstractLQPNode>& left_input, const std::shared_ptr<AbstractLQPNode>& right_input) const override;
+
  protected:
   std::shared_ptr<AbstractLQPNode> _deep_copy_impl(
       const std::shared_ptr<AbstractLQPNode>& copied_left_input,

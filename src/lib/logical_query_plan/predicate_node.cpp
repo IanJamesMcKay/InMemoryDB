@@ -78,6 +78,8 @@ std::string PredicateNode::description() const {
 }
 
 std::string PredicateNode::cardinality_estimation_info() const {
+  if (!left_input()->get_statistics()) return "";
+
   std::stringstream stream;
   stream << left_input()->get_statistics()->column_statistics()[left_input()->get_output_column_id(_column_reference)]->description() << std::endl;
 

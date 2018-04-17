@@ -131,6 +131,7 @@ class AbstractExpression : public std::enable_shared_from_this<DerivedExpression
    * Getters. Only call them if you are sure the type() has such a member
    */
   AggregateFunction aggregate_function() const;
+  const std::vector<AllTypeVariant>& array() const;
   const AllTypeVariant value() const;
   const std::vector<std::shared_ptr<DerivedExpression>>& aggregate_function_arguments() const;
   ValuePlaceholder value_placeholder() const;
@@ -169,6 +170,7 @@ class AbstractExpression : public std::enable_shared_from_this<DerivedExpression
   std::optional<AllTypeVariant> _value;
 
   std::optional<AggregateFunction> _aggregate_function;
+  std::optional<std::vector<AllTypeVariant>> _array;
 
   /*
    * A list of Expressions used in FunctionIdentifiers and CASE Expressions.
