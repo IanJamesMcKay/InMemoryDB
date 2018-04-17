@@ -59,24 +59,31 @@ int main() {
     StorageManager::get().add_table(table_name, table);
   }
 
-  const auto query = "SELECT mc.note AS production_note,\n"
-                     "       t.title AS movie_title,\n"
-                     "       t.production_year AS movie_year\n"
-                     "FROM company_type AS ct,\n"
-                     "     info_type AS it,\n"
+  const auto query = "SELECT an.name AS cool_actor_pseudonym,\n"
+                     "       t.title AS series_named_after_char\n"
+                     "FROM aka_name AS an,\n"
+                     "     cast_info AS ci,\n"
+                     "     company_name AS cn,\n"
+                     "     keyword AS k,\n"
                      "     movie_companies AS mc,\n"
-                     "     movie_info_idx AS mi_idx,\n"
+                     "     movie_keyword AS mk,\n"
+                     "     name AS n,\n"
                      "     title AS t\n"
-                     "WHERE ct.kind = 'production companies'\n"
-                     "  AND it.info = 'top 250 rank'\n"
-                     "  AND mc.note NOT LIKE '%(as Metro-Goldwyn-Mayer Pictures)%'\n"
-                     "  AND (mc.note LIKE '%(co-production)%'\n"
-                     "       OR mc.note LIKE '%(presents)%')\n"
-                     "  AND ct.id = mc.company_type_id\n"
+                     "WHERE cn.country_code ='[us]'\n"
+                     "  AND k.keyword ='character-name-in-title'\n"
+                     "  AND t.episode_nr >= 50\n"
+                     "  AND t.episode_nr < 100\n"
+                     "  AND an.person_id = n.id\n"
+                     "  AND n.id = ci.person_id\n"
+                     "  AND ci.movie_id = t.id\n"
+                     "  AND t.id = mk.movie_id\n"
+                     "  AND mk.keyword_id = k.id\n"
                      "  AND t.id = mc.movie_id\n"
-                     "  AND t.id = mi_idx.movie_id\n"
-                     "  AND mc.movie_id = mi_idx.movie_id\n"
-                     "  AND it.id = mi_idx.info_type_id;";
+                     "  AND mc.company_id = cn.id\n"
+                     "  AND an.person_id = ci.person_id\n"
+                     "  AND ci.movie_id = mc.movie_id\n"
+                     "  AND ci.movie_id = mk.movie_id\n"
+                     "  AND mc.movie_id = mk.movie_id;";
 
   auto pipeline_statement = SQL{query}.set_use_mvcc(UseMvcc::No).pipeline_statement();
   auto lqp = pipeline_statement.get_optimized_logical_plan();
