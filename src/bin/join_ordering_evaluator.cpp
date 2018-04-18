@@ -22,6 +22,7 @@
 #include "operators/utils/flatten_pqp.hpp"
 #include "operators/export_binary.hpp"
 #include "operators/import_binary.hpp"
+#include "operators/limit.hpp"
 #include "optimizer/join_ordering/abstract_join_plan_node.hpp"
 #include "cost_model/cost.hpp"
 #include "cost_model/cost_model_naive.hpp"
@@ -348,6 +349,7 @@ int main(int argc, char ** argv) {
   auto query_timeout_seconds = std::optional<long>{0};
   auto workload_str = "tpch"s;
   auto max_plan_count = std::optional<size_t>{0};
+  auto save_results = false;
 
   cxxopts::Options cli_options_description{"Hyrise Join Ordering Evaluator", ""};
 
@@ -362,6 +364,7 @@ int main(int argc, char ** argv) {
     ("max-plan-count", "Maximum number of plans per query to execute. Default: 100", cxxopts::value<size_t>(*max_plan_count)->default_value("100"))  // NOLINT
     ("visualize", "Visualize every query plan", cxxopts::value<bool>(visualize)->default_value("false"))  // NOLINT
     ("w,workload", "Workload to run (tpch, job). Default: tpch", cxxopts::value(workload_str)->default_value(workload_str))  // NOLINT
+    ("save-results", "Save head of result tables.", cxxopts::value(save_results)->default_value("false"))  // NOLINT
     ("queries", "Specify queries to run, default is all of the workload that are supported", cxxopts::value<std::vector<std::string>>()); // NOLINT
   ;
   // clang-format on
@@ -499,6 +502,7 @@ int main(int argc, char ** argv) {
 
       //
       const auto query_execution_begin = std::chrono::steady_clock::now();
+      auto save_plan_results = save_results;
 
       for (auto i = size_t{0}; i < plan_indices.size(); ++i) {
         const auto current_plan_idx = plan_indices[i];
@@ -577,6 +581,21 @@ int main(int argc, char ** argv) {
             } catch (const std::exception& e) {
               out() << "-------- Error while visualizing: " << e.what() << std::endl;
             }
+          }
+
+          if (save_plan_results) {
+            auto output_wrapper = std::make_shared<TableWrapper>(plan.tree_roots().at(0)->get_output());
+            output_wrapper->execute();
+
+            auto limit = std::make_shared<Limit>(output_wrapper, 500);
+            limit->execute();
+
+            std::ofstream output_file(query_name + ".result.txt");
+            output_file << "Total Row Count: " << plan.tree_roots().at(0)->get_output()->row_count() << std::endl;
+            output_file << std::endl;
+            Print::print(limit->get_output(), 0, output_file);
+
+            save_plan_results = false;
           }
         }
 

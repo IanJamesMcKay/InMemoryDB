@@ -7,13 +7,17 @@
 #include <utility>
 #include <vector>
 
+#include "boost/variant.hpp"
 #include "base_single_column_table_scan_impl.hpp"
 
+#include "boost/variant.hpp"
 #include "types.hpp"
+#include "utils/assert.hpp"
 
 namespace opossum {
 
 class Table;
+class TableScan;
 
 /**
  * @brief Implements a column scan using the LIKE operator
@@ -27,12 +31,9 @@ class Table;
 class LikeTableScanImpl : public BaseSingleColumnTableScanImpl {
  public:
   LikeTableScanImpl(std::shared_ptr<const Table> in_table, const ColumnID left_column_id,
-                    const PredicateCondition predicate_condition, const std::string& right_wildcard, const TableScan& table_scan);
+                    const PredicateCondition predicate_condition, const std::string& pattern, const TableScan& table_scan);
 
   void handle_column(const BaseValueColumn& base_column, std::shared_ptr<ColumnVisitableContext> base_context) override;
-
-  void handle_column(const BaseDeprecatedDictionaryColumn& base_column,
-                     std::shared_ptr<ColumnVisitableContext> base_context) override;
 
   void handle_column(const BaseDictionaryColumn& base_column,
                      std::shared_ptr<ColumnVisitableContext> base_context) override;
@@ -40,40 +41,61 @@ class LikeTableScanImpl : public BaseSingleColumnTableScanImpl {
   void handle_column(const BaseEncodedColumn& base_column,
                      std::shared_ptr<ColumnVisitableContext> base_context) override;
 
+  void handle_column(const BaseDeprecatedDictionaryColumn& column,
+                             std::shared_ptr<ColumnVisitableContext> context) override { Fail("Shouldn't be called"); }
+
   using BaseSingleColumnTableScanImpl::handle_column;
 
- public:
   /**
-   * @defgroup Methods which are used to convert an SQL wildcard into a C++ regex.
-   * @{
+   * Turn SQL LIKE-pattern into a C++ regex.
    */
+  static std::string sql_like_to_regex(std::string sqllike);
 
-  static std::string sqllike_to_regex(std::string sqllike);
+  enum class PatternWildcard { SingleChar /* '_' */, AnyChars /* '%' */ };
+  using PatternToken = boost::variant<std::string, PatternWildcard>; // Keep type order, users rely on which()
+  using PatternTokens = std::vector<PatternToken>;
 
-  /**@}*/
+  /**
+   * Turn a pattern string, e.g. "H_llo W%ld" into Tokens {"H", PatternWildcard::SingleChar, "llo W",
+   * PatternWildcard::AnyChars, "ld"}
+   */
+  static PatternTokens pattern_string_to_tokens(const std::string &pattern);
+
+  /**
+   * To speed up LIKE there are special implementations available for simple, common patterns.
+   * Any other pattern will fall back to regex.
+   */
+  struct StartsWithPattern final { std::string str; };  // 'hello%'
+  struct EndsWithPattern final { std::string str; };  // '%hello'
+  struct ContainsPattern final { std::string str; };  // '%hello%'
+  struct ContainsMultiplePattern final { std::vector<std::string> str; };  // '%hello%world%nice%wheather'
+
+  using PatternVariant = boost::variant<std::regex, StartsWithPattern, EndsWithPattern, ContainsPattern, ContainsMultiplePattern>;
+
+  static PatternVariant pattern_string_to_pattern_variant(const std::string &pattern);
+
+  template<typename Functor>
+  static void resolve_pattern_matcher(const PatternVariant &pattern_variant, const bool invert, const Functor &functor);
 
  private:
-  /**
-   * @defgroup Methods used for handling dictionary columns
-   * @{
-   */
-
-  template <typename DictionaryColumnType>
-  void _handle_dictionary_column(const DictionaryColumnType& left_column,
-                                 std::shared_ptr<ColumnVisitableContext> base_context);
+  template<typename Iterable>
+  void _scan_iterable(const Iterable& iterable,
+                      const ChunkID chunk_id,
+                      PosList& matches_out,
+                     const ChunkOffsetsList* const mapped_chunk_offsets);
 
   /**
+   * Used for dictionary columns
    * @returns number of matches and the result of each dictionary entry
    */
   std::pair<size_t, std::vector<bool>> _find_matches_in_dictionary(const pmr_vector<std::string>& dictionary);
 
-  /**@}*/
-
- private:
-  const std::string _right_wildcard;
+  const std::string _pattern;
   const bool _invert_results;
 
-  std::regex _regex;
+  PatternVariant _pattern_variant;
 };
+
+std::ostream& operator<<(std::ostream& stream, const LikeTableScanImpl::PatternWildcard& wildcard);
 
 }  // namespace opossum
