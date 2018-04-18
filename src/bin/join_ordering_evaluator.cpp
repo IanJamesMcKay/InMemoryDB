@@ -347,6 +347,8 @@ int main(int argc, char ** argv) {
   auto visualize = false;
   auto plan_timeout_seconds = std::optional<long>{0};
   auto query_timeout_seconds = std::optional<long>{0};
+  auto dynamic_plan_timeout = std::optional<long>{0};
+  auto dynamic_plan_timeout_enabled = true;
   auto workload_str = "tpch"s;
   auto max_plan_count = std::optional<size_t>{0};
   auto save_results = false;
@@ -360,6 +362,7 @@ int main(int argc, char ** argv) {
     ("s,scale", "Database scale factor (1.0 ~ 1GB). TPCH only", cxxopts::value<float>(scale_factor)->default_value("0.001"))
     ("m,cost_model", "CostModel to use (all, naive, linear)", cxxopts::value<std::string>(cost_model_str)->default_value(cost_model_str))  // NOLINT
     ("timeout-plan", "Timeout per plan, in seconds. Default: 120", cxxopts::value<long>(*plan_timeout_seconds)->default_value("120"))  // NOLINT
+    ("dynamic-timeout-plan", "If active, lower timeout to current fastest plan.", cxxopts::value<bool>(dynamic_plan_timeout_enabled)->default_value("true"))  // NOLINT
     ("timeout-query", "Timeout per plan, in seconds. Default: 1800", cxxopts::value<long>(*query_timeout_seconds)->default_value("1800"))  // NOLINT
     ("max-plan-count", "Maximum number of plans per query to execute. Default: 100", cxxopts::value<size_t>(*max_plan_count)->default_value("100"))  // NOLINT
     ("visualize", "Visualize every query plan", cxxopts::value<bool>(visualize)->default_value("false"))  // NOLINT
@@ -428,6 +431,11 @@ int main(int argc, char ** argv) {
   } else {
     out() << "-- Queries will timeout after " << *query_timeout_seconds << " seconds" << std::endl;
   }
+  if (dynamic_plan_timeout_enabled) {
+    out() << "-- Plan timeout is dynamic" << std::endl;
+  } else {
+    out() << "-- Dynamic plan timeout is disabled" << std::endl;
+  }
 
   // Process "max-plan-count" parameter
   if (*max_plan_count <= 0) {
@@ -483,12 +491,13 @@ int main(int argc, char ** argv) {
 
       auto plan_durations = std::vector<long>(join_plans.size(), 0);
       auto plan_cost_samples = std::vector<PlanCostSample>(join_plans.size());
+      auto best_plan_milliseconds = std::numeric_limits<long>::max();
 
       // Shuffle plans
       std::vector<size_t> plan_indices(join_plans.size());
       std::iota(plan_indices.begin(), plan_indices.end(), 0);
 
-      if (plan_indices.size() > 20) {
+      if (plan_indices.size() > 30) {
         std::random_device rd;
         std::mt19937 g(rd());
         auto b = plan_indices.begin();
@@ -503,6 +512,9 @@ int main(int argc, char ** argv) {
       //
       const auto query_execution_begin = std::chrono::steady_clock::now();
       auto save_plan_results = save_results;
+
+      //
+      auto current_plan_timeout = plan_timeout_seconds;
 
       for (auto i = size_t{0}; i < plan_indices.size(); ++i) {
         const auto current_plan_idx = plan_indices[i];
@@ -535,10 +547,10 @@ int main(int argc, char ** argv) {
         pqp->set_transaction_context_recursively(transaction_context);
 
         // Schedule timeout
-        if (plan_timeout_seconds) {
-          const auto seconds = *plan_timeout_seconds;
+        if (current_plan_timeout) {
+          const auto seconds = *current_plan_timeout;
           std::thread timeout_thread([transaction_context, seconds]() {
-            std::this_thread::sleep_for(std::chrono::seconds(seconds));
+            std::this_thread::sleep_for(std::chrono::seconds(seconds + 2));
             if (transaction_context->rollback(TransactionPhaseSwitch::Lenient)) {
               out() << "-------- Query timeout signalled" << std::endl;
             }
@@ -596,6 +608,16 @@ int main(int argc, char ** argv) {
             Print::print(limit->get_output(), 0, output_file);
 
             save_plan_results = false;
+          }
+          
+          /**
+           * Adjust dynamic timeout
+           */
+          const auto plan_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(plan_duration).count();
+          if (plan_milliseconds < best_plan_milliseconds && dynamic_plan_timeout_enabled) {
+            best_plan_milliseconds = plan_milliseconds;
+            current_plan_timeout = (best_plan_milliseconds / 1000) * 1.2f;
+            out() << "------- New dynamic timeout is " << *current_plan_timeout << " seconds" << std::endl;
           }
         }
 
