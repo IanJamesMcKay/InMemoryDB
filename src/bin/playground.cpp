@@ -61,5 +61,6 @@ int main(int argc, char ** argv) {
   std::cout << "Duration: " << timer.lap().count() << std::endl;
   std::cout << num << " co productions found" << std::endl;
 
+
   return 0;
 }

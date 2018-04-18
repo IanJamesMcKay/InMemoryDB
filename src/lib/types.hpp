@@ -207,6 +207,8 @@ enum class ExpressionType {
   /*An identifier for a function, such as COUNT, MIN, MAX*/
   Function,
 
+  Array,
+
   /*A subselect*/
   Select,
 

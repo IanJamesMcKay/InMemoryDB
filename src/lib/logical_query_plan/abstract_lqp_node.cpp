@@ -400,12 +400,14 @@ void AbstractLQPNode::replace_with(const std::shared_ptr<AbstractLQPNode>& repla
 void AbstractLQPNode::set_alias(const std::optional<std::string>& table_alias) { _table_alias = table_alias; }
 
 void AbstractLQPNode::print(std::ostream& out) const {
+
   const auto get_inputs_fn = [](const auto& node) {
     std::vector<std::shared_ptr<const AbstractLQPNode>> inputs;
     if (node->left_input()) inputs.emplace_back(node->left_input());
     if (node->right_input()) inputs.emplace_back(node->right_input());
     return inputs;
   };
+
   const auto node_print_fn = [](const auto& node, auto& stream) {
     stream << node->description();
 
@@ -414,7 +416,20 @@ void AbstractLQPNode::print(std::ostream& out) const {
     }
   };
 
-  print_directed_acyclic_graph<const AbstractLQPNode>(shared_from_this(), get_inputs_fn, node_print_fn, out);
+  auto node_index_pairs = print_directed_acyclic_graph<const AbstractLQPNode>(shared_from_this(), get_inputs_fn, node_print_fn, out);
+
+  for (const auto& pair : node_index_pairs) {
+    const auto& node = pair.first;
+    const auto index = pair.second;
+
+    const auto info = node->cardinality_estimation_info();
+
+    if (!info.empty()) out << "[" << index << "]: " <<  info << std::endl;
+  }
+}
+
+std::string AbstractLQPNode::cardinality_estimation_info() const {
+  return "";
 }
 
 std::string AbstractLQPNode::get_verbose_column_name(ColumnID column_id) const {

@@ -37,6 +37,8 @@ class StoredTableNode : public EnableMakeForLQPNode<StoredTableNode>, public Abs
 
   bool shallow_equals(const AbstractLQPNode& rhs) const override;
 
+  std::string cardinality_estimation_info() const override;
+
  protected:
   std::shared_ptr<AbstractLQPNode> _deep_copy_impl(
       const std::shared_ptr<AbstractLQPNode>& copied_left_input,

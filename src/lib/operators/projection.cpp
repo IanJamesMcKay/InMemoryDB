@@ -78,6 +78,9 @@ std::shared_ptr<BaseColumn> Projection::_create_column(boost::hana::basic_type<T
     auto values = pmr_vector<T>(row_count, T{});
 
     return std::make_shared<ValueColumn<T>>(std::move(values), std::move(null_values));
+  } else if (expression->type() == ExpressionType::In) {
+    auto values = _evaluate_in(expression, input_table_left, chunk_id);
+    return std::make_shared<ValueColumn<int32_t>>(std::move(values));
   } else {
     // fill a value column with the specified expression
     auto values = _evaluate_expression<T>(expression, input_table_left, chunk_id);
@@ -113,6 +116,8 @@ std::shared_ptr<const Table> Projection::_on_execute() {
       column_definition.name = input_table_left()->column_name(column_expression->column_id());
     } else if (column_expression->is_arithmetic_operator() || column_expression->type() == ExpressionType::Literal) {
       column_definition.name = column_expression->to_string(input_table_left()->column_names());
+    } else if (column_expression->type() == ExpressionType::In) {
+      column_definition.name = "IN";
     } else {
       Fail("Expression type is not supported.");
     }
@@ -163,6 +168,9 @@ DataType Projection::_get_type_of_expression(const std::shared_ptr<PQPExpression
   }
   if (expression->type() == ExpressionType::Column) {
     return table->column_data_type(expression->column_id());
+  }
+  if (expression->type() == ExpressionType::In) {
+    return DataType::Int;
   }
 
   Assert(expression->is_arithmetic_operator(),
@@ -260,6 +268,42 @@ const pmr_vector<std::pair<bool, T>> Projection::_evaluate_expression(
   }
 
   return values;
+}
+
+const pmr_vector<int32_t> Projection::_evaluate_in(
+  const std::shared_ptr<PQPExpression>& expression, const std::shared_ptr<const Table> table,
+  const ChunkID chunk_id) {
+
+  auto column = expression->column_id();
+  const auto& array = expression->array();
+
+  const auto chunk = table->get_chunk(chunk_id);
+
+  pmr_vector<int32_t> result;
+  result.reserve(chunk->size());
+
+  const auto base_column = chunk->get_column(column);
+
+  resolve_data_and_column_type(table->column_data_type(column), *base_column, [&](auto type, const auto& column) {
+    using ColumnDataType = typename decltype(type)::type;
+
+    auto iterable = create_iterable_from_column<ColumnDataType>(column);
+
+    iterable.for_each([&](auto value) {
+      auto contained = false;
+      if (!value.is_null()) {
+        for (const auto &array_value : array) {
+          if (type_cast<ColumnDataType>(array_value) == value.value()) {
+            contained = true;
+            break;
+          }
+        }
+      }
+      result.emplace_back(contained ? 1 : 0);
+    });
+  });
+
+  return result;
 }
 
 // returns the singleton dummy table used for literal projections

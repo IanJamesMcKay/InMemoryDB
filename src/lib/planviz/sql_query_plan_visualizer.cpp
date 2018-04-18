@@ -101,7 +101,7 @@ void SQLQueryPlanVisualizer::_add_operator(const std::shared_ptr<const AbstractO
     row_count_info.add_label("RowCount");
     row_count_info.add_label(format_integer(static_cast<size_t>(op->lqp_node()->get_statistics()->row_count())) + " est");
     row_count_info.add_label("-");
-    row_count_info.add_label(format_integer(op->get_output()->row_count()) + " aim");
+    if (op->get_output()) row_count_info.add_label(format_integer(op->get_output()->row_count()) + " aim");
 
     if (_cost_model) {
       auto& cost_info = comparisons.add_sublayout();

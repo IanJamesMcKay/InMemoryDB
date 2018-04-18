@@ -11,6 +11,7 @@
 #include "all_parameter_variant.hpp"
 #include "lqp_column_reference.hpp"
 #include "constant_mappings.hpp"
+#include "statistics/abstract_column_statistics.hpp"
 #include "statistics/table_statistics.hpp"
 #include "types.hpp"
 #include "utils/assert.hpp"
@@ -76,6 +77,24 @@ std::string PredicateNode::description() const {
   return desc.str();
 }
 
+std::string PredicateNode::cardinality_estimation_info() const {
+  if (!left_input()->get_statistics()) return "";
+
+  std::stringstream stream;
+  stream << left_input()->get_statistics()->column_statistics()[left_input()->get_output_column_id(_column_reference)]->description() << std::endl;
+
+  // If value references a Column, we have to resolve its ColumnID (same as for _column_reference below)
+  auto value = _value;
+  if (is_lqp_column_reference(value)) {
+    const auto column_id = left_input()->get_output_column_id(boost::get<LQPColumnReference>(value));
+    stream << left_input()->get_statistics()->column_statistics()[column_id]->description() << std::endl;
+  }
+
+  stream << get_statistics()->description() << std::endl;
+
+  return stream.str();
+}
+
 const LQPColumnReference& PredicateNode::column_reference() const { return _column_reference; }
 
 PredicateCondition PredicateNode::predicate_condition() const { return _predicate_condition; }
@@ -98,7 +117,7 @@ std::shared_ptr<TableStatistics> PredicateNode::derive_statistics_from(
     // Doing just `value = boost::get<LQPColumnReference>(value)` triggers a compiler warning in GCC release builds
     // about the assigned value being uninitialized. There seems to be no reason for this and this way seems to be
     // fine... :(
-    value = static_cast<ColumnID::base_type>(left_input->get_output_column_id(boost::get<LQPColumnReference>(value)));
+    value = static_cast<ColumnID>(left_input->get_output_column_id(boost::get<LQPColumnReference>(value)));
   }
 
   return std::make_shared<TableStatistics>(left_input->get_statistics()->estimate_predicate(left_input->get_output_column_id(_column_reference),

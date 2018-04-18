@@ -28,6 +28,7 @@ std::shared_ptr<DerivedExpression> AbstractExpression<DerivedExpression>::deep_c
   auto deep_copy = std::make_shared<DerivedExpression>(_type);
   deep_copy->_value = _value;
   deep_copy->_aggregate_function = _aggregate_function;
+  deep_copy->_array = _array;
   deep_copy->_table_name = _table_name;
   deep_copy->_alias = _alias;
   deep_copy->_value_placeholder = _value_placeholder;
@@ -217,6 +218,13 @@ AggregateFunction AbstractExpression<DerivedExpression>::aggregate_function() co
 }
 
 template <typename DerivedExpression>
+const std::vector<AllTypeVariant>& AbstractExpression<DerivedExpression>::array() const {
+  DebugAssert(_array != std::nullopt,
+              "Expression " + expression_type_to_string.at(_type) + " does not have an array");
+  return *_array;
+}
+
+template <typename DerivedExpression>
 const std::optional<std::string>& AbstractExpression<DerivedExpression>::alias() const {
   return _alias;
 }
@@ -251,6 +259,8 @@ std::string AbstractExpression<DerivedExpression>::to_string(
     case ExpressionType::Column:
       Fail("This should be handled in derived AbstractExpression type");
       return "";
+    case ExpressionType::In:
+      return "IN";
     case ExpressionType::Function:
       return aggregate_function_to_string.left.at(aggregate_function()) + "(" +
              _aggregate_function_arguments[0]->to_string(input_column_names, true) + ")";
@@ -325,7 +335,7 @@ bool AbstractExpression<DerivedExpression>::operator==(const AbstractExpression&
     }
   }
 
-  return _type == other._type && _value == other._value && _aggregate_function == other._aggregate_function &&
+  return _type == other._type && _value == other._value  && _array == other._array && _aggregate_function == other._aggregate_function &&
          _table_name == other._table_name && _alias == other._alias;
 }
 

@@ -1,3 +1,4 @@
+
 #include "stored_table_node.hpp"
 
 #include <memory>
@@ -95,6 +96,10 @@ const std::vector<ChunkID>& StoredTableNode::excluded_chunk_ids() const { return
 size_t StoredTableNode::_on_hash() const {
   auto hash = boost::hash_value(_table_name);
   return hash;
+}
+
+std::string StoredTableNode::cardinality_estimation_info() const {
+  return get_statistics()->description();
 }
 
 }  // namespace opossum

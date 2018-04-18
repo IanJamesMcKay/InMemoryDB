@@ -26,10 +26,11 @@ PQPExpression::PQPExpression(const std::shared_ptr<LQPExpression>& lqp_expressio
 
   _value = lqp_expression->_value;
   _aggregate_function = lqp_expression->_aggregate_function;
+  _array = lqp_expression->_array;
   _table_name = lqp_expression->_table_name;
   _value_placeholder = lqp_expression->_value_placeholder;
 
-  if (lqp_expression->type() == ExpressionType::Column) {
+  if (lqp_expression->type() == ExpressionType::Column || lqp_expression->type() == ExpressionType::In) {
     _column_id = node->get_output_column_id(lqp_expression->column_reference());
   }
 

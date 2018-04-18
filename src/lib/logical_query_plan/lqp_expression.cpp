@@ -18,6 +18,14 @@ std::shared_ptr<LQPExpression> LQPExpression::create_column(const LQPColumnRefer
   return expression;
 }
 
+std::shared_ptr<LQPExpression> LQPExpression::create_in(const LQPColumnReference& column_reference,
+                                                const std::vector<AllTypeVariant>& array) {
+  auto expression = std::make_shared<LQPExpression>(ExpressionType::In);
+  expression->_column_reference = column_reference;
+  expression->_array = array;
+  return expression;
+}
+
 std::vector<std::shared_ptr<LQPExpression>> LQPExpression::create_columns(
     const std::vector<LQPColumnReference>& column_references, const std::optional<std::vector<std::string>>& aliases) {
   std::vector<std::shared_ptr<LQPExpression>> column_expressions;

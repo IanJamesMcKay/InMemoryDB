@@ -310,6 +310,8 @@ class AbstractLQPNode : public std::enable_shared_from_this<AbstractLQPNode>, pr
 
   size_t hash() const;
 
+  virtual std::string cardinality_estimation_info() const;
+
  protected:
   // Holds the actual implementation of deep_copy
   using PreviousCopiesMap =

@@ -45,6 +45,8 @@ class JoinNode : public EnableMakeForLQPNode<JoinNode>, public AbstractLQPNode {
 
   bool shallow_equals(const AbstractLQPNode& rhs) const override;
 
+  std::string cardinality_estimation_info() const override;
+
  protected:
   void _on_input_changed() override;
   std::shared_ptr<AbstractLQPNode> _deep_copy_impl(

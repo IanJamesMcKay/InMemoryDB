@@ -581,4 +581,8 @@ TEST_F(SQLTranslatorTest, ColumnAlias) {
   EXPECT_EQ(*expressions[1]->alias(), std::string("z"));
 }
 
+TEST_F(SQLTranslatorTest, InPredicate) {
+  const auto query = "SELECT * FROM table_a WHERE a IN (123, 555, 1234);";
+  const auto result_node = compile_query(query);
+}
 }  // namespace opossum

@@ -18,6 +18,9 @@ class LQPExpression : public AbstractExpression<LQPExpression> {
   static std::shared_ptr<LQPExpression> create_column(const LQPColumnReference& column_reference,
                                                       const std::optional<std::string>& alias = std::nullopt);
 
+  static std::shared_ptr<LQPExpression> create_in(const LQPColumnReference& column_reference,
+                                                  const std::vector<AllTypeVariant>& array);
+
   static std::vector<std::shared_ptr<LQPExpression>> create_columns(
       const std::vector<LQPColumnReference>& column_references,
       const std::optional<std::vector<std::string>>& aliases = std::nullopt);
