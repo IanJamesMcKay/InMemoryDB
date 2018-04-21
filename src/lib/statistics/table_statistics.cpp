@@ -59,6 +59,7 @@ TableStatistics TableStatistics::estimate_predicate(const ColumnID column_id,
     predicated_column_statistics[column_id] = estimation.left_column_statistics;
     predicated_column_statistics[value_column_id] = estimation.right_column_statistics;
     predicated_row_count *= estimation.selectivity;
+
   } else if (is_variant(value)) {
     const auto variant_value = boost::get<AllTypeVariant>(value);
 
@@ -78,7 +79,10 @@ TableStatistics TableStatistics::estimate_predicate(const ColumnID column_id,
     predicated_row_count *= estimate.selectivity;
   }
 
-  return {TableType::References, predicated_row_count, predicated_column_statistics};
+  auto predicated_statistics = TableStatistics{TableType::References, predicated_row_count, predicated_column_statistics};
+  predicated_statistics.cap_distinct_counts();
+
+  return predicated_statistics;
 }
 
 TableStatistics TableStatistics::estimate_cross_join(const TableStatistics& right_table_statistics) const {
@@ -267,6 +271,8 @@ TableStatistics TableStatistics::estimate_predicated_join(const TableStatistics&
     default: { Fail("Join mode not implemented."); }
   }
 
+  join_table_stats.cap_distinct_counts();
+
   return join_table_stats;
 }
 
@@ -284,6 +290,16 @@ std::string TableStatistics::description() const {
     stream << std::endl << " " << statistics->description();
   }
   return stream.str();
+}
+
+void TableStatistics::cap_distinct_counts() {
+  for (auto column_id = ColumnID{0}; column_id < _column_statistics.size(); ++column_id) {
+    if (_column_statistics[column_id]->distinct_count() < _row_count) continue;
+
+    if (!_column_statistics[column_id].unique()) _column_statistics[column_id] = _column_statistics[column_id]->clone();
+
+    std::const_pointer_cast<AbstractColumnStatistics>(_column_statistics[column_id])->set_distinct_count(_row_count);
+  }
 }
 
 }  // namespace opossum

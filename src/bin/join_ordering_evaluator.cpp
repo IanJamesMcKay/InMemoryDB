@@ -46,6 +46,18 @@
 #include "utils/table_generator2.hpp"
 #include "utils/format_duration.hpp"
 
+
+#include <boost/lexical_cast.hpp>
+using boost::lexical_cast;
+
+#include <boost/uuid/uuid.hpp>
+using boost::uuids::uuid;
+
+#include <boost/uuid/uuid_generators.hpp>
+using boost::uuids::random_generator;
+
+#include <boost/uuid/uuid_io.hpp>
+
 namespace {
 using namespace std::string_literals;  // NOLINT
 using namespace opossum;  // NOLINT
@@ -351,7 +363,7 @@ int main(int argc, char ** argv) {
   auto dynamic_plan_timeout_enabled = true;
   auto workload_str = "tpch"s;
   auto max_plan_count = std::optional<size_t>{0};
-  auto save_results = false;
+  auto save_results = true;
 
   cxxopts::Options cli_options_description{"Hyrise Join Ordering Evaluator", ""};
 
@@ -367,7 +379,7 @@ int main(int argc, char ** argv) {
     ("max-plan-count", "Maximum number of plans per query to execute. Default: 100", cxxopts::value<size_t>(*max_plan_count)->default_value("100"))  // NOLINT
     ("visualize", "Visualize every query plan", cxxopts::value<bool>(visualize)->default_value("false"))  // NOLINT
     ("w,workload", "Workload to run (tpch, job). Default: tpch", cxxopts::value(workload_str)->default_value(workload_str))  // NOLINT
-    ("save-results", "Save head of result tables.", cxxopts::value(save_results)->default_value("false"))  // NOLINT
+    ("save-results", "Save head of result tables.", cxxopts::value(save_results)->default_value("true"))  // NOLINT
     ("queries", "Specify queries to run, default is all of the workload that are supported", cxxopts::value<std::vector<std::string>>()); // NOLINT
   ;
   // clang-format on
@@ -457,11 +469,20 @@ int main(int argc, char ** argv) {
   }
   Assert(!cost_models.empty(), "No CostModel specified");
 
+  // Process "save_results" parameter
+  if (save_results) {
+    out() << "-- Saving query results" << std::endl;
+  } else {
+    out() << "-- Not saving query results" << std::endl;
+  }
+
   // Setup workload
   out() << "-- Setting up workload" << std::endl;
   workload->setup();
 
   out() << std::endl;
+
+  auto dotfile = boost::lexical_cast<std::string>((boost::uuids::random_generator())()) + ".dot";
 
   for (const auto& cost_model : cost_models) {
     out() << "-- Evaluating Cost Model " << cost_model->name() << std::endl;
@@ -586,7 +607,7 @@ int main(int argc, char ** argv) {
             try {
               SQLQueryPlanVisualizer visualizer{graphviz_config, viz_graph_info, {}, {}};
               visualizer.set_cost_model(cost_model);
-              visualizer.visualize(plan, "tmp.dot",
+              visualizer.visualize(plan, dotfile,
                                    std::string("viz/") + evaluation_name + "_" + std::to_string(current_plan_idx) +
                                    "_" +
                                    std::to_string(plan_duration.count()) + ".svg");
