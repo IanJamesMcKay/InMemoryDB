@@ -46,6 +46,18 @@
 #include "utils/table_generator2.hpp"
 #include "utils/format_duration.hpp"
 
+
+#include <boost/lexical_cast.hpp>
+using boost::lexical_cast;
+
+#include <boost/uuid/uuid.hpp>
+using boost::uuids::uuid;
+
+#include <boost/uuid/uuid_generators.hpp>
+using boost::uuids::random_generator;
+
+#include <boost/uuid/uuid_io.hpp>
+
 namespace {
 using namespace std::string_literals;  // NOLINT
 using namespace opossum;  // NOLINT
@@ -470,6 +482,8 @@ int main(int argc, char ** argv) {
 
   out() << std::endl;
 
+  auto dotfile = boost::lexical_cast<std::string>((boost::uuids::random_generator())()) + ".dot";
+
   for (const auto& cost_model : cost_models) {
     out() << "-- Evaluating Cost Model " << cost_model->name() << std::endl;
 
@@ -593,7 +607,7 @@ int main(int argc, char ** argv) {
             try {
               SQLQueryPlanVisualizer visualizer{graphviz_config, viz_graph_info, {}, {}};
               visualizer.set_cost_model(cost_model);
-              visualizer.visualize(plan, "tmp.dot",
+              visualizer.visualize(plan, dotfile,
                                    std::string("viz/") + evaluation_name + "_" + std::to_string(current_plan_idx) +
                                    "_" +
                                    std::to_string(plan_duration.count()) + ".svg");

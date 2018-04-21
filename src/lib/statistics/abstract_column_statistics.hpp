@@ -35,6 +35,7 @@ class AbstractColumnStatistics {
   float distinct_count() const;
 
   void set_null_value_ratio(const float null_value_ratio);
+  void set_distinct_count(const float distinct_count);
   /** @} */
 
   /**

@@ -54,6 +54,8 @@ class TableStatistics final {
 
   std::string description() const;
 
+  void cap_distinct_counts();
+
  private:
   TableType _table_type;
   float _row_count;

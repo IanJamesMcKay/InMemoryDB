@@ -18,6 +18,10 @@ void AbstractColumnStatistics::set_null_value_ratio(const float null_value_ratio
   _null_value_ratio = null_value_ratio;
 }
 
+void AbstractColumnStatistics::set_distinct_count(const float distinct_count) {
+  _distinct_count = distinct_count;
+}
+
 std::shared_ptr<AbstractColumnStatistics> AbstractColumnStatistics::without_null_values() const {
   auto clone = this->clone();
   clone->_null_value_ratio = 0.0f;
