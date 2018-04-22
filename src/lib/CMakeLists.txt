@@ -2,7 +2,7 @@
 set(
     SOURCES
     abstract_expression.cpp
-    abstract_expression.hpp
+    abstract_expression2.hpp
     all_parameter_variant.cpp
     all_parameter_variant.hpp
     all_type_variant.cpp
@@ -15,6 +15,26 @@ set(
     concurrency/transaction_manager.hpp
     constant_mappings.cpp
     constant_mappings.hpp
+    expression/abstract_expression2.cpp
+    expression/abstract_expression2.hpp
+    expression/abstract_predicate_expression.cpp
+    expression/abstract_predicate_expression.hpp
+    expression/between_expression.cpp
+    expression/between_expression.hpp
+    expression/binary_predicate_expression.cpp
+    expression/binary_predicate_expression.hpp
+    expression/expression_utils.cpp
+    expression/expression_utils.hpp
+    expression/in_expression.cpp
+    expression/in_expression.hpp
+    expression/is_null_expression.cpp
+    expression/is_null_expression.hpp
+    expression/logical_expression.cpp
+    expression/logical_expression.hpp
+    expression/lqp_column_expression.cpp
+    expression/lqp_column_expression.hpp
+    expression/not_expression.cpp
+    expression/not_expression.hpp
     import_export/binary.hpp
     import_export/csv_converter.cpp
     import_export/csv_converter.hpp
@@ -251,6 +271,7 @@ set(
     statistics/chunk_statistics/min_max_filter.hpp
     statistics/chunk_statistics/range_filter.hpp
     statistics/chunk_statistics/range_filter.hpp
+    statistics/abstract_cardinality_estimator.hpp
     statistics/table_statistics.cpp
     statistics/table_statistics.hpp
     statistics/column_statistics.cpp
@@ -259,6 +280,8 @@ set(
     statistics/statistics_import_export.hpp
     statistics/abstract_column_statistics.cpp
     statistics/abstract_column_statistics.hpp
+    statistics/basic_cardinality_estimator.cpp
+    statistics/basic_cardinality_estimator.hpp
     statistics/generate_column_statistics.cpp
     statistics/generate_column_statistics.hpp
     statistics/generate_table_statistics.cpp

@@ -4,7 +4,7 @@
 
 #include "boost/functional/hash.hpp"
 
-#include "abstract_expression.hpp"
+#include "abstract_expression2.hpp"
 #include "logical_query_plan/lqp_column_reference.hpp"
 
 namespace opossum {
