@@ -9,7 +9,7 @@
 #include "operators/product.hpp"
 #include "operators/union_positions.hpp"
 #include "cost_feature_operator_proxy.hpp"
-#include "cost_feature_lqp_node_proxy.hpp"
+#include "cost_feature_join_plan_proxy.hpp"
 
 namespace opossum {
 
@@ -51,7 +51,7 @@ Cost AbstractCostModel::estimate_lqp_node_cost(const std::shared_ptr<AbstractLQP
       return 0.0f;
   }
 
-  CostFeatureLQPNodeProxy feature_proxy(node);
+  CostFeatureJoinPlanProxy feature_proxy(node);
   return _cost_model_impl(operator_type, feature_proxy);
 }
 

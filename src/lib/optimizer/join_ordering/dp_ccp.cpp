@@ -42,21 +42,21 @@ void DpCcp::_on_execute() {
               << " + " << csg_cmp_pair.second << std::endl;
 #endif
     const auto predicates = _join_graph->find_predicates(csg_cmp_pair.first, csg_cmp_pair.second);
-    const auto& left_sub_join_graph = _sub_join_graphs.find(csg_cmp_pair.first)->second;
-    const auto& right_sub_join_graph = _sub_join_graphs.find(csg_cmp_pair.second)->second;
+//    const auto& left_sub_join_graph = _sub_join_graphs.find(csg_cmp_pair.first)->second;
+//    const auto& right_sub_join_graph = _sub_join_graphs.find(csg_cmp_pair.second)->second;
 
-    auto sub_join_graph_iter = _sub_join_graphs.find(csg_cmp_pair);
-    if (sub_join_graph_iter == _sub_join_graphs.end()) {
-      SubJoinGraph sub_join_graph;
-      sub_join_graph.vertices.insert(sub_join_graph.vertices.end(), left_sub_join_graph.vertices.begin(), left_sub_join_graph.vertices.end());
-      sub_join_graph.vertices.insert(sub_join_graph.vertices.end(), right_sub_join_graph.vertices.begin(), right_sub_join_graph.vertices.end());
+//    auto sub_join_graph_iter = _sub_join_graphs.find(csg_cmp_pair);
+//    if (sub_join_graph_iter == _sub_join_graphs.end()) {
+//      SubJoinGraph sub_join_graph;
+//      sub_join_graph.vertices.insert(sub_join_graph.vertices.end(), left_sub_join_graph.vertices.begin(), left_sub_join_graph.vertices.end());
+//      sub_join_graph.vertices.insert(sub_join_graph.vertices.end(), right_sub_join_graph.vertices.begin(), right_sub_join_graph.vertices.end());
 
-      sub_join_graph.predicates.insert(sub_join_graph.predicates.end(), left_sub_join_graph.predicates.begin(), left_sub_join_graph.predicates.end());
-      sub_join_graph.predicates.insert(sub_join_graph.predicates.end(), right_sub_join_graph.predicates.begin(), right_sub_join_graph.predicates.end());
-      sub_join_graph.predicates.insert(sub_join_graph.predicates.end(), predicates.begin(), predicates.end());
+//      sub_join_graph.predicates.insert(sub_join_graph.predicates.end(), left_sub_join_graph.predicates.begin(), left_sub_join_graph.predicates.end());
+//      sub_join_graph.predicates.insert(sub_join_graph.predicates.end(), right_sub_join_graph.predicates.begin(), right_sub_join_graph.predicates.end());
+//      sub_join_graph.predicates.insert(sub_join_graph.predicates.end(), predicates.begin(), predicates.end());
 
-      sub_join_graph_iter = _sub_join_graphs.emplace(csg_cmp_pair, sub_join_graph).second;
-    }
+//      sub_join_graph_iter = _sub_join_graphs.emplace(csg_cmp_pair, sub_join_graph).second;
+//    }
 
     const auto best_plan_left = _subplan_cache->get_best_plan(csg_cmp_pair.first);
     const auto best_plan_right = _subplan_cache->get_best_plan(csg_cmp_pair.second);

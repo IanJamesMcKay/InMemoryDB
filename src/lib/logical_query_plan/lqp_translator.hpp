@@ -15,6 +15,7 @@ class AbstractOperator;
 class TransactionContext;
 class LQPExpression;
 class PQPExpression;
+enum class OperatorType;
 
 /**
  * Translates an LQP (Logical Query Plan), represented by its root node, into an Operator tree for the execution
@@ -29,6 +30,8 @@ class LQPTranslator final : private Noncopyable {
   const SubPQPCache& sub_pqp_cache() const;
 
   void add_post_operator_callback(const PostOperatorCallback& callback);
+
+  static OperatorType operator_type(const AbstractLQPNode& lqp_node);
 
  private:
   std::shared_ptr<AbstractOperator> _translate_by_node_type(LQPNodeType type,

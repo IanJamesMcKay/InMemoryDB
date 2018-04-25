@@ -6,6 +6,7 @@
 #include "join_plan_join_node.hpp"
 #include "join_plan_predicate.hpp"
 #include "join_plan_vertex_node.hpp"
+#include "statistics/abstract_cardinality_estimator.hpp"
 #include "statistics/table_statistics.hpp"
 #include "optimizer/table_statistics_cache.hpp"
 #include "logical_query_plan/predicate_node.hpp"
@@ -17,7 +18,10 @@ namespace {
 using namespace opossum;  // NOLINT
 
 JoinPlanNode add_predicate(const AbstractJoinPlanPredicate& predicate,
-                                JoinPlanNode join_plan_node, const AbstractCostModel& cost_model, const TableStatisticsCache& statistics_cache) {
+                           JoinPlanNode join_plan_node,
+                           const AbstractCostModel& cost_model,
+                           const AbstractCardinalityEstimator& cardinality_estimator) {
+
   switch (predicate.type()) {
     case JoinPlanPredicateType::Atomic: {
       const auto& atomic_predicate = static_cast<const JoinPlanAtomicPredicate&>(predicate);
@@ -34,15 +38,15 @@ JoinPlanNode add_predicate(const AbstractJoinPlanPredicate& predicate,
     }
     case JoinPlanPredicateType::LogicalOperator: {
       const auto& logical_operator_predicate = static_cast<const JoinPlanLogicalPredicate&>(predicate);
-      const auto left_operand_join_plan = add_predicate(*logical_operator_predicate.left_operand, join_plan_node, cost_model, statistics_cache);
+      const auto left_operand_join_plan = add_predicate(*logical_operator_predicate.left_operand, join_plan_node, cost_model, cardinality_estimator);
       const auto left_operand_added_cost = left_operand_join_plan.plan_cost - join_plan_node.plan_cost;
 
       switch (logical_operator_predicate.logical_operator) {
         case JoinPlanPredicateLogicalOperator::And: {
-          return add_predicate(*logical_operator_predicate.right_operand, left_operand_join_plan, cost_model, statistics_cache);
+          return add_predicate(*logical_operator_predicate.right_operand, left_operand_join_plan, cost_model, cardinality_estimator);
         }
         case JoinPlanPredicateLogicalOperator::Or: {
-          auto right_operand_join_plan = add_predicate(*logical_operator_predicate.right_operand, join_plan_node, cost_model, statistics_cache);
+          auto right_operand_join_plan = add_predicate(*logical_operator_predicate.right_operand, join_plan_node, cost_model, cardinality_estimator);
           const auto right_operand_added_cost = right_operand_join_plan.plan_cost - join_plan_node.plan_cost;
 
           join_plan_node.lqp = UnionNode::make(UnionMode::Positions, left_operand_join_plan.lqp, right_operand_join_plan.lqp);
@@ -59,7 +63,9 @@ JoinPlanNode add_predicate(const AbstractJoinPlanPredicate& predicate,
 }
 
 void order_predicates(std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates,
-                      const JoinPlanNode& join_plan_node, const AbstractCostModel& cost_model, const TableStatisticsCache& statistics_cache) {
+                      const JoinPlanNode& join_plan_node,
+                      const AbstractCostModel& cost_model,
+                      const AbstractCardinalityEstimator& cardinality_estimator) {
   const auto sort_predicate = [&](auto& left, auto& right) {
     return statistics_cache.get(add_predicate(*left, join_plan_node, cost_model, statistics_cache).lqp)->row_count() <
     statistics_cache.get(add_predicate(*right, join_plan_node, cost_model, statistics_cache).lqp)->row_count();
@@ -77,7 +83,7 @@ JoinPlanNode build_join_plan_join_node(
     const JoinPlanNode& left_input,
     const JoinPlanNode& right_input,
     const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates,
-    const TableStatisticsCache& statistics_cache) {
+    const AbstractCardinalityEstimator& cardinality_estimator) {
   JoinPlanNode join_plan_node{nullptr, left_input.plan_cost + right_input.plan_cost};
 
   auto primary_join_predicate = std::shared_ptr<const JoinPlanAtomicPredicate>{};
@@ -125,8 +131,6 @@ JoinPlanNode build_join_plan_join_node(
   /**
    * Compute costs and statistics
    */
-  const auto left_statistics = statistics_cache.get(left_input.lqp);
-  const auto right_statistics = statistics_cache.get(right_input.lqp);
   auto lqp = std::shared_ptr<AbstractLQPNode>();
 
   // Compute cost&statistics of primary join predicate, if it exists. Otherwise assume a cross join.
@@ -143,11 +147,11 @@ JoinPlanNode build_join_plan_join_node(
 
   const auto join_cost = cost_model.estimate_lqp_node_cost(join_plan_node.lqp);
   join_plan_node.plan_cost += join_cost;
-  order_predicates(secondary_predicates, join_plan_node, cost_model, statistics_cache);
+  order_predicates(secondary_predicates, join_plan_node, cost_model, cardinality_estimator);
 
   // Apply remaining predicates
   for (const auto& predicate : secondary_predicates) {
-    join_plan_node = add_predicate(*predicate, join_plan_node, cost_model, statistics_cache);
+    join_plan_node = add_predicate(*predicate, join_plan_node, cost_model, cardinality_estimator);
   }
 
   return join_plan_node;
@@ -156,12 +160,14 @@ JoinPlanNode build_join_plan_join_node(
 JoinPlanNode build_join_plan_vertex_node(
     const AbstractCostModel& cost_model,
     const std::shared_ptr<AbstractLQPNode>& vertex_node,
-    std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> predicates, const TableStatisticsCache& statistics_cache) {
+    std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> predicates,
+    const AbstractCardinalityEstimator& cardinality_estimator) {
+
   auto join_plan_node = JoinPlanNode{vertex_node, 0.0f};
-  order_predicates(predicates, join_plan_node, cost_model, statistics_cache);
+  order_predicates(predicates, join_plan_node, cost_model, cardinality_estimator);
 
   for (const auto& predicate : predicates) {
-    join_plan_node = add_predicate(*predicate, join_plan_node, cost_model, statistics_cache);
+    join_plan_node = add_predicate(*predicate, join_plan_node, cost_model, cardinality_estimator);
   }
 
   return join_plan_node;

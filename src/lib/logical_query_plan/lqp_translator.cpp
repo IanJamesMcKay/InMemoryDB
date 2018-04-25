@@ -484,6 +484,46 @@ std::shared_ptr<AbstractOperator> LQPTranslator::_translate_by_node_type(
   }
 }
 
+OperatorType LQPTranslator::operator_type(const AbstractLQPNode& node) {
+  switch (node.type()) {
+    case LQPNodeType::Aggregate: return OperatorType::Aggregate;
+    case LQPNodeType::CreateView: return OperatorType::CreateView;
+    case LQPNodeType::Delete: return OperatorType::Delete;
+    case LQPNodeType::DropView: return OperatorType::DropView;
+    case LQPNodeType::Insert: return OperatorType::Insert;
+    case LQPNodeType::Join: {
+      auto join_node = std::dynamic_pointer_cast<JoinNode>(node);
+
+      if (join_node->join_mode() == JoinMode::Cross) {
+        return OperatorType::Product;
+      }
+
+      if (*join_node->predicate_condition() == PredicateCondition::Equals && join_node->join_mode() != JoinMode::Outer) {
+        return OperatorType::JoinHash;
+      }
+
+      return OperatorType::JoinSortMerge;
+    }
+    case LQPNodeType::Limit: return OperatorType::Limit;
+    case LQPNodeType::Predicate: {
+      const auto predicate_node = std::dynamic_pointer_cast<PredicateNode>(node);
+      if (predicate_node->scan_type() == ScanType::IndexScan) return OperatorType::IndexScan;
+      return OperatorType::TableScan;
+    }
+    case LQPNodeType::Projection: return OperatorType::Projection;
+    case LQPNodeType::ShowColumns: return OperatorType::ShowColumns;
+    case LQPNodeType::ShowTables: return OperatorType::ShowTables;
+    case LQPNodeType::Sort: return OperatorType::Sort;
+    case LQPNodeType::StoredTable: return OperatorType::GetTable;
+    case LQPNodeType::Update: return OperatorType::Update;
+    case LQPNodeType::Union: return OperatorType::UnionPositions;
+    case LQPNodeType::Validate: return OperatorType::Validate;
+
+    default:
+      Fail("LQPNodeType can't be turned into Operator");
+  }
+}
+
 std::vector<std::shared_ptr<PQPExpression>> LQPTranslator::_translate_expressions(
     const std::vector<std::shared_ptr<LQPExpression>>& lqp_expressions,
     const std::shared_ptr<AbstractLQPNode>& node) const {

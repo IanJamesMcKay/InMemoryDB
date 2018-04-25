@@ -191,10 +191,12 @@ set(
     optimizer/join_ordering/abstract_join_plan_node.hpp
     optimizer/join_ordering/build_join_plan.cpp
     optimizer/join_ordering/build_join_plan.hpp
+    optimizer/join_ordering/dp_subplan_cache_top_k.hpp
+    cost_model/cost.hpp
     cost_model/cost_feature.cpp
     cost_model/cost_feature.hpp
-    cost_model/cost_feature_lqp_node_proxy.cpp
-    cost_model/cost_feature_lqp_node_proxy.hpp
+    cost_model/cost_feature_join_plan_proxy.cpp
+    cost_model/cost_feature_join_plan_proxy.hpp
     cost_model/cost_feature_operator_proxy.cpp
     cost_model/cost_feature_operator_proxy.hpp
     cost_model/cost_model_naive.cpp
@@ -203,6 +205,8 @@ set(
     cost_model/cost_model_linear.hpp
     cost_model/cost_model_segmented_sampler.cpp
     cost_model/cost_model_segmented_sampler.hpp
+    optimizer/join_ordering/base_join_graph.cpp
+    optimizer/join_ordering/base_join_graph.hpp
     optimizer/join_ordering/dp_ccp.cpp
     optimizer/join_ordering/dp_ccp.hpp
     optimizer/join_ordering/dp_ccp_top_k.cpp
@@ -210,8 +214,6 @@ set(
     optimizer/join_ordering/dp_subplan_cache_best.cpp
     optimizer/join_ordering/dp_subplan_cache_best.hpp
     optimizer/join_ordering/dp_subplan_cache_top_k.cpp
-    optimizer/join_ordering/dp_subplan_cache_top_k.hpp
-    cost_model/cost.hpp
     optimizer/join_ordering/enumerate_ccp.cpp
     optimizer/join_ordering/enumerate_ccp.hpp
     optimizer/join_ordering/join_plan_node.cpp
