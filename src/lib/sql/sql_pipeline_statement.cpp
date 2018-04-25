@@ -2,6 +2,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <chrono>
 #include <iomanip>
 #include <utility>
 
@@ -14,6 +15,7 @@
 #include "sql/sql_pipeline_builder.hpp"
 #include "sql/sql_query_plan.hpp"
 #include "sql/sql_translator.hpp"
+#include "storage/storage_manager.hpp"
 #include "utils/assert.hpp"
 
 namespace opossum {
@@ -230,6 +232,21 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table() {
   // Get output from the last task
   _result_table = tasks.back()->get_operator()->get_output();
   if (_result_table == nullptr) _query_has_output = false;
+
+  if (statement->isType(hsql::kStmtSelect) && StorageManager::get().has_table("audit_log")) {
+    // TODO(tim): get correct user_id
+    const AllTypeVariant user_id{0};
+    const auto epoch_ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+            .count();
+    const auto commit_id = static_cast<int32_t>(transaction_context()->commit_id());
+    const auto& sql_string = get_sql_string();
+    const auto row_count = static_cast<int64_t>(_result_table->row_count());
+    const auto execution_time_micros = _execution_time_micros.count();
+
+    const auto table = StorageManager::get().get_table("audit_log");
+    table->append({user_id, commit_id, epoch_ms, sql_string, row_count, execution_time_micros});
+  }
 
   return _result_table;
 }

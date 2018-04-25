@@ -632,7 +632,13 @@ std::shared_ptr<AbstractLQPNode> SQLTranslator::_translate_table_ref(const hsql:
          */
         auto stored_table_node = StoredTableNode::make(table.name);
         stored_table_node->set_alias(alias);
-        return _translate_table_ref_alias(_validate_if_active(stored_table_node), table);
+
+        std::shared_ptr<AbstractLQPNode> current_node = stored_table_node;
+        if (StorageManager::get().get_table(table.name)->has_mvcc() == UseMvcc::Yes) {
+          current_node = _validate_if_active(stored_table_node);
+        }
+
+        return _translate_table_ref_alias(current_node, table);
       } else if (StorageManager::get().has_view(table.name)) {
         node = StorageManager::get().get_view(table.name);
         Assert(!_validate || node->subplan_is_validated(), "Trying to add non-validated view to validated query");
