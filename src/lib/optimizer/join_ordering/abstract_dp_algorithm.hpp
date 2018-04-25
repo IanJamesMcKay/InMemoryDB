@@ -36,6 +36,13 @@ class AbstractDpAlgorithm : public AbstractJoinOrderingAlgorithm {
   const std::shared_ptr<AbstractDpSubplanCache> _subplan_cache;
   const std::shared_ptr<const AbstractCostModel> _cost_model;
   const std::shared_ptr<const TableStatisticsCache> _statistics_cache;
+
+  struct SubJoinGraph final {
+    std::vector<std::shared_ptr<AbstractLQPNode>> vertices;
+    std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> predicates;
+  };
+
+  std::unordered_map<JoinVertexSet, SubJoinGraph> _sub_join_graphs;
 };
 
 }  // namespace opossum

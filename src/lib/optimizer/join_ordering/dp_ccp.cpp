@@ -41,13 +41,28 @@ void DpCcp::_on_execute() {
     std::cout << "Considering plan for " << (csg_cmp_pair.first | csg_cmp_pair.second) << ": " << csg_cmp_pair.first
               << " + " << csg_cmp_pair.second << std::endl;
 #endif
+    const auto predicates = _join_graph->find_predicates(csg_cmp_pair.first, csg_cmp_pair.second);
+    const auto& left_sub_join_graph = _sub_join_graphs.find(csg_cmp_pair.first)->second;
+    const auto& right_sub_join_graph = _sub_join_graphs.find(csg_cmp_pair.second)->second;
+
+    auto sub_join_graph_iter = _sub_join_graphs.find(csg_cmp_pair);
+    if (sub_join_graph_iter == _sub_join_graphs.end()) {
+      SubJoinGraph sub_join_graph;
+      sub_join_graph.vertices.insert(sub_join_graph.vertices.end(), left_sub_join_graph.vertices.begin(), left_sub_join_graph.vertices.end());
+      sub_join_graph.vertices.insert(sub_join_graph.vertices.end(), right_sub_join_graph.vertices.begin(), right_sub_join_graph.vertices.end());
+
+      sub_join_graph.predicates.insert(sub_join_graph.predicates.end(), left_sub_join_graph.predicates.begin(), left_sub_join_graph.predicates.end());
+      sub_join_graph.predicates.insert(sub_join_graph.predicates.end(), right_sub_join_graph.predicates.begin(), right_sub_join_graph.predicates.end());
+      sub_join_graph.predicates.insert(sub_join_graph.predicates.end(), predicates.begin(), predicates.end());
+
+      sub_join_graph_iter = _sub_join_graphs.emplace(csg_cmp_pair, sub_join_graph).second;
+    }
 
     const auto best_plan_left = _subplan_cache->get_best_plan(csg_cmp_pair.first);
     const auto best_plan_right = _subplan_cache->get_best_plan(csg_cmp_pair.second);
     DebugAssert(best_plan_left && best_plan_right, "Subplan missing");
 
-    const auto predicates = _join_graph->find_predicates(csg_cmp_pair.first, csg_cmp_pair.second);
-    const auto current_plan = build_join_plan_join_node(*_cost_model, *best_plan_left, *best_plan_right, predicates, *_statistics_cache);
+    auto current_plan = build_join_plan_join_node(*_cost_model, *best_plan_left, *best_plan_right, predicates, *_statistics_cache);
 
 #if VERBOSE
     std::cout << "Cost=" << current_plan->cost() << std::endl;

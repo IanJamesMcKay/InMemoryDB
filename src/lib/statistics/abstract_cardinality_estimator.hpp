@@ -5,7 +5,7 @@
 
 namespace opossum {
 
-class AbstractExpression2;
+class AbstractJoinPlanPredicate;
 class AbstractLQPNode;
 
 using Cardinality = float;
@@ -20,7 +20,7 @@ class AbstractCardinalityEstimator {
    * @return            The estimated Cardinality of the evaluating `predicates` on `relations`
    */
   virtual Cardinality estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& relations,
-                               const std::vector<std::shared_ptr<AbstractExpression2>>& predicates);
+                               const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates);
 };
 
 }  // namespace opossum

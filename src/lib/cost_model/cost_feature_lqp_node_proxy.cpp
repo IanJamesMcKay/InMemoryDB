@@ -22,6 +22,8 @@ CostFeatureVariant CostFeatureLQPNodeProxy::_extract_feature_impl(const CostFeat
     case CostFeature::LeftInputRowCount:
       Assert(_node->left_input(), "Node doesn't have left input");
       return _node->left_input()->get_statistics()->row_count();
+
+      return _estimator
     case CostFeature::RightInputRowCount:
       Assert(_node->right_input(), "Node doesn't have left input");
       return _node->right_input()->get_statistics()->row_count();

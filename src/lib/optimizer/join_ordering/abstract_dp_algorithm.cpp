@@ -26,8 +26,16 @@ JoinPlanNode AbstractDpAlgorithm::operator()(
 
     const auto vertex_predicates = _join_graph->find_predicates(vertex_bit);
 
+    const auto vertex = _join_graph->vertices[vertex_idx];
+
     _subplan_cache->cache_plan(
-        vertex_bit, build_join_plan_vertex_node(*_cost_model, _join_graph->vertices[vertex_idx], vertex_predicates, *_statistics_cache));
+        vertex_bit, build_join_plan_vertex_node(*_cost_model, vertex, vertex_predicates, *_statistics_cache));
+
+    SubJoinGraph sub_join_graph;
+    sub_join_graph.vertices = {vertex};
+    sub_join_graph.predicates = vertex_predicates;
+
+    _sub_join_graphs.emplace(vertex_bit, sub_join_graph);
   }
 
   _on_execute();
