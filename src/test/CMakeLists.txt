@@ -72,8 +72,6 @@ set(
     operators/update_test.cpp
     operators/validate_test.cpp
     operators/validate_visibility_test.cpp
-    optimizer/chunk_statistics/pruning_filters_test.cpp
-    optimizer/column_statistics_test.cpp
     optimizer/expression_test.cpp
     optimizer/join_ordering/join_graph_builder_test.cpp
     optimizer/join_ordering/join_graph_test.cpp
@@ -88,13 +86,17 @@ set(
     optimizer/strategy/predicate_pushdown_rule_test.cpp
     optimizer/strategy/strategy_base_test.cpp
     optimizer/strategy/strategy_base_test.hpp
-    optimizer/table_statistics_join_test.cpp
-    optimizer/table_statistics_test.cpp
+    statistics/table_statistics_join_test.cpp
+    statistics/table_statistics_test.cpp
+    statistics/chunk_statistics/pruning_filters_test.cpp
+    statistics/column_statistics_test.cpp
+    statistics/generate_table_statistics_test.cpp
     scheduler/scheduler_test.cpp
     server/mock_connection.hpp
     server/mock_task_runner.hpp
     server/postgres_wire_handler_test.cpp
     server/server_session_test.cpp
+    server/server_test_runner.cpp
     sql/sql_basic_cache_test.cpp
     sql/hsql_expression_translator_test.cpp
     sql/sqlite_testrunner/sqlite_testrunner.cpp
@@ -134,6 +136,7 @@ set(
     testing_assert.hpp
     utils/cuckoo_hashtable_test.cpp
     utils/format_bytes_test.cpp
+    utils/format_duration_test.cpp
     utils/numa_memory_resource_test.cpp
     gtest_main.cpp
 )
@@ -152,6 +155,7 @@ set(
     LIBRARIES
     gtest
     gmock
+    pqxx
     sqlite3
     ${FILESYSTEM_LIBRARY}
     ${Boost_SYSTEM_LIBRARY}
