@@ -56,7 +56,10 @@ boost::future<void> ServerSessionImpl<TConnection, TTaskRunner>::_perform_sessio
     }
 
     return _connection->receive_startup_packet_body(startup_packet_length) >> then >>
-           [=]() { return _connection->send_auth(); } >> then >>
+           [=](const std::string& userdata) {
+            _username = userdata;
+            return _connection->send_auth();
+          } >> then >>
            // We need to provide some random server version > 9 here, because some clients require it.
            [=]() { return _connection->send_parameter_status("server_version", "9.5"); } >> then >>
            [=]() { return _connection->send_ready_for_query(); };
@@ -183,7 +186,7 @@ boost::future<void> ServerSessionImpl<TConnection, TTaskRunner>::_handle_simple_
   };
 
   auto execute_sql_pipeline = [=](std::shared_ptr<SQLPipeline> sql_pipeline) {
-    auto task = std::make_shared<ExecuteServerQueryTask>(sql_pipeline);
+    auto task = std::make_shared<ExecuteServerQueryTask>(sql_pipeline, _username);
     return _task_runner->dispatch_server_task(task) >> then >> [=]() { return sql_pipeline; };
   };
 

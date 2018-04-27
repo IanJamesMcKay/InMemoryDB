@@ -6,7 +6,7 @@ namespace opossum {
 
 void ExecuteServerQueryTask::_on_execute() {
   try {
-    _sql_pipeline->get_result_table();
+    _sql_pipeline->get_result_table(_username);
     // Indicate that execution is finished. The result is accessed from outside so we need an empty promise.
     _promise.set_value();
   } catch (const std::exception& exception) {

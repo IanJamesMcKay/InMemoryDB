@@ -18,7 +18,7 @@ template <typename TConnection, typename TTaskRunner>
 class ServerSessionImpl : public std::enable_shared_from_this<ServerSessionImpl<TConnection, TTaskRunner>> {
  public:
   explicit ServerSessionImpl(std::shared_ptr<TConnection> connection, std::shared_ptr<TTaskRunner> task_runner)
-      : _connection(connection), _task_runner(task_runner) {}
+      : _connection(connection), _task_runner(task_runner), _username("") {}
 
   boost::future<void> start();
 
@@ -43,6 +43,8 @@ class ServerSessionImpl : public std::enable_shared_from_this<ServerSessionImpl<
   std::unordered_map<std::string, std::shared_ptr<SQLPipeline>> _prepared_statements;
   // TODO(lawben): The type of _portals will change when prepared statements are supported in the SQLPipeline
   std::unordered_map<std::string, std::pair<hsql::StatementType, std::shared_ptr<SQLQueryPlan>>> _portals;
+
+  std::string _username;
 };
 
 // The corresponding template instantiation takes place in the .cpp

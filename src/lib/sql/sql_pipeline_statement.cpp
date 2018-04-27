@@ -202,7 +202,7 @@ const std::vector<std::shared_ptr<OperatorTask>>& SQLPipelineStatement::get_task
   return _tasks;
 }
 
-const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table() {
+const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table(const std::string& username) {
   if (_result_table || !_query_has_output) {
     return _result_table;
   }
@@ -234,8 +234,7 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table() {
   if (_result_table == nullptr) _query_has_output = false;
 
   if (statement->isType(hsql::kStmtSelect) && StorageManager::get().has_table("audit_log")) {
-    // TODO(tim): get correct user_id
-    const AllTypeVariant user_id{0};
+    const AllTypeVariant user{username};
     const auto epoch_ms =
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
             .count();
@@ -245,7 +244,7 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table() {
     const auto execution_time_micros = _execution_time_micros.count();
 
     const auto table = StorageManager::get().get_table("audit_log");
-    table->append({user_id, commit_id, epoch_ms, sql_string, row_count, execution_time_micros});
+    table->append({user, commit_id, epoch_ms, sql_string, row_count, execution_time_micros});
   }
 
   return _result_table;

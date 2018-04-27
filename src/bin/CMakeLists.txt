@@ -18,6 +18,26 @@ target_include_directories(
     ${Boost_INCLUDE_DIRS}
 )
 
+# Configure dlp server
+add_executable(
+    dlpServer
+
+    dlp_server.cpp
+)
+target_link_libraries(
+    dlpServer
+    hyrise
+    ${Boost_SYSTEM_LIBRARY}
+    ${Boost_THREAD_LIBRARY}
+    boost_program_options
+)
+target_include_directories(
+    dlpServer
+
+    PUBLIC
+    ${Boost_INCLUDE_DIRS}
+)
+
 # Configure playground
 add_executable(
     hyrisePlayground

@@ -845,7 +845,7 @@ int main(int argc, char** argv) {
 
   // Create audit log table.
   opossum::TableColumnDefinitions column_definitions;
-  column_definitions.emplace_back("user_id", opossum::DataType::Int, false);
+  column_definitions.emplace_back("user", opossum::DataType::String, false);
   column_definitions.emplace_back("commit_id", opossum::DataType::Int, false);
   column_definitions.emplace_back("epoch_ms", opossum::DataType::Long, false);
   column_definitions.emplace_back("query", opossum::DataType::String, false);

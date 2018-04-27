@@ -174,20 +174,20 @@ const std::vector<std::vector<std::shared_ptr<OperatorTask>>>& SQLPipeline::get_
   return _tasks;
 }
 
-std::shared_ptr<const Table> SQLPipeline::get_result_table() {
+std::shared_ptr<const Table> SQLPipeline::get_result_table(const std::string& username) {
   if (_pipeline_was_executed) {
     return _result_table;
   }
 
   for (auto& pipeline_statement : _sql_pipeline_statements) {
-    pipeline_statement->get_result_table();
+    pipeline_statement->get_result_table(username);
     if (_transaction_context && _transaction_context->aborted()) {
       _failed_pipeline_statement = pipeline_statement;
       return nullptr;
     }
   }
 
-  _result_table = _sql_pipeline_statements.back()->get_result_table();
+  _result_table = _sql_pipeline_statements.back()->get_result_table(username);
   _pipeline_was_executed = true;
 
   return _result_table;

@@ -29,7 +29,7 @@ class ClientConnection : public std::enable_shared_from_this<ClientConnection> {
   explicit ClientConnection(boost::asio::ip::tcp::socket socket);
 
   boost::future<uint32_t> receive_startup_packet_header();
-  boost::future<void> receive_startup_packet_body(uint32_t size);
+  boost::future<std::string> receive_startup_packet_body(uint32_t size);
 
   boost::future<RequestHeader> receive_packet_header();
   boost::future<std::string> receive_simple_query_packet_body(uint32_t size);

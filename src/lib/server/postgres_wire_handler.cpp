@@ -32,9 +32,9 @@ uint32_t PostgresWireHandler::handle_startup_package(const InputPacket& packet) 
   }
 }
 
-void PostgresWireHandler::handle_startup_package_content(const InputPacket& packet) {
-  // Ignore the content, because we don't care about the variables that were passed in.
-  read_values<char>(packet, packet.data.size());
+std::string PostgresWireHandler::handle_startup_package_content(const InputPacket& packet) {
+  read_string(packet); // "user"
+  return read_string(packet); // the actual username
 }
 
 RequestHeader PostgresWireHandler::handle_header(const InputPacket& packet) {

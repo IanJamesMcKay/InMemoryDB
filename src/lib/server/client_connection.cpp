@@ -22,10 +22,10 @@ boost::future<uint32_t> ClientConnection::receive_startup_packet_header() {
   return _receive_bytes_async(STARTUP_HEADER_LENGTH) >> then >> PostgresWireHandler::handle_startup_package;
 }
 
-boost::future<void> ClientConnection::receive_startup_packet_body(uint32_t size) {
+boost::future<std::string> ClientConnection::receive_startup_packet_body(uint32_t size) {
   return _receive_bytes_async(size) >> then >> [](InputPacket p) {
     // Read these values and ignore them
-    PostgresWireHandler::handle_startup_package_content(p);
+    return PostgresWireHandler::handle_startup_package_content(p);
   };
 }
 

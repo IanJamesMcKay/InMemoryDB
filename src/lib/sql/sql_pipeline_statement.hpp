@@ -55,7 +55,7 @@ class SQLPipelineStatement : public Noncopyable {
   const std::vector<std::shared_ptr<OperatorTask>>& get_tasks();
 
   // Executes all tasks, waits for them to finish, and returns the resulting table.
-  const std::shared_ptr<const Table>& get_result_table();
+  const std::shared_ptr<const Table>& get_result_table(const std::string& username = "");
 
   // Returns the TransactionContext that was either passed to or created by the SQLPipelineStatement.
   // This can be a nullptr if no transaction management is wanted.
