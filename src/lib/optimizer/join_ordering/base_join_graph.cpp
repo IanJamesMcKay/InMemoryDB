@@ -6,7 +6,7 @@
 
 namespace opossum {
 
-std::shared_ptr<AbstractLQPNode> BaseJoinGraph::find_vertex(const LQPColumnReference& column_reference) {
+std::shared_ptr<AbstractLQPNode> BaseJoinGraph::find_vertex(const LQPColumnReference& column_reference) const {
   for (const auto& vertex : vertices) {
     if (vertex->find_output_column_id(column_reference)) return vertex;
   }

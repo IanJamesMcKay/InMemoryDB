@@ -24,5 +24,9 @@ PredicateCondition CostFeatureVariant::predicate_condition() const {
   return boost::get<PredicateCondition>(value);
 }
 
+OperatorType CostFeatureVariant::operator_type() const {
+  Assert(value.type() == typeid(OperatorType), "CostFeatureVariant doesn't contain a OperatorType");
+  return boost::get<OperatorType>(value);
+}
 
 }  // namespace opossum

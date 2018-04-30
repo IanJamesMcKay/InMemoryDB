@@ -13,7 +13,7 @@ struct BaseJoinGraph final {
   std::vector<std::shared_ptr<AbstractLQPNode>> vertices;
   std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> predicates;
 
-  std::shared_ptr<AbstractLQPNode> find_vertex(const LQPColumnReference& column_reference);
+  std::shared_ptr<AbstractLQPNode> find_vertex(const LQPColumnReference& column_reference) const;
 };
 
 } // namespace opossum
