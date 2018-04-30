@@ -31,7 +31,7 @@ class CostFeatureProxyTest : public ::testing::Test {
   
   Proxies get_proxies() const {
     // clang-format off
-    if constexpr (std::is_same_v<ProxyType, CostFeatureJoinPlanProxy>) {
+    if constexpr (std::is_same_v<ProxyType,  CostFeatureGenericProxy>) {
       auto customer = StoredTableNode::make("customer");
       auto nation = StoredTableNode::make("nation");
 
@@ -46,8 +46,8 @@ class CostFeatureProxyTest : public ::testing::Test {
                                            "ALGERIA",
                                            join);
 
-      return Proxies{std::make_shared<CostFeatureJoinPlanProxy>(join),
-                     std::make_shared<CostFeatureJoinPlanProxy>(predicate)};
+      return Proxies{std::make_shared< CostFeatureGenericProxy>(join),
+                     std::make_shared< CostFeatureGenericProxy>(predicate)};
     } else {
       auto customer = std::make_shared<GetTable>("customer");
       customer->execute();
@@ -81,7 +81,7 @@ class CostFeatureProxyTest : public ::testing::Test {
   }
 };
 
-typedef ::testing::Types<CostFeatureJoinPlanProxy, CostFeatureOperatorProxy> ProxyTypes;
+typedef ::testing::Types< CostFeatureGenericProxy, CostFeatureOperatorProxy> ProxyTypes;
 TYPED_TEST_CASE(CostFeatureProxyTest, ProxyTypes);
 
 TYPED_TEST(CostFeatureProxyTest, AllFeatures) {

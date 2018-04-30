@@ -51,7 +51,7 @@ Cost AbstractCostModel::estimate_lqp_node_cost(const std::shared_ptr<AbstractLQP
       return 0.0f;
   }
 
-  CostFeatureJoinPlanProxy feature_proxy(node);
+   CostFeatureGenericProxy feature_proxy(node);
   return _cost_model_impl(operator_type, feature_proxy);
 }
 
