@@ -30,12 +30,6 @@ JoinPlanNode AbstractDpAlgorithm::operator()(
 
     _subplan_cache->cache_plan(
         vertex_bit, build_join_plan_vertex_node(*_cost_model, vertex, vertex_predicates, *_cardinality_estimator));
-
-//    SubJoinGraph sub_join_graph;
-//    sub_join_graph.vertices = {vertex};
-//    sub_join_graph.predicates = vertex_predicates;
-
-//    _sub_join_graphs.emplace(vertex_bit, sub_join_graph);
   }
 
   _on_execute();

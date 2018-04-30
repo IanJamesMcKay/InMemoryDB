@@ -16,16 +16,16 @@
 
 namespace opossum {
 
-GenericInputCostFeatures GenericInputCostFeatures::from_join_graph(const BaseJoinGraph &input_join_graph, const std::shared_ptr<AbstractCardinalityEstimator> &cardinality_estimator) {
+GenericInputCostFeatures GenericInputCostFeatures::from_join_graph(const BaseJoinGraph &input_join_graph, const AbstractCardinalityEstimator &cardinality_estimator) {
   return {
-    cardinality_estimator->estimate(input_join_graph.vertices, input_join_graph.predicates),
+    cardinality_estimator.estimate(input_join_graph.vertices, input_join_graph.predicates),
     input_join_graph.vertices.size() > 1 || !input_join_graph.predicates.empty()
   };
 }
 
 GenericPredicateCostFeatures GenericPredicateCostFeatures::from_join_plan_predicate(const std::shared_ptr<const JoinPlanAtomicPredicate> &predicate,
                                                              const BaseJoinGraph &input_join_graph,
-                                                             const std::shared_ptr<AbstractCardinalityEstimator> &cardinality_estimator) {
+                                                             const AbstractCardinalityEstimator &cardinality_estimator) {
   const auto left_operand_vertex = input_join_graph.find_vertex(predicate->left_operand);
   const auto left_operand_column_id = left_operand_vertex->get_output_column_id(predicate->left_operand);
   const auto left_operand_data_type = left_operand_vertex->get_statistics()->column_statistics().at(left_operand_column_id)->data_type();
@@ -33,10 +33,10 @@ GenericPredicateCostFeatures GenericPredicateCostFeatures::from_join_plan_predic
   auto right_operand_data_type = DataType::Null;
   auto right_operand_is_column = false;
 
-  if (is_lqp_column_reference(predicate->right_operand) {
+  if (is_lqp_column_reference(predicate->right_operand)) {
     const auto right_operand_column_reference = boost::get<LQPColumnReference>(predicate->right_operand);
     const auto right_operand_vertex = input_join_graph.find_vertex(right_operand_column_reference);
-    const auto right_operand_column_id = right_operand_vertex->get_output_column_id(predicate->right_operand);
+    const auto right_operand_column_id = right_operand_vertex->get_output_column_id(right_operand_column_reference);
     right_operand_data_type = right_operand_vertex->get_statistics()->column_statistics().at(right_operand_column_id)->data_type();
     right_operand_is_column = true;
   } else {
@@ -61,7 +61,7 @@ GenericPredicateCostFeatures::GenericPredicateCostFeatures(const DataType left_d
 
 CostFeatureGenericProxy CostFeatureGenericProxy::from_join_plan_predicate(const std::shared_ptr<const JoinPlanAtomicPredicate> &predicate,
                                                                             const BaseJoinGraph &input_join_graph,
-                                                                            const std::shared_ptr<AbstractCardinalityEstimator> &cardinality_estimator) {
+                                                                            const AbstractCardinalityEstimator &cardinality_estimator) {
   const auto input_features = GenericInputCostFeatures::from_join_graph(input_join_graph, cardinality_estimator);
   const auto predicate_features = GenericPredicateCostFeatures::from_join_plan_predicate(predicate, input_join_graph, cardinality_estimator);
 
@@ -80,7 +80,7 @@ CostFeatureGenericProxy CostFeatureGenericProxy::from_join_plan_predicate(const 
 CostFeatureGenericProxy CostFeatureGenericProxy::from_join_plan_predicate(const std::shared_ptr<const JoinPlanAtomicPredicate> &predicate,
                                                                             const BaseJoinGraph &left_input_join_graph,
                                                                             const BaseJoinGraph &right_input_join_graph,
-                                                                            const std::shared_ptr<AbstractCardinalityEstimator> &cardinality_estimator) {
+                                                                            const AbstractCardinalityEstimator &cardinality_estimator) {
   std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> joined_graph_predicates(left_input_join_graph.predicates.begin(), left_input_join_graph.predicates.end());
   joined_graph_predicates.insert(joined_graph_predicates.end(), right_input_join_graph.predicates.begin(), right_input_join_graph.predicates.end());
 
@@ -107,7 +107,7 @@ CostFeatureGenericProxy CostFeatureGenericProxy::from_join_plan_predicate(const 
 
 CostFeatureGenericProxy CostFeatureGenericProxy::from_cross_join(const BaseJoinGraph &left_input_join_graph,
                                                                  const BaseJoinGraph &right_input_join_graph,
-                                                                 const std::shared_ptr<AbstractCardinalityEstimator> &cardinality_estimator) {
+                                                                 const AbstractCardinalityEstimator &cardinality_estimator) {
   const auto left_input_features = GenericInputCostFeatures::from_join_graph(left_input_join_graph, cardinality_estimator);
   const auto right_input_features = GenericInputCostFeatures::from_join_graph(right_input_join_graph, cardinality_estimator);
 

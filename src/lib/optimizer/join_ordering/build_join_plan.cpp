@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "cost_model/abstract_cost_model.hpp"
+#include "cost_model/cost_feature_join_plan_proxy.hpp"
 #include "join_plan_join_node.hpp"
 #include "join_plan_predicate.hpp"
 #include "join_plan_vertex_node.hpp"
@@ -17,43 +18,27 @@ namespace {
 
 using namespace opossum;  // NOLINT
 
-JoinPlanNode add_predicate(const AbstractJoinPlanPredicate& predicate,
-                           JoinPlanNode join_plan_node,
-                           const AbstractCostModel& cost_model,
-                           const AbstractCardinalityEstimator& cardinality_estimator) {
-
+std::shared_ptr<AbstractLQPNode> build_lqp_for_predicate(const AbstractJoinPlanPredicate& predicate, const std::shared_ptr<AbstractLQPNode>& input_node) {
   switch (predicate.type()) {
     case JoinPlanPredicateType::Atomic: {
       const auto& atomic_predicate = static_cast<const JoinPlanAtomicPredicate&>(predicate);
 
-      join_plan_node.lqp = PredicateNode::make(atomic_predicate.left_operand,
-                                               atomic_predicate.predicate_condition,
-                                               atomic_predicate.right_operand,
-                                               join_plan_node.lqp);
-
-      const auto predicate_cost = cost_model.estimate_lqp_node_cost(join_plan_node.lqp);
-      join_plan_node.plan_cost += predicate_cost;
-
-      return join_plan_node;
+      return PredicateNode::make(atomic_predicate.left_operand,
+                                 atomic_predicate.predicate_condition,
+                                 atomic_predicate.right_operand,
+                                 input_node);
     }
     case JoinPlanPredicateType::LogicalOperator: {
       const auto& logical_operator_predicate = static_cast<const JoinPlanLogicalPredicate&>(predicate);
-      const auto left_operand_join_plan = add_predicate(*logical_operator_predicate.left_operand, join_plan_node, cost_model, cardinality_estimator);
-      const auto left_operand_added_cost = left_operand_join_plan.plan_cost - join_plan_node.plan_cost;
+      const auto left = build_lqp_for_predicate(*logical_operator_predicate.left_operand, input_node);
 
       switch (logical_operator_predicate.logical_operator) {
         case JoinPlanPredicateLogicalOperator::And: {
-          return add_predicate(*logical_operator_predicate.right_operand, left_operand_join_plan, cost_model, cardinality_estimator);
+          return build_lqp_for_predicate(*logical_operator_predicate.left_operand, input_node);
         }
         case JoinPlanPredicateLogicalOperator::Or: {
-          auto right_operand_join_plan = add_predicate(*logical_operator_predicate.right_operand, join_plan_node, cost_model, cardinality_estimator);
-          const auto right_operand_added_cost = right_operand_join_plan.plan_cost - join_plan_node.plan_cost;
-
-          join_plan_node.lqp = UnionNode::make(UnionMode::Positions, left_operand_join_plan.lqp, right_operand_join_plan.lqp);
-
-          const auto union_cost = cost_model.estimate_lqp_node_cost(join_plan_node.lqp);
-          join_plan_node.plan_cost += union_cost + left_operand_added_cost + right_operand_added_cost;
-          return join_plan_node;
+          auto right = build_lqp_for_predicate(*logical_operator_predicate.right_operand, input_node);
+          return UnionNode::make(UnionMode::Positions, left, right);
         }
       }
     }
@@ -62,17 +47,60 @@ JoinPlanNode add_predicate(const AbstractJoinPlanPredicate& predicate,
   Fail("Should be unreachable, but clang doesn't realize");
 }
 
-void order_predicates(std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates,
-                      const JoinPlanNode& join_plan_node,
-                      const AbstractCostModel& cost_model,
-                      const AbstractCardinalityEstimator& cardinality_estimator) {
-  const auto sort_predicate = [&](auto& left, auto& right) {
-    return statistics_cache.get(add_predicate(*left, join_plan_node, cost_model, statistics_cache).lqp)->row_count() <
-    statistics_cache.get(add_predicate(*right, join_plan_node, cost_model, statistics_cache).lqp)->row_count();
-  };
+Cost cost_predicate(const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate,
+                                                BaseJoinGraph join_graph,
+                                                const AbstractCostModel& cost_model,
+                                                const AbstractCardinalityEstimator& cardinality_estimator) {
+  switch (predicate->type()) {
+    case JoinPlanPredicateType::Atomic: {
+      const auto atomic_predicate = std::static_pointer_cast<const JoinPlanAtomicPredicate>(predicate);
 
-  std::sort(predicates.begin(), predicates.end(), sort_predicate);
+      const auto cost_proxy = CostFeatureGenericProxy::from_join_plan_predicate(atomic_predicate, join_graph, cardinality_estimator);
+      return cost_model.estimate_cost(cost_proxy);
+    }
+    case JoinPlanPredicateType::LogicalOperator: {
+      const auto& logical_operator_predicate = static_cast<const JoinPlanLogicalPredicate&>(*predicate);
+
+      const auto left_cost = cost_predicate(logical_operator_predicate.left_operand, join_graph, cost_model, cardinality_estimator);
+
+      switch (logical_operator_predicate.logical_operator) {
+        case JoinPlanPredicateLogicalOperator::And: {
+          join_graph.predicates.emplace_back(logical_operator_predicate.left_operand);
+          return left_cost + cost_predicate(logical_operator_predicate.right_operand, join_graph, cost_model, cardinality_estimator);
+        }
+        case JoinPlanPredicateLogicalOperator::Or: {
+          return left_cost + cost_predicate(logical_operator_predicate.right_operand, join_graph, cost_model, cardinality_estimator);
+        }
+      }
+    }
+  }
+
+  Fail("Should be unreachable, but clang doesn't realize");
 }
+
+void add_predicate(const std::shared_ptr<AbstractJoinPlanPredicate>& predicate,
+                   JoinPlanNode& join_plan_node,
+                   const AbstractCostModel& cost_model,
+                   const AbstractCardinalityEstimator& cardinality_estimator) {
+  join_plan_node.lqp = build_lqp_for_predicate(*predicate, join_plan_node.lqp);
+  join_plan_node.plan_cost += cost_predicate(predicate, join_plan_node.join_graph, cost_model, cardinality_estimator);
+
+  join_plan_node.join_graph.predicates.emplace_back(predicate);
+}
+
+//void order_predicates(std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates,
+//                      const JoinPlanNode& join_plan_node,
+//                      const AbstractCostModel& cost_model,
+//                      const AbstractCardinalityEstimator& cardinality_estimator) {
+//  const auto sort_predicate = [&](auto& left, auto& right) {
+//    BaseJoin
+//
+//    return cardinality_estimator.estimate(add_predicate(*left, join_plan_node, cost_model, statistics_cache).lqp)->row_count() <
+//    statistics_cache.get(add_predicate(*right, join_plan_node, cost_model, statistics_cache).lqp)->row_count();
+//  };
+//
+//  std::sort(predicates.begin(), predicates.end(), sort_predicate);
+//}
 
 }  // namespace
 
@@ -84,7 +112,9 @@ JoinPlanNode build_join_plan_join_node(
     const JoinPlanNode& right_input,
     const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates,
     const AbstractCardinalityEstimator& cardinality_estimator) {
-  JoinPlanNode join_plan_node{nullptr, left_input.plan_cost + right_input.plan_cost};
+  JoinPlanNode join_plan_node{nullptr,
+                              left_input.plan_cost + right_input.plan_cost,
+                              BaseJoinGraph::from_joined_graphs(left_input.join_graph, right_input.join_graph)};
 
   auto primary_join_predicate = std::shared_ptr<const JoinPlanAtomicPredicate>{};
   auto secondary_predicates = predicates;
@@ -134,8 +164,12 @@ JoinPlanNode build_join_plan_join_node(
   auto lqp = std::shared_ptr<AbstractLQPNode>();
 
   // Compute cost&statistics of primary join predicate, if it exists. Otherwise assume a cross join.
+  CostFeatureGenericProxy cost_feature_proxy;
+
   if (!primary_join_predicate) {
     join_plan_node.lqp = JoinNode::make(JoinMode::Cross, left_input.lqp, right_input.lqp);
+
+    cost_feature_proxy = CostFeatureGenericProxy::from_cross_join(left_input.join_graph, right_input.join_graph, cardinality_estimator);
   } else {
     const auto right_operand_column_reference = boost::get<LQPColumnReference>(primary_join_predicate->right_operand);
 
@@ -143,15 +177,16 @@ JoinPlanNode build_join_plan_join_node(
                                         std::make_pair(primary_join_predicate->left_operand,
                                                        right_operand_column_reference),
                                         primary_join_predicate->predicate_condition, left_input.lqp, right_input.lqp);
+
+    cost_feature_proxy = CostFeatureGenericProxy::from_join_plan_predicate(primary_join_predicate, left_input.join_graph, right_input.join_graph, cardinality_estimator);
   }
 
-  const auto join_cost = cost_model.estimate_lqp_node_cost(join_plan_node.lqp);
-  join_plan_node.plan_cost += join_cost;
-  order_predicates(secondary_predicates, join_plan_node, cost_model, cardinality_estimator);
+  join_plan_node.plan_cost = cost_model.estimate_cost(cost_feature_proxy);
+//  order_predicates(secondary_predicates, join_plan_node, cost_model, cardinality_estimator);
 
   // Apply remaining predicates
   for (const auto& predicate : secondary_predicates) {
-    join_plan_node = add_predicate(*predicate, join_plan_node, cost_model, cardinality_estimator);
+    add_predicate(predicate, join_plan_node, cost_model, cardinality_estimator);
   }
 
   return join_plan_node;
@@ -160,14 +195,14 @@ JoinPlanNode build_join_plan_join_node(
 JoinPlanNode build_join_plan_vertex_node(
     const AbstractCostModel& cost_model,
     const std::shared_ptr<AbstractLQPNode>& vertex_node,
-    std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> predicates,
+    const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates,
     const AbstractCardinalityEstimator& cardinality_estimator) {
+  auto join_plan_node = JoinPlanNode{vertex_node, 0.0f, {{vertex_node}, {}}};
 
-  auto join_plan_node = JoinPlanNode{vertex_node, 0.0f};
-  order_predicates(predicates, join_plan_node, cost_model, cardinality_estimator);
+//  order_predicates(predicates, join_plan_node, cost_model, cardinality_estimator);
 
   for (const auto& predicate : predicates) {
-    join_plan_node = add_predicate(*predicate, join_plan_node, cost_model, cardinality_estimator);
+    add_predicate(predicate, join_plan_node, cost_model, cardinality_estimator);
   }
 
   return join_plan_node;

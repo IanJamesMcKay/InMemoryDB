@@ -18,7 +18,7 @@
 namespace opossum {
 
 Cardinality BasicCardinalityEstimator::estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices,
-                                                const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates) {
+                                                const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates) const {
   Assert(!vertices.empty(), "Can't perform estimation on empty set of statistics");
 
   /**

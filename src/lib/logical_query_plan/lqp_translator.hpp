@@ -31,7 +31,7 @@ class LQPTranslator final : private Noncopyable {
 
   void add_post_operator_callback(const PostOperatorCallback& callback);
 
-  static OperatorType operator_type(const AbstractLQPNode& lqp_node);
+//  static OperatorType operator_type(const AbstractLQPNode& lqp_node);
 
  private:
   std::shared_ptr<AbstractOperator> _translate_by_node_type(LQPNodeType type,

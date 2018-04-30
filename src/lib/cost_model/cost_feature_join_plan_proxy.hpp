@@ -4,6 +4,7 @@
 
 #include "statistics/abstract_cardinality_estimator.hpp"
 #include "optimizer/join_ordering/join_plan_predicate.hpp"
+#include "operators/abstract_operator.hpp"
 #include "abstract_cost_feature_proxy.hpp"
 
 namespace opossum {
@@ -11,11 +12,11 @@ namespace opossum {
 class JoinPlanAtomicPredicate;
 class AbstractCardinalityEstimator;
 class AbstractLQPNode;
-class BaseJoinGraph;
+struct BaseJoinGraph;
 enum class OperatorType;
 
 struct GenericInputCostFeatures final {
-  static GenericInputCostFeatures from_join_graph(const BaseJoinGraph &input_join_graph, const std::shared_ptr<AbstractCardinalityEstimator> &cardinality_estimator);
+  static GenericInputCostFeatures from_join_graph(const BaseJoinGraph &input_join_graph, const AbstractCardinalityEstimator &cardinality_estimator);
 
   GenericInputCostFeatures() = default;
   GenericInputCostFeatures(const float row_count, const bool is_references);
@@ -27,7 +28,7 @@ struct GenericInputCostFeatures final {
 struct GenericPredicateCostFeatures final {
   static GenericPredicateCostFeatures from_join_plan_predicate(const std::shared_ptr<const JoinPlanAtomicPredicate> &predicate,
                                                                const BaseJoinGraph &input_join_graph,
-                                                               const std::shared_ptr<AbstractCardinalityEstimator> &cardinality_estimator);
+                                                               const AbstractCardinalityEstimator &cardinality_estimator);
 
   GenericPredicateCostFeatures() = default;
   GenericPredicateCostFeatures(const DataType left_data_type,
@@ -45,16 +46,18 @@ class CostFeatureGenericProxy : public AbstractCostFeatureProxy {
  public:
   static CostFeatureGenericProxy from_join_plan_predicate(const std::shared_ptr<const JoinPlanAtomicPredicate> &predicate,
                                                           const BaseJoinGraph &input_join_graph,
-                                                          const std::shared_ptr<AbstractCardinalityEstimator> &cardinality_estimator);
+                                                          const AbstractCardinalityEstimator &cardinality_estimator);
 
   static CostFeatureGenericProxy from_join_plan_predicate(const std::shared_ptr<const JoinPlanAtomicPredicate> &predicate,
                                                           const BaseJoinGraph &left_input_join_graph,
                                                           const BaseJoinGraph &right_input_join_graph,
-                                                          const std::shared_ptr<AbstractCardinalityEstimator> &cardinality_estimator);
+                                                          const AbstractCardinalityEstimator &cardinality_estimator);
 
   static CostFeatureGenericProxy from_cross_join(const BaseJoinGraph &left_input_join_graph,
                                                  const BaseJoinGraph &right_input_join_graph,
-                                                 const std::shared_ptr<AbstractCardinalityEstimator> &cardinality_estimator);
+                                                 const AbstractCardinalityEstimator &cardinality_estimator);
+
+  CostFeatureGenericProxy() = default;
 
   CostFeatureGenericProxy(
     const OperatorType operator_type,
@@ -67,11 +70,11 @@ class CostFeatureGenericProxy : public AbstractCostFeatureProxy {
   CostFeatureVariant _extract_feature_impl(const CostFeature cost_feature) const override;
   
  private:
-  const OperatorType _operator_type;
+  const OperatorType _operator_type{OperatorType::Mock};
   const GenericInputCostFeatures _left_input_features;
   const std::optional<GenericInputCostFeatures> _right_input_features;
   const std::optional<GenericPredicateCostFeatures> _predicate_features;
-  const float _output_row_count;
+  const float _output_row_count{0};
 };
 
 }  // namespace opossum
