@@ -70,11 +70,11 @@ class CostFeatureGenericProxy : public AbstractCostFeatureProxy {
   CostFeatureVariant _extract_feature_impl(const CostFeature cost_feature) const override;
   
  private:
-  const OperatorType _operator_type{OperatorType::Mock};
-  const GenericInputCostFeatures _left_input_features;
-  const std::optional<GenericInputCostFeatures> _right_input_features;
-  const std::optional<GenericPredicateCostFeatures> _predicate_features;
-  const float _output_row_count{0};
+  OperatorType _operator_type{OperatorType::Mock};
+  GenericInputCostFeatures _left_input_features{};
+  std::optional<GenericInputCostFeatures> _right_input_features{};
+  std::optional<GenericPredicateCostFeatures> _predicate_features{};
+  float _output_row_count{0};
 };
 
 }  // namespace opossum

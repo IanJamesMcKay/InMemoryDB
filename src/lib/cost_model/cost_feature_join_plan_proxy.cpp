@@ -44,7 +44,7 @@ GenericPredicateCostFeatures GenericPredicateCostFeatures::from_join_plan_predic
   }
 
   return {
-  left_operand_data_type, right_operand_data_type, right_operand_is_column, predicate->predicate_condition;
+  left_operand_data_type, right_operand_data_type, right_operand_is_column, predicate->predicate_condition
   };
 }
 
@@ -73,7 +73,7 @@ CostFeatureGenericProxy CostFeatureGenericProxy::from_join_plan_predicate(const 
      input_features,
      std::nullopt,
      predicate_features,
-     cardinality_estimator->estimate(input_join_graph.vertices, output_graph_predicates)
+     cardinality_estimator.estimate(input_join_graph.vertices, output_graph_predicates)
   };
 }
 
@@ -91,7 +91,7 @@ CostFeatureGenericProxy CostFeatureGenericProxy::from_join_plan_predicate(const 
 
   const auto left_input_features = GenericInputCostFeatures::from_join_graph(left_input_join_graph, cardinality_estimator);
   const auto right_input_features = GenericInputCostFeatures::from_join_graph(right_input_join_graph, cardinality_estimator);
-  const auto predicate_features = GenericPredicateCostFeatures::from_join_plan_predicate(predicate, joined_graph, cardinality_estimator):
+  const auto predicate_features = GenericPredicateCostFeatures::from_join_plan_predicate(predicate, joined_graph, cardinality_estimator);
 
   auto output_graph = joined_graph;
   output_graph.predicates.emplace_back(predicate);
@@ -101,7 +101,7 @@ CostFeatureGenericProxy CostFeatureGenericProxy::from_join_plan_predicate(const 
     left_input_features,
     right_input_features,
     predicate_features,
-    cardinality_estimator->estimate(output_graph.vertices, output_graph.predicates),
+    cardinality_estimator.estimate(output_graph.vertices, output_graph.predicates),
   };
 }
 
@@ -121,7 +121,8 @@ CostFeatureGenericProxy CostFeatureGenericProxy::from_cross_join(const BaseJoinG
     OperatorType::Product,
     left_input_features,
     right_input_features,
-    cardinality_estimator->estimate(joined_graph_vertices, joined_graph_predicates),
+    std::nullopt,
+    cardinality_estimator.estimate(joined_graph_vertices, joined_graph_predicates),
   };
 }
 
@@ -142,14 +143,14 @@ CostFeatureGenericProxy::CostFeatureGenericProxy(
 CostFeatureVariant  CostFeatureGenericProxy::_extract_feature_impl(const CostFeature cost_feature) const  {
   switch (cost_feature) {
     case CostFeature::LeftInputRowCount:
-      _left_input_features.row_count;
+      return _left_input_features.row_count;
 
     case CostFeature::RightInputRowCount:
       Assert(_right_input_features, "Proxy doesn't have right input");
       return _right_input_features->row_count;
 
     case CostFeature::LeftInputIsReferences:
-      _left_input_features.is_references;
+      return _left_input_features.is_references;
 
     case CostFeature::RightInputIsReferences:
       Assert(_right_input_features, "Proxy doesn't have right input");

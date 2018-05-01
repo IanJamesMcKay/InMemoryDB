@@ -4,7 +4,7 @@
 #include <string>
 
 #include "cost_model/cost_feature_operator_proxy.hpp"
-#include "cost_model/cost_feature_join_plan_proxy.hpp"
+#include "cost_model/cost_feature_lqp_node_proxy.hpp"
 #include "logical_query_plan/stored_table_node.hpp"
 #include "logical_query_plan/predicate_node.hpp"
 #include "logical_query_plan/join_node.hpp"
@@ -31,7 +31,7 @@ class CostFeatureProxyTest : public ::testing::Test {
   
   Proxies get_proxies() const {
     // clang-format off
-    if constexpr (std::is_same_v<ProxyType,  CostFeatureGenericProxy>) {
+    if constexpr (std::is_same_v<ProxyType,  CostFeatureLQPNodeProxy>) {
       auto customer = StoredTableNode::make("customer");
       auto nation = StoredTableNode::make("nation");
 
@@ -46,8 +46,8 @@ class CostFeatureProxyTest : public ::testing::Test {
                                            "ALGERIA",
                                            join);
 
-      return Proxies{std::make_shared< CostFeatureGenericProxy>(join),
-                     std::make_shared< CostFeatureGenericProxy>(predicate)};
+      return Proxies{std::make_shared< CostFeatureLQPNodeProxy>(join),
+                     std::make_shared< CostFeatureLQPNodeProxy>(predicate)};
     } else {
       auto customer = std::make_shared<GetTable>("customer");
       customer->execute();
@@ -81,7 +81,7 @@ class CostFeatureProxyTest : public ::testing::Test {
   }
 };
 
-typedef ::testing::Types< CostFeatureGenericProxy, CostFeatureOperatorProxy> ProxyTypes;
+typedef ::testing::Types< CostFeatureLQPNodeProxy, CostFeatureOperatorProxy> ProxyTypes;
 TYPED_TEST_CASE(CostFeatureProxyTest, ProxyTypes);
 
 TYPED_TEST(CostFeatureProxyTest, AllFeatures) {

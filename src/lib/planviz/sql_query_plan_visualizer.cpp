@@ -2,6 +2,8 @@
 #include <string>
 #include <utility>
 
+#include "cost_model/cost_feature_operator_proxy.hpp"
+#include "cost_model/cost_feature_lqp_node_proxy.hpp"
 #include "planviz/abstract_visualizer.hpp"
 #include "planviz/sql_query_plan_visualizer.hpp"
 #include "logical_query_plan/abstract_lqp_node.hpp"
@@ -107,14 +109,14 @@ void SQLQueryPlanVisualizer::_add_operator(const std::shared_ptr<const AbstractO
       auto& cost_info = comparisons.add_sublayout();
       cost_info.add_label("Cost");
 
-      const auto node_cost = _cost_model->estimate_lqp_node_cost(op->lqp_node());
+      const auto node_cost = _cost_model->estimate_cost(CostFeatureLQPNodeProxy(op->lqp_node()));
       if (node_cost > 0) {
         cost_info.add_label(format_integer(static_cast<int>(node_cost)) + " est");
       } else {
         cost_info.add_label("-");
       }
 
-      const auto op_cost = _cost_model->estimate_operator_cost(std::const_pointer_cast<AbstractOperator>(op));
+      const auto op_cost = _cost_model->estimate_cost(CostFeatureOperatorProxy(std::const_pointer_cast<AbstractOperator>(op)));
       if (op_cost > 0) {
         cost_info.add_label(format_integer(static_cast<int>(op_cost)) + " re-est");
       } else {

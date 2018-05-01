@@ -197,6 +197,8 @@ set(
     cost_model/cost_feature.hpp
     cost_model/cost_feature_join_plan_proxy.cpp
     cost_model/cost_feature_join_plan_proxy.hpp
+    cost_model/cost_feature_lqp_node_proxy.cpp
+    cost_model/cost_feature_lqp_node_proxy.hpp
     cost_model/cost_feature_operator_proxy.cpp
     cost_model/cost_feature_operator_proxy.hpp
     cost_model/cost_model_naive.cpp

@@ -41,7 +41,7 @@ if __name__ == "__main__":
         best_duration = base_duration
         best_idx = 0
 
-        xlim=300
+        xlim=5000
         ylim=2.5
 
         for idx, duration in durations.iteritems():
@@ -51,21 +51,24 @@ if __name__ == "__main__":
                 best_idx = idx
                 best_duration = duration
             elif duration < base_duration:
-                better_ranks.append(min(idx, xlim))
+                better_ranks.append(idx)
                 ratio = float(base_duration) / duration
-                better_rank_duration_ratios.append(min(ylim, ratio))
+                #ratio = min(ylim, ratio)
+                better_rank_duration_ratios.append(ratio)
 
 
         ratio = float(base_duration) / best_duration
 
-        best_ranks.append(min(best_idx, xlim))
-        best_rank_duration_ratios.append(min(ylim, ratio))
+        best_idx=min(best_idx, xlim)
+        best_ranks.append(best_idx)
+        ratio =min(ylim, ratio)
+        best_rank_duration_ratios.append(ratio)
         print("{}: BestPlan: {}, Ratio: {}".format(file_name, best_idx, ratio))
 
-    plt.plot(best_ranks, best_rank_duration_ratios, "bo", markersize=4.5, label="Best Plan")
+    plt.plot(best_ranks, best_rank_duration_ratios, "bo", markersize=4.5, label="Best Plan Found")
     plt.legend()
     plt.xlabel("rank")
-    plt.ylabel("performance increase")
+    plt.ylabel("relative performance to rank #0")
     #plt.plot(better_ranks, better_rank_duration_ratios, "o", markersize=0.1)
     plt.grid(True)
     plt.savefig("{}.svg".format("where_is_the_best_plan"), format="svg")

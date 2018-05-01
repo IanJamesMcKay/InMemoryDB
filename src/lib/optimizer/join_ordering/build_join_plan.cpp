@@ -78,7 +78,7 @@ Cost cost_predicate(const std::shared_ptr<const AbstractJoinPlanPredicate>& pred
   Fail("Should be unreachable, but clang doesn't realize");
 }
 
-void add_predicate(const std::shared_ptr<AbstractJoinPlanPredicate>& predicate,
+void add_predicate(const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate,
                    JoinPlanNode& join_plan_node,
                    const AbstractCostModel& cost_model,
                    const AbstractCardinalityEstimator& cardinality_estimator) {
