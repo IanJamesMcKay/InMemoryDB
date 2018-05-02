@@ -31,7 +31,7 @@ Cardinality BasicCardinalityEstimator::estimate(const std::vector<std::shared_pt
     _init_estimation_state(*predicate, vertices, estimation_state);
   }
 
-  estimation_state.vertices_not_joined.insert(vertices.begin(), vertices.end());
+  estimation_state.vertices_not_joined.insert(vertices.begin() + 1, vertices.end());
   estimation_state.current_cardinality = vertices.front()->get_statistics()->row_count();
 
   /**

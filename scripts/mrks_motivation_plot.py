@@ -47,7 +47,7 @@ if __name__ == "__main__":
         for idx, duration in durations.iteritems():
             if duration == 0:
                 continue
-            if duration < best_duration:
+            if duration < best_duration * 0.85:
                 best_idx = idx
                 best_duration = duration
             elif duration < base_duration:
