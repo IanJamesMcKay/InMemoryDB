@@ -12,7 +12,9 @@
 
 int main(int argc, char* argv[]) {
   auto table_a = opossum::load_table("src/test/tables/int_float.tbl", 2);
+  auto customer = opossum::load_table("src/test/tables/tpch/sf-0.001/customer.tbl", 2);
   opossum::StorageManager::get().add_table("table_a", table_a);
+  opossum::StorageManager::get().add_table("customer", customer);
 
   // Create audit log table.
   opossum::TableColumnDefinitions column_definitions;
