@@ -80,7 +80,7 @@ set(
 #    optimizer/join_ordering/join_graph_builder_test.cpp
 #    optimizer/join_ordering/join_graph_test.cpp
 #    optimizer/join_ordering/join_plan_predicate_test.cpp
-#    optimizer/join_ordering/join_plan_test.cpp
+    optimizer/join_ordering/join_plan_test.cpp
 #    optimizer/lqp_translator_test.cpp
 #    optimizer/optimizer_test.cpp
 #    optimizer/strategy/chunk_pruning_test.cpp

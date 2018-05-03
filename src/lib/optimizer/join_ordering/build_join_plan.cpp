@@ -179,9 +179,11 @@ JoinPlanNode build_join_plan_join_node(
                                         primary_join_predicate->predicate_condition, left_input.lqp, right_input.lqp);
 
     cost_feature_proxy = CostFeatureGenericProxy::from_join_plan_predicate(primary_join_predicate, left_input.join_graph, right_input.join_graph, cardinality_estimator);
+
+    join_plan_node.join_graph.predicates.emplace_back(primary_join_predicate);
   }
 
-  join_plan_node.plan_cost = cost_model.estimate_cost(cost_feature_proxy);
+  join_plan_node.plan_cost += cost_model.estimate_cost(cost_feature_proxy);
 //  order_predicates(secondary_predicates, join_plan_node, cost_model, cardinality_estimator);
 
   // Apply remaining predicates
