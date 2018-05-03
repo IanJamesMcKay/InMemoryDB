@@ -34,7 +34,7 @@ std::shared_ptr<AbstractLQPNode> build_lqp_for_predicate(const AbstractJoinPlanP
 
       switch (logical_operator_predicate.logical_operator) {
         case JoinPlanPredicateLogicalOperator::And: {
-          return build_lqp_for_predicate(*logical_operator_predicate.left_operand, input_node);
+          return build_lqp_for_predicate(*logical_operator_predicate.right_operand, left);
         }
         case JoinPlanPredicateLogicalOperator::Or: {
           auto right = build_lqp_for_predicate(*logical_operator_predicate.right_operand, input_node);

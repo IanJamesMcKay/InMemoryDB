@@ -57,6 +57,8 @@ using boost::uuids::uuid;
 using boost::uuids::random_generator;
 
 #include <boost/uuid/uuid_io.hpp>
+#include <cost_model/cost_feature_lqp_node_proxy.hpp>
+#include <cost_model/cost_feature_operator_proxy.hpp>
 
 namespace {
 using namespace std::string_literals;  // NOLINT
@@ -105,14 +107,14 @@ PlanCostSample create_plan_cost_sample(const AbstractCostModel &cost_model,
     sample.aim_cost += aim_cost;
 
     if (op->lqp_node()) {
-      const auto est_cost = cost_model.estimate_lqp_node_cost(op->lqp_node());
+      const auto est_cost = cost_model.estimate_cost(CostFeatureLQPNodeProxy(op->lqp_node()));
         sample.est_cost += est_cost;
         if (aim_cost) {
           sample.abs_est_cost_error += std::fabs(est_cost - aim_cost);
         }
     }
 
-    const auto re_est_cost = cost_model.estimate_operator_cost(op);
+    const auto re_est_cost = cost_model.estimate_cost(CostFeatureOperatorProxy(op));
       sample.re_est_cost += re_est_cost;
       sample.abs_re_est_cost_error += std::fabs(re_est_cost - aim_cost);
   }
@@ -517,14 +519,6 @@ int main(int argc, char ** argv) {
       // Shuffle plans
       std::vector<size_t> plan_indices(join_plans.size());
       std::iota(plan_indices.begin(), plan_indices.end(), 0);
-
-      if (plan_indices.size() > 30) {
-        std::random_device rd;
-        std::mt19937 g(rd());
-        auto b = plan_indices.begin();
-        std::advance(b, 20);
-        std::shuffle(b, plan_indices.end(), g);
-      }
 
       if (max_plan_count) {
         plan_indices.resize(std::min(plan_indices.size(), *max_plan_count));

@@ -18,7 +18,7 @@ class AbstractJoinPlanPredicate;
  */
 class JoinEdge final {
  public:
-  explicit JoinEdge(const JoinVertexSet& vertex_set);
+  explicit JoinEdge(const JoinVertexSet& vertex_set, const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>&predicates = {});
 
   void print(std::ostream& stream = std::cout) const;
 

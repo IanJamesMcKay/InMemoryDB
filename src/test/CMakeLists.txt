@@ -75,7 +75,7 @@ set(
 #    operators/validate_visibility_test.cpp
 #    #optimizer/column_statistics_test.cpp
 #    optimizer/expression_test.cpp
-#    optimizer/join_ordering/dp_ccp_test.cpp
+    optimizer/join_ordering/dp_ccp_test.cpp
 #    optimizer/join_ordering/enumerate_ccp_test.cpp
 #    optimizer/join_ordering/join_graph_builder_test.cpp
 #    optimizer/join_ordering/join_graph_test.cpp
@@ -140,7 +140,7 @@ set(
 set (
     SYSTEM_TEST_SOURCES
     ${SHARED_SOURCES}
-    tpc/tpcc_ref_test.cpp
+    #tpc/tpcc_ref_test.cpp
     tpc/tpch_test.cpp
     tpc/tpch_db_generator_test.cpp
     gtest_main.cpp
