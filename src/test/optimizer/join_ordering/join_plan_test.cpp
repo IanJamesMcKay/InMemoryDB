@@ -103,7 +103,7 @@ TEST_F(JoinPlanTest, VertexNode) {
   /** Single vertex - one "complex" predicate */
   const auto a_lt_4_or_gt_8 = std::make_shared<JoinPlanLogicalPredicate>(a_lt_4, JoinPlanPredicateLogicalOperator::Or, a_gt_8);
   const auto vertex_node_3 = build_join_plan_vertex_node(cost_model, vertex_r, {a_lt_4_or_gt_8}, cardinality_estimator);
-  EXPECT_EQ(vertex_node_3.plan_cost, 40); // OR is considered free right now.
+  EXPECT_FLOAT_EQ(vertex_node_3.plan_cost, 56.295734f);
   EXPECT_EQ(vertex_node_3.join_graph.vertices, expected_vertices);
   EXPECT_EQ(vertex_node_3.join_graph.predicates.size(), 1u);
   EXPECT_EQ(vertex_node_3.join_graph.predicates.at(0), a_lt_4_or_gt_8);

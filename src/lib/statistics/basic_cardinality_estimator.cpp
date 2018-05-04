@@ -141,9 +141,9 @@ void BasicCardinalityEstimator::_apply_predicate(const AbstractJoinPlanPredicate
         _apply_predicate(*logical_predicate.left_operand, estimation_state_left_input);
         _apply_predicate(*logical_predicate.right_operand, estimation_state_right_input);
 
-        // Merge left and right input
+        // Merge left and right s
         estimation_state.current_cardinality =
-        (estimation_state_left_input.current_cardinality + estimation_state_right_input.current_cardinality) / 2;
+        estimation_state_left_input.current_cardinality + estimation_state_right_input.current_cardinality * TableStatistics::DEFAULT_DISJUNCTION_SELECTIVITY;
         estimation_state.vertices_not_joined.clear();
 
         std::set_intersection(estimation_state_left_input.vertices_not_joined.begin(),

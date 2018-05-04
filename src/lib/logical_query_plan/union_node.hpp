@@ -6,6 +6,7 @@
 
 #include "abstract_lqp_node.hpp"
 #include "types.hpp"
+#include "statistics/table_statistics.hpp"
 
 namespace opossum {
 
@@ -27,6 +28,10 @@ class UnionNode : public EnableMakeForLQPNode<UnionNode>, public AbstractLQPNode
       const std::shared_ptr<AbstractLQPNode>& right_input) const override;
 
   bool shallow_equals(const AbstractLQPNode& rhs) const override;
+
+  std::string cardinality_estimation_info() const override {
+    return get_statistics()->description();
+  }
 
  protected:
   std::shared_ptr<AbstractLQPNode> _deep_copy_impl(

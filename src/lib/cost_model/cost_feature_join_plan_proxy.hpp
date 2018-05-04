@@ -56,6 +56,10 @@ class CostFeatureGenericProxy : public AbstractCostFeatureProxy {
   static CostFeatureGenericProxy from_cross_join(const BaseJoinGraph &left_input_join_graph,
                                                  const BaseJoinGraph &right_input_join_graph,
                                                  const AbstractCardinalityEstimator &cardinality_estimator);
+  static CostFeatureGenericProxy from_union(const BaseJoinGraph &output_join_graph,
+                                                const BaseJoinGraph &left_input_join_graph,
+                                                const BaseJoinGraph &right_input_join_graph,
+                                                const AbstractCardinalityEstimator &cardinality_estimator);
 
   CostFeatureGenericProxy() = default;
 

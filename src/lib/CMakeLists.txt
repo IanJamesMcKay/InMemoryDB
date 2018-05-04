@@ -193,6 +193,8 @@ set(
     optimizer/join_ordering/build_join_plan.hpp
     optimizer/join_ordering/dp_subplan_cache_top_k.hpp
     cost_model/cost.hpp
+    cost_model/cost_lqp.cpp
+    cost_model/cost_lqp.hpp
     cost_model/cost_feature.cpp
     cost_model/cost_feature.hpp
     cost_model/cost_feature_join_plan_proxy.cpp

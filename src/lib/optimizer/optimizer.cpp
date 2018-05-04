@@ -4,6 +4,7 @@
 
 #include "logical_query_plan/logical_plan_root_node.hpp"
 #include "cost_model/cost_model_linear.hpp"
+#include "cost_model/cost_model_naive.hpp"
 #include "optimizer/join_ordering/dp_ccp.hpp"
 #include "strategy/chunk_pruning_rule.hpp"
 #include "strategy/constant_calculation_rule.hpp"
@@ -31,7 +32,7 @@ std::shared_ptr<Optimizer> Optimizer::create_default_optimizer() {
 //  final_batch.add_rule(std::make_shared<ChunkPruningRule>());
 //  final_batch.add_rule(std::make_shared<ConstantCalculationRule>());
 //  final_batch.add_rule(std::make_shared<IndexScanRule>());
-  auto cost_model = std::make_shared<CostModelLinear>();
+  auto cost_model = std::make_shared<CostModelNaive>();
   auto dp_ccp = std::make_shared<DpCcp>(cost_model);
   final_batch.add_rule(std::make_shared<JoinOrderingRule>(dp_ccp));
   optimizer->add_rule_batch(final_batch);

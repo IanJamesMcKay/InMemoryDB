@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "cost_model/cost_lqp.hpp"
 #include "cost_model/abstract_cost_model.hpp"
 #include "cost_model/cost_feature_join_plan_proxy.hpp"
 #include "join_plan_join_node.hpp"
@@ -69,7 +70,20 @@ Cost cost_predicate(const std::shared_ptr<const AbstractJoinPlanPredicate>& pred
           return left_cost + cost_predicate(logical_operator_predicate.right_operand, join_graph, cost_model, cardinality_estimator);
         }
         case JoinPlanPredicateLogicalOperator::Or: {
-          return left_cost + cost_predicate(logical_operator_predicate.right_operand, join_graph, cost_model, cardinality_estimator);
+          const auto right_cost = cost_predicate(logical_operator_predicate.right_operand, join_graph, cost_model, cardinality_estimator);
+
+          auto left_join_graph = join_graph;
+          left_join_graph.predicates.emplace_back(logical_operator_predicate.left_operand);
+
+          auto right_join_graph = join_graph;
+          right_join_graph.predicates.emplace_back(logical_operator_predicate.right_operand);
+
+          auto output_join_graph = join_graph;
+          output_join_graph.predicates.emplace_back(predicate);
+
+          const auto union_cost = cost_model.estimate_cost(CostFeatureGenericProxy::from_union(output_join_graph, left_join_graph, right_join_graph, cardinality_estimator));
+
+          return left_cost + right_cost + union_cost;
         }
       }
     }
@@ -82,8 +96,20 @@ void add_predicate(const std::shared_ptr<const AbstractJoinPlanPredicate>& predi
                    JoinPlanNode& join_plan_node,
                    const AbstractCostModel& cost_model,
                    const AbstractCardinalityEstimator& cardinality_estimator) {
+  Assert(cost_lqp(join_plan_node.lqp, cost_model) == join_plan_node.plan_cost, "Costs are diverged!");
+
+  std::cout << "Before" << std::endl;
+  join_plan_node.lqp->print();
+  std::cout << "/Before" << std::endl;
+
   join_plan_node.lqp = build_lqp_for_predicate(*predicate, join_plan_node.lqp);
   join_plan_node.plan_cost += cost_predicate(predicate, join_plan_node.join_graph, cost_model, cardinality_estimator);
+
+  std::cout << "After" << std::endl;
+  join_plan_node.lqp->print();
+  std::cout << "/After" << std::endl;
+
+  Assert(cost_lqp(join_plan_node.lqp, cost_model) == join_plan_node.plan_cost, "Costs have diverged!");
 
   join_plan_node.join_graph.predicates.emplace_back(predicate);
 }
@@ -184,6 +210,11 @@ JoinPlanNode build_join_plan_join_node(
   }
 
   join_plan_node.plan_cost += cost_model.estimate_cost(cost_feature_proxy);
+
+  join_plan_node.lqp->print();
+
+  Assert(cost_lqp(join_plan_node.lqp, cost_model) == join_plan_node.plan_cost, "Costs have diverged!");
+
 //  order_predicates(secondary_predicates, join_plan_node, cost_model, cardinality_estimator);
 
   // Apply remaining predicates

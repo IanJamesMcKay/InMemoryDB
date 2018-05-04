@@ -1,5 +1,7 @@
 #include "base_join_graph.hpp"
 
+#include <unordered_set>
+
 #include "logical_query_plan/abstract_lqp_node.hpp"
 #include "logical_query_plan/lqp_column_reference.hpp"
 #include "utils/assert.hpp"

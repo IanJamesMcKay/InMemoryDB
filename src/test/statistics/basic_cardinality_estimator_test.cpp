@@ -56,7 +56,7 @@ TEST_F(BasicCardinalityEstimatorTest, LogicalPredicates) {
   EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_r}, {a_gt_5_and_lt_8}), 4);
 
   const auto a_lt_4_or_gt_8 = std::make_shared<JoinPlanLogicalPredicate>(a_lt_4, JoinPlanPredicateLogicalOperator::Or, a_gt_8);
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_r}, {a_lt_4_or_gt_8}), 5);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_r}, {a_lt_4_or_gt_8}), 6.8);
 }
 
 }  // namespace opossum

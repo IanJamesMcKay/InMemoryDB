@@ -126,6 +126,22 @@ CostFeatureGenericProxy CostFeatureGenericProxy::from_cross_join(const BaseJoinG
   };
 }
 
+CostFeatureGenericProxy CostFeatureGenericProxy::from_union(const BaseJoinGraph &output_join_graph,
+                                          const BaseJoinGraph &left_input_join_graph,
+                                          const BaseJoinGraph &right_input_join_graph,
+                                          const AbstractCardinalityEstimator &cardinality_estimator) {
+  const auto left_input_features = GenericInputCostFeatures::from_join_graph(left_input_join_graph, cardinality_estimator);
+  const auto right_input_features = GenericInputCostFeatures::from_join_graph(right_input_join_graph, cardinality_estimator);
+
+  return {
+    OperatorType::UnionPositions,
+    left_input_features,
+    right_input_features,
+    std::nullopt,
+    cardinality_estimator.estimate(output_join_graph.vertices, output_join_graph.predicates)
+  };
+}
+
 CostFeatureGenericProxy::CostFeatureGenericProxy(
   const OperatorType operator_type,
   const GenericInputCostFeatures& left_input_features,
