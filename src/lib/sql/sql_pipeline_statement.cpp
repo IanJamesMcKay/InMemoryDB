@@ -264,7 +264,10 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table(const
 
       const auto rl_result = rl_table_scan_user->get_output();
 
-      if (rl_result->row_count() > 0) {
+      if (rl_result->row_count() == 0) {
+        // If there is no rate limiting for the user, the query is allowed.
+        query_allowed = true;
+      } else {
         const auto query_limit =
             type_cast<int32_t>(rl_result->get_chunk(ChunkID{0})->get_column(ColumnID{1})->operator[](ChunkOffset{0}));
         const auto row_count_limit =
@@ -301,9 +304,8 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table(const
         //    and the row count of the current query does not exceed the user's limit.
         // * The user has not reached the limit of queries the user is allowed to execute in the current window
         //    and the accumulated row count of the previous queries in the current window
-        //    plus the row count of the current query does not exceed the user's limit
-        if (al_result->get_chunk(ChunkID{0})->get_column(ColumnID{0})->size() == 0 &&
-            result_row_count <= row_count_limit) {
+        //    plus the row count of the current query does not exceed the user's limit.
+        if (al_result->row_count() == 0 && result_row_count <= row_count_limit) {
           query_allowed = true;
         } else {
           const auto cnt_queries =
@@ -314,9 +316,6 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table(const
             query_allowed = true;
           }
         }
-      } else {
-        // If there is no rate limiting for the user, the query is allowed.
-        query_allowed = true;
       }
     }
 
