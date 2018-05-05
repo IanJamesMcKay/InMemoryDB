@@ -102,7 +102,7 @@ void BasicCardinalityEstimator::_apply_predicate(const AbstractJoinPlanPredicate
       const auto estimate = left_column_statistics->estimate_predicate_with_column(atomic_predicate.predicate_condition, *right_column_statistics);
 
       left_column_statistics = estimate.left_column_statistics;
-      right_column_statistics = estimate.left_column_statistics;
+      right_column_statistics = estimate.right_column_statistics;
       estimation_state.current_cardinality *= estimate.selectivity;
     } else {
       const auto right_value = boost::get<AllTypeVariant >(atomic_predicate.right_operand);

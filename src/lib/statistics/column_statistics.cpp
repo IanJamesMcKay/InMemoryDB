@@ -104,6 +104,14 @@ ColumnValueEstimate ColumnStatistics<std::string>::estimate_predicate_with_value
     case PredicateCondition::NotEquals: {
       return estimate_not_equals_with_value(casted_value);
     }
+    // TODO(anybody) we don't do (Not)Like estimations yet, thus resort to magic numbers
+    case PredicateCondition::Like: {
+      return {TableStatistics::DEFAULT_LIKE_SELECTIVITY, without_null_values()};
+    }
+    case PredicateCondition::NotLike: {
+      return {1.0f - TableStatistics::DEFAULT_LIKE_SELECTIVITY, without_null_values()};
+    }
+
     // TODO(anybody) implement other table-scan operators for string.
     default: { return {non_null_value_ratio(), without_null_values()}; }
   }

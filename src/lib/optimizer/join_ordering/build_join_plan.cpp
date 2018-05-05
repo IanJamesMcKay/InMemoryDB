@@ -96,6 +96,7 @@ void add_predicate(const std::shared_ptr<const AbstractJoinPlanPredicate>& predi
                    JoinPlanNode& join_plan_node,
                    const AbstractCostModel& cost_model,
                    const AbstractCardinalityEstimator& cardinality_estimator) {
+  Assert(join_plan_node.lqp->get_statistics()->row_count() == cardinality_estimator.estimate(join_plan_node.join_graph.vertices, join_plan_node.join_graph.predicates), "Row counts are diverged");
   Assert(cost_lqp(join_plan_node.lqp, cost_model) == join_plan_node.plan_cost, "Costs are diverged!");
 
   std::cout << "Before" << std::endl;
@@ -109,9 +110,11 @@ void add_predicate(const std::shared_ptr<const AbstractJoinPlanPredicate>& predi
   join_plan_node.lqp->print();
   std::cout << "/After" << std::endl;
 
+  join_plan_node.join_graph.predicates.emplace_back(predicate);
+
+  Assert(join_plan_node.lqp->get_statistics()->row_count() == cardinality_estimator.estimate(join_plan_node.join_graph.vertices, join_plan_node.join_graph.predicates), "Row counts are diverged");
   Assert(cost_lqp(join_plan_node.lqp, cost_model) == join_plan_node.plan_cost, "Costs have diverged!");
 
-  join_plan_node.join_graph.predicates.emplace_back(predicate);
 }
 
 //void order_predicates(std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates,
@@ -213,6 +216,7 @@ JoinPlanNode build_join_plan_join_node(
 
   join_plan_node.lqp->print();
 
+  Assert(join_plan_node.lqp->get_statistics()->row_count() == cardinality_estimator.estimate(join_plan_node.join_graph.vertices, join_plan_node.join_graph.predicates), "Row counts are diverged");
   Assert(cost_lqp(join_plan_node.lqp, cost_model) == join_plan_node.plan_cost, "Costs have diverged!");
 
 //  order_predicates(secondary_predicates, join_plan_node, cost_model, cardinality_estimator);
