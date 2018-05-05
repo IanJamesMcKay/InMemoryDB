@@ -4,11 +4,17 @@
 
 #include <chrono>
 #include <iomanip>
+#include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "SQLParser.h"
 #include "concurrency/transaction_manager.hpp"
 #include "logical_query_plan/lqp_translator.hpp"
+#include "operators/aggregate.hpp"
+#include "operators/get_table.hpp"
+#include "operators/table_scan.hpp"
 #include "optimizer/optimizer.hpp"
 #include "scheduler/current_scheduler.hpp"
 #include "sql/hsql_expr_translator.hpp"
@@ -233,18 +239,104 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table(const
   _result_table = tasks.back()->get_operator()->get_output();
   if (_result_table == nullptr) _query_has_output = false;
 
+  bool query_allowed = true;
+
+  // Audit Log & Data Loss Prevention
   if (statement->isType(hsql::kStmtSelect) && StorageManager::get().has_table("audit_log")) {
-    const AllTypeVariant user{username};
+    const auto result_row_count = static_cast<int64_t>(_result_table->row_count());
     const auto epoch_ms =
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
             .count();
+
+    if (StorageManager::get().has_table("user_rate_limiting")) {
+      // Assume the worst.
+      query_allowed = false;
+
+      // select *
+      // from user_rate_limiting
+      // where user = username
+      auto rl_get_table = std::make_shared<GetTable>("user_rate_limiting");
+      rl_get_table->execute();
+
+      auto rl_table_scan_user =
+          std::make_shared<TableScan>(rl_get_table, ColumnID{0}, PredicateCondition::Equals, username);
+      rl_table_scan_user->execute();
+
+      const auto rl_result = rl_table_scan_user->get_output();
+
+      if (rl_result->row_count() > 0) {
+        const auto query_limit =
+            type_cast<int32_t>(rl_result->get_chunk(ChunkID{0})->get_column(ColumnID{1})->operator[](ChunkOffset{0}));
+        const auto row_count_limit =
+            type_cast<int32_t>(rl_result->get_chunk(ChunkID{0})->get_column(ColumnID{2})->operator[](ChunkOffset{0}));
+
+        // The timeframe in ms for which the rate limits shall be applied.
+        // Currently a minute.
+        constexpr auto rate_limit_window_ms = 60 * 1000;
+
+        // select count(distinct query) as cnt_queries, sum(row_count) as sum_row_count
+        // from audit_log
+        // where user = username and timestamp > epoch_ms - rate_limit_window_ms
+        auto al_get_table = std::make_shared<GetTable>("audit_log");
+        al_get_table->execute();
+
+        auto al_table_scan_user =
+            std::make_shared<TableScan>(al_get_table, ColumnID{0}, PredicateCondition::Equals, username);
+        al_table_scan_user->execute();
+
+        auto al_table_scan_timestamp = std::make_shared<TableScan>(
+            al_table_scan_user, ColumnID{2}, PredicateCondition::GreaterThanEquals, epoch_ms - rate_limit_window_ms);
+        al_table_scan_timestamp->execute();
+
+        const std::vector<AggregateColumnDefinition> aggregate_definitions{
+            {ColumnID{0}, AggregateFunction::CountDistinct}, {ColumnID{4}, AggregateFunction::Sum}};
+        auto al_aggregate =
+            std::make_shared<Aggregate>(al_table_scan_timestamp, aggregate_definitions, std::vector<ColumnID>{});
+        al_aggregate->execute();
+
+        const auto al_result = al_aggregate->get_output();
+
+        // The query is allowed, if, and only if, one of the following is true:
+        // * The user has not executed any queries in the current window
+        //    and the row count of the current query does not exceed the user's limit.
+        // * The user has not reached the limit of queries the user is allowed to execute in the current window
+        //    and the accumulated row count of the previous queries in the current window
+        //    plus the row count of the current query does not exceed the user's limit
+        if (al_result->get_chunk(ChunkID{0})->get_column(ColumnID{0})->size() == 0 &&
+            result_row_count <= row_count_limit) {
+          query_allowed = true;
+        } else {
+          const auto cnt_queries =
+              type_cast<int32_t>(al_result->get_chunk(ChunkID{0})->get_column(ColumnID{0})->operator[](ChunkOffset{0}));
+          const auto sum_row_count =
+              type_cast<int32_t>(al_result->get_chunk(ChunkID{0})->get_column(ColumnID{1})->operator[](ChunkOffset{0}));
+          if (cnt_queries < query_limit && sum_row_count + result_row_count <= row_count_limit) {
+            query_allowed = true;
+          }
+        }
+      } else {
+        // If there is no rate limiting for the user, the query is allowed.
+        query_allowed = true;
+      }
+    }
+
+    // Write audit log for this query.
+    const AllTypeVariant user{username};
     const auto commit_id = static_cast<int32_t>(transaction_context()->commit_id());
     const auto& sql_string = get_sql_string();
-    const auto row_count = static_cast<int64_t>(_result_table->row_count());
     const auto execution_time_micros = _execution_time_micros.count();
-
     const auto table = StorageManager::get().get_table("audit_log");
-    table->append({user, commit_id, epoch_ms, sql_string, row_count, execution_time_micros});
+    table->append({user, commit_id, epoch_ms, sql_string, result_row_count, execution_time_micros,
+                   static_cast<int32_t>(query_allowed)});
+  }
+
+  // TODO(anyone): three different measures
+  //   blocking (current approach)
+  //   scrambling
+  //   notifying
+  if (!query_allowed) {
+    // empty table
+    _result_table = Table::create_dummy_table(TableColumnDefinitions{});
   }
 
   return _result_table;

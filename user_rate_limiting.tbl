@@ -1,0 +1,4 @@
+user|query_limit|row_count_limit
+string|int|int
+john|5|100
+tim|2|10

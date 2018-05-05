@@ -43,8 +43,6 @@ namespace filesystem = std::experimental::filesystem;
 #include "sql/sql_pipeline_statement.hpp"
 #include "sql/sql_translator.hpp"
 #include "storage/storage_manager.hpp"
-#include "storage/table.hpp"
-#include "storage/table_column_definition.hpp"
 #include "tpcc/tpcc_table_generator.hpp"
 #include "utils/load_table.hpp"
 
@@ -842,18 +840,6 @@ int main(int argc, char** argv) {
 
   // Timestamp dump only to logfile
   console.out("--- Session start --- " + current_timestamp() + "\n", false);
-
-  // Create audit log table.
-  opossum::TableColumnDefinitions column_definitions;
-  column_definitions.emplace_back("user", opossum::DataType::String, false);
-  column_definitions.emplace_back("commit_id", opossum::DataType::Int, false);
-  column_definitions.emplace_back("epoch_ms", opossum::DataType::Long, false);
-  column_definitions.emplace_back("query", opossum::DataType::String, false);
-  column_definitions.emplace_back("row_count", opossum::DataType::Long, false);
-  column_definitions.emplace_back("execution_time_micros", opossum::DataType::Long, false);
-  std::shared_ptr<opossum::Table> audit_log_table =
-      std::make_shared<opossum::Table>(column_definitions, opossum::TableType::Data);
-  opossum::StorageManager::get().add_table("audit_log", audit_log_table);
 
   int return_code = Return::Ok;
 
