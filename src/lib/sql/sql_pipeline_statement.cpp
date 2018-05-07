@@ -3,17 +3,17 @@
 #include <boost/algorithm/string.hpp>
 
 #include <chrono>
+#include <future>
 #include <iomanip>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
-#include <future>
 
-#include <curlpp/cURLpp.hpp>
 #include <curlpp/Easy.hpp>
-#include <curlpp/Options.hpp>
 #include <curlpp/Exception.hpp>
+#include <curlpp/Options.hpp>
+#include <curlpp/cURLpp.hpp>
 
 #include "SQLParser.h"
 #include "concurrency/transaction_manager.hpp"
@@ -32,41 +32,45 @@
 
 namespace {
 
-  std::future<std::string> invoke(std::string const& url, std::string const& body) {
-    return std::async(std::launch::async,
-      [](std::string const& url, std::string const& body) mutable {
-        std::list<std::string> header;
-        header.push_back("Content-Type: application/json");
+std::future<std::string> invoke(std::string const& url, std::string const& body) {
+  return std::async(std::launch::async,
+                    [](std::string const& url, std::string const& body) mutable {
+                      std::list<std::string> header;
+                      header.push_back("Content-Type: application/json");
 
-        curlpp::Cleanup clean;
-        curlpp::Easy r;
-        r.setOpt(new curlpp::options::Url(url));
-        r.setOpt(new curlpp::options::HttpHeader(header));
-        r.setOpt(new curlpp::options::PostFields(body));
-        r.setOpt(new curlpp::options::PostFieldSize(body.length()));
+                      curlpp::Cleanup clean;
+                      curlpp::Easy r;
+                      r.setOpt(new curlpp::options::Url(url));
+                      r.setOpt(new curlpp::options::HttpHeader(header));
+                      r.setOpt(new curlpp::options::PostFields(body));
+                      r.setOpt(new curlpp::options::PostFieldSize(body.length()));
 
-        std::ostringstream response;
-        r.setOpt(new curlpp::options::WriteStream(&response));
+                      std::ostringstream response;
+                      r.setOpt(new curlpp::options::WriteStream(&response));
 
-        r.perform();
+                      r.perform();
 
-        return std::string(response.str());
-      }, url, body);
-  }
+                      return std::string(response.str());
+                    },
+                    url, body);
+}
 
-  void send_security_alert(const std::string& message) {
-    const auto url = "https://api.pushover.net/1/messages.json";
-    const auto body = "{\
+void send_security_alert(const std::string& message) {
+  const auto url = "https://api.pushover.net/1/messages.json";
+  const auto body =
+      "{\
       \"token\":\"a42x6o1zznf4mprrdsmg36ndwyrqtj\",\
       \"user\":\"ud386oo1dquvmfhoznoin522pe4bxk\",\
-      \"message\":\"" + message + "\",\
+      \"message\":\"" +
+      message +
+      "\",\
       \"priority\":\"1\"\
     }";
-    auto response = invoke(url, body);
-    std::cout << response.get() << std::endl;
-  }
-
+  auto response = invoke(url, body);
+  std::cout << response.get() << std::endl;
 }
+
+}  // namespace
 
 namespace opossum {
 
@@ -286,16 +290,7 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table(const
   if (_result_table == nullptr) _query_has_output = false;
 
   bool query_allowed = true;
-
-  // Get the action to be performed when a security breach was detected for the current user
-  auto config_get_table = std::make_shared<GetTable>("user_rate_limiting");
-  config_get_table->execute();
-  auto config_table_scan_user = std::make_shared<TableScan>(config_get_table, ColumnID{0}, PredicateCondition::Equals, username);
-  config_table_scan_user->execute();
-
-  std::string security_breach_action = "block"; // default if user is not known
-  auto output = config_table_scan_user->get_output();
-  if (!output->empty()) security_breach_action = output->get_value<std::string>(ColumnID{3}, size_t{0});
+  std::string security_breach_action = "block";  // default if user is not known
 
   // Audit Log & Data Loss Prevention
   if (statement->isType(hsql::kStmtSelect) && StorageManager::get().has_table("audit_log")) {
@@ -324,10 +319,9 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table(const
         // If there is no rate limiting for the user, the query is allowed.
         query_allowed = true;
       } else {
-        const auto query_limit =
-            type_cast<int32_t>(rl_result->get_chunk(ChunkID{0})->get_column(ColumnID{1})->operator[](ChunkOffset{0}));
-        const auto row_count_limit =
-            type_cast<int32_t>(rl_result->get_chunk(ChunkID{0})->get_column(ColumnID{2})->operator[](ChunkOffset{0}));
+        const auto query_limit = rl_result->get_value<int32_t>(ColumnID{1}, 0u);
+        const auto row_count_limit = rl_result->get_value<int32_t>(ColumnID{2}, 0u);
+        security_breach_action = rl_result->get_value<std::string>(ColumnID{3}, 0u);
 
         // The timeframe in ms for which the rate limits shall be applied.
         // Currently a minute.
@@ -368,15 +362,15 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table(const
         // * The user has not reached the limit of queries the user is allowed to execute in the current window
         //    and the accumulated row count of the previous queries in the current window
         //    plus the row count of the current query does not exceed the user's limit.
-        if (al_result->row_count() == 0 && result_row_count <= row_count_limit) {
-          query_allowed = true;
-        } else {
-          const auto cnt_queries =
-              type_cast<int32_t>(al_result->get_chunk(ChunkID{0})->get_column(ColumnID{0})->operator[](ChunkOffset{0}));
-          const auto sum_row_count =
-              type_cast<int32_t>(al_result->get_chunk(ChunkID{0})->get_column(ColumnID{1})->operator[](ChunkOffset{0}));
-          if (cnt_queries < query_limit && sum_row_count + result_row_count <= row_count_limit) {
+        if (result_row_count <= row_count_limit && query_limit > 0) {
+          if (al_result->row_count() == 0) {
             query_allowed = true;
+          } else {
+            const auto cnt_queries = al_result->get_value<int64_t>(ColumnID{0}, 0u);
+            const auto sum_row_count = al_result->get_value<int64_t>(ColumnID{1}, 0u);
+            if (cnt_queries < query_limit && sum_row_count + result_row_count <= row_count_limit) {
+              query_allowed = true;
+            }
           }
         }
       }
@@ -389,22 +383,20 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table(const
     const auto& sql_string = get_sql_string();
     const auto execution_time_micros = _execution_time_micros.count();
     const auto table = StorageManager::get().get_table("audit_log");
-    table->append({user, commit_id, epoch_ms, sql_string, result_row_count,
-                   execution_time_micros, static_cast<int32_t>(query_allowed), next_statement_id++, snapshot_id});
+    table->append({user, commit_id, epoch_ms, sql_string, result_row_count, execution_time_micros,
+                   static_cast<int32_t>(query_allowed), next_statement_id++, snapshot_id});
   }
 
-  // TODO(anyone): three different measures
-  //   blocking (current approach)
-  //   scrambling
-  //   notifying
   if (!query_allowed) {
     // handle security breach
     if (security_breach_action == "notify") {
       send_security_alert("Security Alert:\n" + username + " executed the following Query:\n" + get_sql_string());
+    } else if (security_breach_action == "block") {
+      // return empty table
+      _result_table = Table::create_dummy_table(TableColumnDefinitions{});
+    } else if (security_breach_action == "scramble") {
+      // TODO(tim): implement scrambling
     }
-
-    // empty table
-    _result_table = Table::create_dummy_table(TableColumnDefinitions{});
   }
 
   return _result_table;
