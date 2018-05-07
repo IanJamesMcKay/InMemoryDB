@@ -113,6 +113,7 @@ void BasicCardinalityEstimator::_apply_predicate(const AbstractJoinPlanPredicate
       estimation_state.current_cardinality *= estimate.selectivity;
     }
 
+    // Cap distinct_counts to cardinality because there can't be more distinct values than there are rows
     for (auto& pair : estimation_state.column_statistics) {
       const auto& column = pair.first;
       if (estimation_state.vertices_not_joined.find(estimation_state.vertices.find(column)->second) != estimation_state.vertices_not_joined.end()) continue;
@@ -145,14 +146,14 @@ void BasicCardinalityEstimator::_apply_predicate(const AbstractJoinPlanPredicate
         estimation_state.current_cardinality =
         estimation_state_left_input.current_cardinality + estimation_state_right_input.current_cardinality * TableStatistics::DEFAULT_DISJUNCTION_SELECTIVITY;
         estimation_state.vertices_not_joined.clear();
+        estimation_state.column_statistics = estimation_state_left_input.column_statistics; // The LQP::derive_statistics does this too, so let's not diverge from that for now
 
         std::set_intersection(estimation_state_left_input.vertices_not_joined.begin(),
                               estimation_state_left_input.vertices_not_joined.end(),
                               estimation_state_right_input.vertices_not_joined.begin(),
                               estimation_state_right_input.vertices_not_joined.end(),
                               std::inserter(estimation_state.vertices_not_joined, estimation_state.vertices_not_joined.begin()));
-      }
-        break;
+      } break;
     }
   }
 }
