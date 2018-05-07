@@ -19,15 +19,15 @@ int main(int argc, char* argv[]) {
 
   // Create audit log table.
   opossum::TableColumnDefinitions column_definitions;
-  column_definitions.emplace_back("id", opossum::DataType::Int, false);
   column_definitions.emplace_back("user", opossum::DataType::String, false);
   column_definitions.emplace_back("commit_id", opossum::DataType::Int, false);
-  column_definitions.emplace_back("snapshot_id", opossum::DataType::Int, false);
   column_definitions.emplace_back("epoch_ms", opossum::DataType::Long, false);
   column_definitions.emplace_back("query", opossum::DataType::String, false);
   column_definitions.emplace_back("row_count", opossum::DataType::Long, false);
   column_definitions.emplace_back("execution_time_micros", opossum::DataType::Long, false);
   column_definitions.emplace_back("query_allowed", opossum::DataType::Int, false);
+  column_definitions.emplace_back("id", opossum::DataType::Int, false);
+  column_definitions.emplace_back("snapshot_id", opossum::DataType::Int, false);
   std::shared_ptr<opossum::Table> audit_log_table =
       std::make_shared<opossum::Table>(column_definitions, opossum::TableType::Data);
   opossum::StorageManager::get().add_table("audit_log", audit_log_table);

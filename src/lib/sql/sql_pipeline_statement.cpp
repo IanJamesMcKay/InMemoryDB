@@ -389,8 +389,8 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table(const
     const auto& sql_string = get_sql_string();
     const auto execution_time_micros = _execution_time_micros.count();
     const auto table = StorageManager::get().get_table("audit_log");
-    table->append({next_statement_id++, user, commit_id, snapshot_id, epoch_ms, sql_string, result_row_count,
-                   execution_time_micros, static_cast<int32_t>(query_allowed)});
+    table->append({user, commit_id, epoch_ms, sql_string, result_row_count,
+                   execution_time_micros, static_cast<int32_t>(query_allowed), next_statement_id++, snapshot_id});
   }
 
   // TODO(anyone): three different measures
