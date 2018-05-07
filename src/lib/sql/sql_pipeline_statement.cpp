@@ -292,7 +292,10 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table(const
   config_get_table->execute();
   auto config_table_scan_user = std::make_shared<TableScan>(config_get_table, ColumnID{0}, PredicateCondition::Equals, username);
   config_table_scan_user->execute();
-  auto security_breach_action = config_table_scan_user->get_output()->get_value<std::string>(ColumnID{3}, size_t{0});
+
+  std::string security_breach_action = "block"; // default if user is not known
+  auto output = config_table_scan_user->get_output();
+  if (!output->empty()) security_breach_action = output->get_value<std::string>(ColumnID{3}, size_t{0});
 
   // Audit Log & Data Loss Prevention
   if (statement->isType(hsql::kStmtSelect) && StorageManager::get().has_table("audit_log")) {
