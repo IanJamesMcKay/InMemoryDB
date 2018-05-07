@@ -36,6 +36,7 @@
 #include "planviz/lqp_visualizer.hpp"
 #include "planviz/sql_query_plan_visualizer.hpp"
 #include "scheduler/current_scheduler.hpp"
+#include "statistics/cardinality_estimator_execution.hpp"
 #include "statistics/statistics_import_export.hpp"
 #include "sql/sql_pipeline_statement.hpp"
 #include "sql/sql.hpp"
@@ -501,7 +502,9 @@ int main(int argc, char ** argv) {
       const auto lqp_root = LogicalPlanRootNode::make(lqp);
       const auto join_graph = JoinGraph::from_lqp(lqp);
 
-      DpCcpTopK dp_ccp_top_k{DpSubplanCacheTopK::NO_ENTRY_LIMIT, cost_model};
+      const auto cardinality_estimator = std::make_shared<CardinalityEstimatorExecution>();
+
+      DpCcpTopK dp_ccp_top_k{DpSubplanCacheTopK::NO_ENTRY_LIMIT, cost_model, cardinality_estimator};
 
       dp_ccp_top_k(join_graph);
 

@@ -1,4 +1,4 @@
-#include "basic_cardinality_estimator.hpp"
+#include "cardinality_estimator_column_statistics.hpp"
 
 #include <algorithm>
 #include <unordered_set>
@@ -17,7 +17,7 @@
 
 namespace opossum {
 
-Cardinality BasicCardinalityEstimator::estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices,
+Cardinality CardinalityEstimatorColumnStatistics::estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices,
                                                 const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates) const {
   Assert(!vertices.empty(), "Can't perform estimation on empty set of statistics");
 
@@ -52,7 +52,7 @@ Cardinality BasicCardinalityEstimator::estimate(const std::vector<std::shared_pt
   return estimation_state.current_cardinality;
 }
 
-void BasicCardinalityEstimator::_init_estimation_state(const AbstractJoinPlanPredicate& predicate, const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices, EstimationState& estimation_state) {
+void CardinalityEstimatorColumnStatistics::_init_estimation_state(const AbstractJoinPlanPredicate& predicate, const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices, EstimationState& estimation_state) {
   if (predicate.type() == JoinPlanPredicateType::Atomic)  {
     const auto& atomic_predicate = static_cast<const JoinPlanAtomicPredicate&>(predicate);
 
@@ -69,7 +69,7 @@ void BasicCardinalityEstimator::_init_estimation_state(const AbstractJoinPlanPre
   }
 }
 
-void BasicCardinalityEstimator::_add_column_reference(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices, const LQPColumnReference& column_reference, EstimationState& estimation_state) {
+void CardinalityEstimatorColumnStatistics::_add_column_reference(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices, const LQPColumnReference& column_reference, EstimationState& estimation_state) {
   for (const auto& vertex : vertices) {
     const auto column_id = vertex->find_output_column_id(column_reference);
     if (column_id) {
@@ -82,7 +82,7 @@ void BasicCardinalityEstimator::_add_column_reference(const std::vector<std::sha
   Fail("No vertex outputs this column");
 }
 
-void BasicCardinalityEstimator::_apply_predicate(const AbstractJoinPlanPredicate& predicate,
+void CardinalityEstimatorColumnStatistics::_apply_predicate(const AbstractJoinPlanPredicate& predicate,
                                                  EstimationState& estimation_state) {
   if (predicate.type() == JoinPlanPredicateType::Atomic)  {
     const auto& atomic_predicate = static_cast<const JoinPlanAtomicPredicate&>(predicate);
@@ -158,7 +158,7 @@ void BasicCardinalityEstimator::_apply_predicate(const AbstractJoinPlanPredicate
   }
 }
 
-void BasicCardinalityEstimator::_ensure_vertex_is_joined(EstimationState& estimation_state, const LQPColumnReference& column_reference) {
+void CardinalityEstimatorColumnStatistics::_ensure_vertex_is_joined(EstimationState& estimation_state, const LQPColumnReference& column_reference) {
   const auto vertex = estimation_state.vertices.find(column_reference)->second;
 
   const auto vertex_iter = estimation_state.vertices_not_joined.find(vertex);

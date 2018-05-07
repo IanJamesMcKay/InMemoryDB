@@ -2,7 +2,7 @@
 
 #include "logical_query_plan/mock_node.hpp"
 #include "optimizer/join_ordering/join_plan_predicate.hpp"
-#include "statistics/basic_cardinality_estimator.hpp"
+#include "statistics/cardinality_estimator_column_statistics.hpp"
 #include "statistics/column_statistics.hpp"
 #include "statistics/table_statistics.hpp"
 
@@ -43,7 +43,7 @@ class BasicCardinalityEstimatorTest : public ::testing::Test {
 
   std::shared_ptr<AbstractLQPNode> vertex_x, vertex_y, vertex_z;
   std::shared_ptr<const AbstractJoinPlanPredicate> x1_lt_4, x1_gt_5, x2_ge_10, x2_ge_14, x1_gt_8, x1_lt_8, x1_eq_y1, x1_ne_y1, y1_eq_z1, y1_gt_5;
-  BasicCardinalityEstimator cardinality_estimator;
+  CardinalityEstimatorColumnStatistics cardinality_estimator;
 
 };
 
@@ -72,7 +72,7 @@ TEST_F(BasicCardinalityEstimatorTest, AtomicJoinPredicates) {
 TEST_F(BasicCardinalityEstimatorTest, AtomicJoinPredicatesWithDistinctCapping) {
   // Test that `vertex_x JOIN vertex_y ON x1 = y1 AND x2 >= 14` receives a selectivity penalty for x2 >= 14 selecting
   // less tuples than the distinct count of x1.
-  // Currently the BasicCardinalityEstimator will just cap x1's distinct_count at 4, which is the cardinality after
+  // Currently the CardinalityEstimatorColumnStatistics will just cap x1's distinct_count at 4, which is the cardinality after
   // applying (x2 >= 14).
   EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x, vertex_y}, {x2_ge_14, x1_eq_y1}), 1.2f);
   EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_y, vertex_x}, {x1_eq_y1, x2_ge_14}), 1.2f);

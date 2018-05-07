@@ -8,7 +8,7 @@
 #include "optimizer/join_ordering/join_plan_join_node.hpp"
 #include "optimizer/join_ordering/join_plan_vertex_node.hpp"
 #include "storage/storage_manager.hpp"
-#include "statistics/basic_cardinality_estimator.hpp"
+#include "statistics/cardinality_estimator_column_statistics.hpp"
 #include "statistics/column_statistics.hpp"
 #include "statistics/table_statistics.hpp"
 #include "utils/load_table.hpp"
@@ -50,7 +50,7 @@ class JoinPlanTest : public ::testing::Test {
 
   std::shared_ptr<AbstractLQPNode> vertex_r, vertex_s, vertex_t;
   std::shared_ptr<const AbstractJoinPlanPredicate> a_lt_4, a_gt_5, a_gt_8, a_lt_8, a_eq_d, d_eq_f, b_lt_5, a_ne_b, b_eq_d;
-  BasicCardinalityEstimator cardinality_estimator;
+  CardinalityEstimatorColumnStatistics cardinality_estimator;
   CostModelNaive cost_model;
   LQPColumnReference a, d, f, b;
 };

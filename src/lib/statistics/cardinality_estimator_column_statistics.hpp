@@ -10,7 +10,7 @@ namespace opossum {
 
 class AbstractColumnStatistics;
 
-class BasicCardinalityEstimator : public AbstractCardinalityEstimator {
+class CardinalityEstimatorColumnStatistics : public AbstractCardinalityEstimator {
  public:
   Cardinality estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices,
                        const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates) const override;

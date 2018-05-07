@@ -11,7 +11,7 @@
 #include "optimizer/join_ordering/join_plan_join_node.hpp"
 #include "optimizer/join_ordering/join_plan_vertex_node.hpp"
 #include "storage/storage_manager.hpp"
-#include "statistics/basic_cardinality_estimator.hpp"
+#include "statistics/cardinality_estimator_column_statistics.hpp"
 #include "statistics/column_statistics.hpp"
 #include "statistics/table_statistics.hpp"
 #include "utils/load_table.hpp"
@@ -22,7 +22,7 @@ namespace opossum {
 class DpCcpTest : public ::testing::Test {
  public:
   void SetUp() override {
-    cardinality_estimator = std::make_shared<BasicCardinalityEstimator>();
+    cardinality_estimator = std::make_shared<CardinalityEstimatorColumnStatistics>();
     cost_model = std::make_shared<CostModelNaive>();
 
     const auto column_statistics_a = std::make_shared<ColumnStatistics<int32_t>>(0.0f, 10.0f, 1, 10);
@@ -51,7 +51,7 @@ class DpCcpTest : public ::testing::Test {
 
   std::shared_ptr<AbstractLQPNode> vertex_r, vertex_s, vertex_t;
   std::shared_ptr<const AbstractJoinPlanPredicate> a_lt_4, a_gt_5, a_gt_8, a_lt_8, a_eq_d, d_eq_f;
-  std::shared_ptr<BasicCardinalityEstimator> cardinality_estimator;
+  std::shared_ptr<CardinalityEstimatorColumnStatistics> cardinality_estimator;
   std::shared_ptr<CostModelNaive> cost_model;
   LQPColumnReference a, d, f;
 };

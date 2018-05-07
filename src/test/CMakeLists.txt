@@ -134,7 +134,7 @@ set(
 #    utils/cuckoo_hashtable_test.cpp
 #    utils/numa_memory_resource_test.cpp
 #    utils/format_bytes_test.cpp
-    statistics/basic_cardinality_estimator_test.cpp
+    statistics/cardinality_estimator_column_statistics_test.cpp
 )
 
 set (

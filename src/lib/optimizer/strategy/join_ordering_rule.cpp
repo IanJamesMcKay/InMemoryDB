@@ -19,9 +19,9 @@ bool JoinOrderingRule::apply_to(const std::shared_ptr<AbstractLQPNode>& root) {
 
   const auto join_graph = JoinGraphBuilder{}(root);  // NOLINT
 
-  for (const auto& vertex : join_graph->vertices) {
-    vertex->clear_outputs();
-  }
+//  for (const auto& vertex : join_graph->vertices) {
+//    vertex->clear_outputs();
+//  }
 
   const auto join_plan = (*_join_ordering_algorithm)(join_graph);
   const auto lqp = join_plan.lqp;

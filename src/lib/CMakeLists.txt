@@ -211,6 +211,8 @@ set(
     cost_model/cost_model_segmented_sampler.hpp
     optimizer/join_ordering/base_join_graph.cpp
     optimizer/join_ordering/base_join_graph.hpp
+    optimizer/join_ordering/build_lqp_for_predicate.cpp
+    optimizer/join_ordering/build_lqp_for_predicate.hpp
     optimizer/join_ordering/dp_ccp.cpp
     optimizer/join_ordering/dp_ccp.hpp
     optimizer/join_ordering/dp_ccp_top_k.cpp
@@ -286,8 +288,10 @@ set(
     statistics/statistics_import_export.hpp
     statistics/abstract_column_statistics.cpp
     statistics/abstract_column_statistics.hpp
-    statistics/basic_cardinality_estimator.cpp
-    statistics/basic_cardinality_estimator.hpp
+    statistics/cardinality_estimator_column_statistics.cpp
+    statistics/cardinality_estimator_column_statistics.hpp
+    statistics/cardinality_estimator_execution.cpp
+    statistics/cardinality_estimator_execution.hpp
     statistics/generate_column_statistics.cpp
     statistics/generate_column_statistics.hpp
     statistics/generate_table_statistics.cpp
