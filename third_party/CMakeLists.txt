@@ -63,6 +63,7 @@ endif()
 # Add Libraries with their own build setup
 add_subdirectory(tpch-dbgen)
 add_subdirectory(googletest)
+add_subdirectory(curlpp-0.8.1)
 
 # Add PGASUS
 if(${NUMA_FOUND})

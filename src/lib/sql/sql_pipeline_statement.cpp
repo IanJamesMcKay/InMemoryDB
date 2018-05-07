@@ -8,6 +8,12 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <future>
+
+#include <curlpp/cURLpp.hpp>
+#include <curlpp/Easy.hpp>
+#include <curlpp/Options.hpp>
+#include <curlpp/Exception.hpp>
 
 #include "SQLParser.h"
 #include "concurrency/transaction_manager.hpp"
@@ -23,6 +29,44 @@
 #include "sql/sql_translator.hpp"
 #include "storage/storage_manager.hpp"
 #include "utils/assert.hpp"
+
+namespace {
+
+  std::future<std::string> invoke(std::string const& url, std::string const& body) {
+    return std::async(std::launch::async,
+      [](std::string const& url, std::string const& body) mutable {
+        std::list<std::string> header;
+        header.push_back("Content-Type: application/json");
+
+        curlpp::Cleanup clean;
+        curlpp::Easy r;
+        r.setOpt(new curlpp::options::Url(url));
+        r.setOpt(new curlpp::options::HttpHeader(header));
+        r.setOpt(new curlpp::options::PostFields(body));
+        r.setOpt(new curlpp::options::PostFieldSize(body.length()));
+
+        std::ostringstream response;
+        r.setOpt(new curlpp::options::WriteStream(&response));
+
+        r.perform();
+
+        return std::string(response.str());
+      }, url, body);
+  }
+
+  void send_security_alert(const std::string& message) {
+    const auto url = "https://api.pushover.net/1/messages.json";
+    const auto body = "{\
+      \"token\":\"a42x6o1zznf4mprrdsmg36ndwyrqtj\",\
+      \"user\":\"ud386oo1dquvmfhoznoin522pe4bxk\",\
+      \"message\":\"" + message + "\",\
+      \"priority\":\"1\"\
+    }";
+    auto response = invoke(url, body);
+    std::cout << response.get() << std::endl;
+  }
+
+}
 
 namespace opossum {
 
@@ -241,6 +285,13 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table(const
 
   bool query_allowed = true;
 
+  // Get the action to be performed when a security breach was detected for the current user
+  auto config_get_table = std::make_shared<GetTable>("user_rate_limiting");
+  config_get_table->execute();
+  auto config_table_scan_user = std::make_shared<TableScan>(config_get_table, ColumnID{0}, PredicateCondition::Equals, username);
+  config_table_scan_user->execute();
+  auto security_breach_action = config_table_scan_user->get_output()->get_value<std::string>(ColumnID{3}, size_t{0});
+
   // Audit Log & Data Loss Prevention
   if (statement->isType(hsql::kStmtSelect) && StorageManager::get().has_table("audit_log")) {
     const auto result_row_count = static_cast<int64_t>(_result_table->row_count());
@@ -341,6 +392,11 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table(const
   //   scrambling
   //   notifying
   if (!query_allowed) {
+    // handle security breach
+    if (security_breach_action == "notify") {
+      send_security_alert("Security Alert:\n" + username + " executed the following Query:\n" + get_sql_string());
+    }
+
     // empty table
     _result_table = Table::create_dummy_table(TableColumnDefinitions{});
   }

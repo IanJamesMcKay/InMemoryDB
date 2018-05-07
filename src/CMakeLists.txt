@@ -68,6 +68,8 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/third_party/cxxopts/include
     ${PROJECT_SOURCE_DIR}/third_party/json
     ${PROJECT_SOURCE_DIR}/third_party/sql-parser/src
+    ${PROJECT_SOURCE_DIR}/third_party/curlpp-0.8.1/include
+    ${PROJECT_SOURCE_DIR}/third_party/curlpp-0.8.1/src
 
     ${PROJECT_SOURCE_DIR}/src/benchmarklib/
     ${PROJECT_SOURCE_DIR}/src/lib/

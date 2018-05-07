@@ -419,6 +419,7 @@ set(
     pthread
     sqlparser
     ${TBB_LIBRARY}
+    curlpp
 )
 
 if (${ENABLE_JIT_SUPPORT})
