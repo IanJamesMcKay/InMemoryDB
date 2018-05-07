@@ -70,14 +70,16 @@ namespace {
 
 namespace opossum {
 
+std::atomic_int32_t SQLPipelineStatement::next_statement_id = 0;
+
 SQLPipelineStatement::SQLPipelineStatement(const std::string& sql, std::shared_ptr<hsql::SQLParserResult> parsed_sql,
                                            const UseMvcc use_mvcc,
                                            const std::shared_ptr<TransactionContext>& transaction_context,
                                            const std::shared_ptr<Optimizer>& optimizer,
-                                           const PreparedStatementCache& prepared_statements)
+                                           const PreparedStatementCache& prepared_statements, const bool auto_commit)
     : _sql_string(sql),
       _use_mvcc(use_mvcc),
-      _auto_commit(_use_mvcc == UseMvcc::Yes && !transaction_context),
+      _auto_commit(auto_commit || (_use_mvcc == UseMvcc::Yes && !transaction_context)),
       _transaction_context(transaction_context),
       _optimizer(optimizer),
       _parsed_sql_statement(std::move(parsed_sql)),
@@ -380,11 +382,12 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table(const
     // Write audit log for this query.
     const AllTypeVariant user{username};
     const auto commit_id = static_cast<int32_t>(transaction_context()->commit_id());
+    const auto snapshot_id = static_cast<int32_t>(transaction_context()->snapshot_commit_id());
     const auto& sql_string = get_sql_string();
     const auto execution_time_micros = _execution_time_micros.count();
     const auto table = StorageManager::get().get_table("audit_log");
-    table->append({user, commit_id, epoch_ms, sql_string, result_row_count, execution_time_micros,
-                   static_cast<int32_t>(query_allowed)});
+    table->append({next_statement_id++, user, commit_id, snapshot_id, epoch_ms, sql_string, result_row_count,
+                   execution_time_micros, static_cast<int32_t>(query_allowed)});
   }
 
   // TODO(anyone): three different measures

@@ -2,19 +2,39 @@
 #include <boost/algorithm/string.hpp>
 #include <utility>
 #include "SQLParser.h"
+#include "concurrency/transaction_manager.hpp"
+#include "storage/storage_manager.hpp"
 
 namespace opossum {
 
-SQLPipeline::SQLPipeline(const std::string& sql, std::shared_ptr<TransactionContext> transaction_context,
-                         const UseMvcc use_mvcc, const std::shared_ptr<Optimizer>& optimizer,
+SQLPipeline::SQLPipeline(const std::string& _sql, std::shared_ptr<TransactionContext> transaction_context,
+                         const UseMvcc _use_mvcc, const std::shared_ptr<Optimizer>& optimizer,
                          const PreparedStatementCache& prepared_statements)
     : _transaction_context(transaction_context), _optimizer(optimizer) {
+  UseMvcc use_mvcc = _use_mvcc;
+  std::string sql = _sql;
   DebugAssert(!_transaction_context || _transaction_context->phase() == TransactionPhase::Active,
               "The transaction context cannot have been committed already.");
   DebugAssert(!_transaction_context || use_mvcc == UseMvcc::Yes,
               "Transaction context without MVCC enabled makes no sense");
 
+  bool auto_commit = false;
   hsql::SQLParserResult parse_result;
+
+  bool is_replay_command = boost::iequals(sql.substr(0, 7), "replay ");
+  if (is_replay_command) {
+    // currently only SELECT queries can be replayed correctly
+    int32_t replay_id = std::stoi(sql.substr(7));
+    const auto table = StorageManager::get().get_table("audit_log");
+    sql = table->get_value<std::string>(table->column_id_by_name("query"), replay_id);
+    auto snapshot_id = table->get_value<int32_t>(table->column_id_by_name("snapshot_id"), replay_id);
+    if (!_transaction_context) {
+      _transaction_context = TransactionManager::get().new_transaction_context();
+    }
+    use_mvcc = UseMvcc::Yes;
+    auto_commit = true;
+    _transaction_context->set_snapshot_commit_id(snapshot_id);
+  }
   try {
     hsql::SQLParser::parse(sql, &parse_result);
   } catch (const std::exception& exception) {
@@ -65,8 +85,9 @@ SQLPipeline::SQLPipeline(const std::string& sql, std::shared_ptr<TransactionCont
     const auto statement_string = boost::trim_copy(sql.substr(sql_string_offset, statement_string_length));
     sql_string_offset += statement_string_length;
 
-    auto pipeline_statement = std::make_shared<SQLPipelineStatement>(
-        statement_string, std::move(parsed_statement), use_mvcc, transaction_context, optimizer, prepared_statements);
+    auto pipeline_statement =
+        std::make_shared<SQLPipelineStatement>(statement_string, std::move(parsed_statement), use_mvcc,
+                                               _transaction_context, optimizer, prepared_statements, auto_commit);
     _sql_pipeline_statements.push_back(std::move(pipeline_statement));
   }
 

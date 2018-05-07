@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <string>
 
 #include "SQLParserResult.h"
@@ -34,7 +35,8 @@ class SQLPipelineStatement : public Noncopyable {
   // Prefer using the SQLPipelineBuilder for constructing SQLPipelineStatements conveniently
   SQLPipelineStatement(const std::string& sql, std::shared_ptr<hsql::SQLParserResult> parsed_sql,
                        const UseMvcc use_mvcc, const std::shared_ptr<TransactionContext>& transaction_context,
-                       const std::shared_ptr<Optimizer>& optimizer, const PreparedStatementCache& prepared_statements);
+                       const std::shared_ptr<Optimizer>& optimizer, const PreparedStatementCache& prepared_statements,
+                       const bool auto_commit = false);
 
   // Returns the raw SQL string.
   const std::string& get_sql_string();
@@ -70,7 +72,7 @@ class SQLPipelineStatement : public Noncopyable {
   static std::string create_parse_error_message(const std::string& sql, const hsql::SQLParserResult& result);
 
  private:
-  const std::string _sql_string;
+  std::string _sql_string;
   const UseMvcc _use_mvcc;
 
   // Perform MVCC commit right after the Statement was executed
@@ -95,6 +97,9 @@ class SQLPipelineStatement : public Noncopyable {
   // Execution times
   std::chrono::microseconds _compile_time_micros;
   std::chrono::microseconds _execution_time_micros;
+
+  // Next statement id used for audit log
+  static std::atomic_int32_t next_statement_id;
 
   PreparedStatementCache _prepared_statements;
   // Number of placeholders in prepared statement; default 0 becasue we assume no prepared statement

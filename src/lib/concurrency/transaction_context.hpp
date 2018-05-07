@@ -65,6 +65,8 @@ class TransactionContext : public std::enable_shared_from_this<TransactionContex
    */
   CommitID snapshot_commit_id() const;
 
+  void set_snapshot_commit_id(CommitID snapshot_id);
+
   /**
    * The commit id that this transaction has once it is committed. This is the one that is written to the
    * begin/end commit ids of rows modified by this transaction.
@@ -173,7 +175,7 @@ class TransactionContext : public std::enable_shared_from_this<TransactionContex
 
  private:
   const TransactionID _transaction_id;
-  const CommitID _snapshot_commit_id;
+  CommitID _snapshot_commit_id;
   std::vector<std::shared_ptr<AbstractReadWriteOperator>> _rw_operators;
 
   std::atomic<TransactionPhase> _phase;
