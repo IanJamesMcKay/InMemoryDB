@@ -1,4 +1,5 @@
-user|query_limit|row_count_limit
-string|int|int
-john|5|100
-tim|2|10
+user|query_limit|row_count_limit|action
+string|int|int|string
+john|5|100|block
+tim|3|10|scramble
+michael|0|0|notify
