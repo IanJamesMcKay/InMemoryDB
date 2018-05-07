@@ -277,9 +277,9 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table(const
         // Currently a minute.
         constexpr auto rate_limit_window_ms = 60 * 1000;
 
-        // select count(distinct query) as cnt_queries, sum(row_count) as sum_row_count
+        // select count(query) as cnt_queries, sum(row_count) as sum_row_count
         // from audit_log
-        // where user = username and timestamp > epoch_ms - rate_limit_window_ms
+        // where user = username and timestamp > epoch_ms - rate_limit_window_ms and query_allowed = 1
         auto al_get_table = std::make_shared<GetTable>("audit_log");
         al_get_table->execute();
 
@@ -291,10 +291,17 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table(const
             al_table_scan_user, ColumnID{2}, PredicateCondition::GreaterThanEquals, epoch_ms - rate_limit_window_ms);
         al_table_scan_timestamp->execute();
 
-        const std::vector<AggregateColumnDefinition> aggregate_definitions{
-            {ColumnID{0}, AggregateFunction::CountDistinct}, {ColumnID{4}, AggregateFunction::Sum}};
+        // We only use queries which have been allowed
+        // (and therefore for which the results have been returned to the user)
+        // to collect number of distinct queries and sum the row count.
+        auto al_table_scan_query_allowed =
+            std::make_shared<TableScan>(al_table_scan_timestamp, ColumnID{6}, PredicateCondition::Equals, 1);
+        al_table_scan_query_allowed->execute();
+
+        const std::vector<AggregateColumnDefinition> aggregate_definitions{{ColumnID{3}, AggregateFunction::Count},
+                                                                           {ColumnID{4}, AggregateFunction::Sum}};
         auto al_aggregate =
-            std::make_shared<Aggregate>(al_table_scan_timestamp, aggregate_definitions, std::vector<ColumnID>{});
+            std::make_shared<Aggregate>(al_table_scan_query_allowed, aggregate_definitions, std::vector<ColumnID>{});
         al_aggregate->execute();
 
         const auto al_result = al_aggregate->get_output();
