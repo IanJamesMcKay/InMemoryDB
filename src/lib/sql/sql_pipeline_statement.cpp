@@ -396,6 +396,9 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table(const
       _result_table = Table::create_dummy_table(TableColumnDefinitions{});
     } else if (security_breach_action == "scramble") {
       // TODO(tim): implement scrambling
+      for (auto& chunk : _result_table->chunks()) {
+        chunk->set_scramble(true);
+      }
     }
   }
 

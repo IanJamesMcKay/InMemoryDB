@@ -25,6 +25,10 @@ class BaseColumn : private Noncopyable {
   // returns the value at a given position
   virtual const AllTypeVariant operator[](const ChunkOffset chunk_offset) const = 0;
 
+  // returns a scrambled value at a given position
+  // scrambling is currently only implemented for DictionaryColumn!
+  virtual const AllTypeVariant get_scrambled_value(const ChunkOffset chunk_offset) const;
+
   // appends the value at the end of the column
   virtual void append(const AllTypeVariant& val) = 0;
 

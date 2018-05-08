@@ -25,6 +25,8 @@ class ReferenceColumn : public BaseColumn {
 
   const AllTypeVariant operator[](const ChunkOffset chunk_offset) const override;
 
+  const AllTypeVariant get_scrambled_value(const ChunkOffset chunk_offset) const override;
+
   void append(const AllTypeVariant&) override;
 
   size_t size() const final;

@@ -18,7 +18,9 @@ DictionaryColumn<T>::DictionaryColumn(const std::shared_ptr<const pmr_vector<T>>
     : BaseDictionaryColumn(data_type_from_type<T>()),
       _dictionary{dictionary},
       _attribute_vector{attribute_vector},
-      _null_value_id{null_value_id} {}
+      _null_value_id{null_value_id},
+      _gen{_rd()},
+      _rand{0, static_cast<uint32_t>(dictionary->size()) - 1u} {}
 
 template <typename T>
 const AllTypeVariant DictionaryColumn<T>::operator[](const ChunkOffset chunk_offset) const {
@@ -34,6 +36,12 @@ const AllTypeVariant DictionaryColumn<T>::operator[](const ChunkOffset chunk_off
   }
 
   return (*_dictionary)[value_id];
+}
+
+template <typename T>
+const AllTypeVariant DictionaryColumn<T>::get_scrambled_value(const ChunkOffset chunk_offset) const {
+  const auto index = _rand(_gen);
+  return (*_dictionary)[index];
 }
 
 template <typename T>

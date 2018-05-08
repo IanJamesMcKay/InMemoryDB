@@ -31,6 +31,16 @@ const AllTypeVariant ReferenceColumn::operator[](const ChunkOffset chunk_offset)
   return (*chunk->get_column(_referenced_column_id))[row_id.chunk_offset];
 }
 
+const AllTypeVariant ReferenceColumn::get_scrambled_value(const ChunkOffset chunk_offset) const {
+  const auto row_id = _pos_list->at(chunk_offset);
+
+  if (row_id.is_null()) return NULL_VALUE;
+
+  auto chunk = _referenced_table->get_chunk(row_id.chunk_id);
+
+  return chunk->get_column(_referenced_column_id)->get_scrambled_value(row_id.chunk_offset);
+}
+
 void ReferenceColumn::append(const AllTypeVariant&) { Fail("ReferenceColumn is immutable"); }
 
 const std::shared_ptr<const PosList> ReferenceColumn::pos_list() const { return _pos_list; }

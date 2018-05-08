@@ -8,13 +8,16 @@
 #include "scheduler/node_queue_scheduler.hpp"
 #include "scheduler/topology.hpp"
 #include "server/server.hpp"
+#include "storage/chunk_encoder.hpp"
 #include "storage/storage_manager.hpp"
 #include "utils/load_table.hpp"
 
 int main(int argc, char* argv[]) {
   auto table_a = opossum::load_table("src/test/tables/int_float.tbl", 2);
-  auto customer = opossum::load_table("src/test/tables/tpch/sf-0.001/customer.tbl", 2);
   opossum::StorageManager::get().add_table("table_a", table_a);
+
+  auto customer = opossum::load_table("src/test/tables/tpch/sf-0.001/customer.tbl", 10);
+  opossum::ChunkEncoder::encode_all_chunks(customer, opossum::EncodingType::Dictionary);
   opossum::StorageManager::get().add_table("customer", customer);
 
   // Create audit log table.

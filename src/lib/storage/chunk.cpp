@@ -23,7 +23,7 @@ const ChunkOffset Chunk::MAX_SIZE = std::numeric_limits<ChunkOffset>::max() - 1;
 Chunk::Chunk(const ChunkColumns& columns, std::shared_ptr<MvccColumns> mvcc_columns,
              const std::optional<PolymorphicAllocator<Chunk>>& alloc,
              const std::shared_ptr<ChunkAccessCounter> access_counter)
-    : _columns(columns), _mvcc_columns(mvcc_columns), _access_counter(access_counter) {
+    : _columns(columns), _mvcc_columns(mvcc_columns), _access_counter(access_counter), _scramble(false) {
 #if IS_DEBUG
   const auto chunk_size = columns.empty() ? 0u : columns[0]->size();
   Assert(!_mvcc_columns || _mvcc_columns->size() == chunk_size, "Invalid MvccColumns size");
@@ -208,5 +208,9 @@ void Chunk::set_statistics(std::shared_ptr<ChunkStatistics> chunk_statistics) {
               "ChunkStatistics must have same column amount as Chunk");
   _statistics = chunk_statistics;
 }
+
+void Chunk::set_scramble(const bool scramble) { _scramble = scramble; }
+
+bool Chunk::should_scramble() const { return _scramble; };
 
 }  // namespace opossum

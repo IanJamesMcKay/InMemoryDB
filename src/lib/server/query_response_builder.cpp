@@ -110,7 +110,12 @@ boost::future<void> QueryResponseBuilder::send_query_response_rows(send_row_t se
 
   for (ColumnID column_id{0}; column_id < ColumnID{chunk.column_count()}; ++column_id) {
     const auto& column = chunk.get_column(column_id);
-    row_strings[column_id] = type_cast<std::string>((*column)[current_chunk_offset]);
+
+    if (chunk.should_scramble()) {
+      row_strings[column_id] = type_cast<std::string>(column->get_scrambled_value(current_chunk_offset));
+    } else {
+      row_strings[column_id] = type_cast<std::string>((*column)[current_chunk_offset]);
+    }
   }
 
   return send_row(row_strings) >> then >> std::bind(QueryResponseBuilder::send_query_response_rows, send_row,

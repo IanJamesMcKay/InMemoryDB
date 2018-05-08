@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <random>
 #include <string>
 
 #include "base_dictionary_column.hpp"
@@ -31,6 +32,8 @@ class DictionaryColumn : public BaseDictionaryColumn {
    */
 
   const AllTypeVariant operator[](const ChunkOffset chunk_offset) const final;
+
+  const AllTypeVariant get_scrambled_value(const ChunkOffset chunk_offset) const final;
 
   size_t size() const final;
 
@@ -65,6 +68,9 @@ class DictionaryColumn : public BaseDictionaryColumn {
   const std::shared_ptr<const pmr_vector<T>> _dictionary;
   const std::shared_ptr<const BaseCompressedVector> _attribute_vector;
   const ValueID _null_value_id;
+  std::random_device _rd;
+  mutable std::mt19937 _gen;
+  mutable std::uniform_int_distribution<uint32_t> _rand;
 };
 
 }  // namespace opossum

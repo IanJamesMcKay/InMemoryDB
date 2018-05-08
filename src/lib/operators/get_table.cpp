@@ -42,6 +42,8 @@ std::shared_ptr<AbstractOperator> GetTable::_on_recreate(
 
 std::shared_ptr<const Table> GetTable::_on_execute() {
   auto original_table = StorageManager::get().get_table(_name);
+  // Pruning disabled due to issues with MVCC.
+  /**
   if (_excluded_chunk_ids.empty()) {
     return original_table;
   }
@@ -61,6 +63,8 @@ std::shared_ptr<const Table> GetTable::_on_execute() {
   }
 
   return pruned_table;
+  */
+  return original_table;
 }
 
 }  // namespace opossum

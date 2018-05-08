@@ -136,6 +136,10 @@ class Chunk : private Noncopyable {
 
   void set_statistics(std::shared_ptr<ChunkStatistics> statistics);
 
+  void set_scramble(const bool scramble);
+
+  bool should_scramble() const;
+
   /**
    * For debugging purposes, makes an estimation about the memory used by this Chunk and its Columns
    */
@@ -151,6 +155,7 @@ class Chunk : private Noncopyable {
   std::shared_ptr<ChunkAccessCounter> _access_counter;
   pmr_vector<std::shared_ptr<BaseIndex>> _indices;
   std::shared_ptr<ChunkStatistics> _statistics;
+  bool _scramble;
 };
 
 }  // namespace opossum
