@@ -2,6 +2,7 @@
 
 #include <numeric>
 #include <stack>
+#include <queue>
 
 #include "join_edge.hpp"
 #include "logical_query_plan/join_node.hpp"
@@ -13,22 +14,47 @@ namespace opossum {
 
 std::shared_ptr<JoinGraph> JoinGraphBuilder::operator()(const std::shared_ptr<AbstractLQPNode>& lqp) {
   /**
-   * Traverse the LQP until the first non-vertex type (e.g. a UnionNode) is found or a node doesn't have precisely
-   * one input. This way, we traverse past Sort/Aggregate etc. nodes that later form the "outputs" of the JoinGraph
+   * 1. Find the "JoinGraphRootNode"
+   * Traverse the LQP for the first non-vertex node, i.e., the "root" node of the JoinGraph. This is the root node from
+   * which on we actually look for JoinPlanPredicates and Vertices
    */
-  auto current_node = lqp;
-  while (_lqp_node_type_is_vertex(current_node->type())) {
-    if (!current_node->left_input() || current_node->right_input()) {
-      break;
+  std::queue<std::shared_ptr<AbstractLQPNode>> bfs_queue;
+  std::unordered_set<std::shared_ptr<AbstractLQPNode>> visited_nodes;
+  std::vector<LQPOutputRelation> output_relations;
+  auto join_graph_root_node = std::shared_ptr<AbstractLQPNode>{};
+
+  bfs_queue.push(lqp);
+  while(!bfs_queue.empty()) {
+    const auto node = bfs_queue.front();
+    bfs_queue.pop();
+
+    if (!node) continue;
+    if (!visited_nodes.emplace(node).second) continue;
+
+    if (!_lqp_node_type_is_vertex(node->type()) || (!node->left_input() && !node->right_input())) {
+      Assert(!join_graph_root_node || join_graph_root_node == node, "Couldn't find non-ambiguous JoinGraphRootNode");
+      join_graph_root_node = node;
+    } else {
+      bfs_queue.push(node->left_input());
+      bfs_queue.push(node->right_input());
+
+      if (node->left_input() && !_lqp_node_type_is_vertex(node->left_input()->type())) {
+        output_relations.emplace_back(node, LQPInputSide::Left);
+      }
+      if (node->right_input() && !_lqp_node_type_is_vertex(node->right_input()->type())) {
+        output_relations.emplace_back(node, LQPInputSide::Right);
+      }
     }
-
-    current_node = current_node->left_input();
   }
-  const auto output_relations = current_node->output_relations();
 
-  // Traverse the LQP, identifying JoinPlanPredicates and Vertices
-  _traverse(current_node);
+  /**
+   * 2. Traverse the LQP from the "JoinGraphRootNode" found above, identifying JoinPlanPredicates and Vertices
+   */
+  _traverse(join_graph_root_node);
 
+  /**
+   * Turn the predicates into JoinEdges and build the JoinGraph
+   */
   auto edges = join_edges_from_predicates(_vertices, _predicates);
   auto cross_edges = cross_edges_between_components(_vertices, edges);
 

@@ -418,14 +418,14 @@ void AbstractLQPNode::print(std::ostream& out) const {
 
   auto node_index_pairs = print_directed_acyclic_graph<const AbstractLQPNode>(shared_from_this(), get_inputs_fn, node_print_fn, out);
 
-  for (const auto& pair : node_index_pairs) {
-    const auto& node = pair.first;
-    const auto index = pair.second;
+//  for (const auto& pair : node_index_pairs) {
+//    const auto& node = pair.first;
+//    const auto index = pair.second;
 
-    const auto info = node->cardinality_estimation_info();
+//    const auto info = node->cardinality_estimation_info();
 
-    if (!info.empty()) out << "[" << index << "]: " <<  info << std::endl;
-  }
+//    if (!info.empty()) out << "[" << index << "]: " <<  info << std::endl;
+//  }
 }
 
 std::string AbstractLQPNode::cardinality_estimation_info() const {
@@ -492,10 +492,20 @@ void AbstractLQPNode::_input_changed() {
 }
 
 void AbstractLQPNode::_remove_output_pointer(const AbstractLQPNode& output) {
-  const auto iter =
-      std::find_if(_outputs.begin(), _outputs.end(), [&](const auto& other) {
-        return &output == other.lock().get() || !other.lock().get();
-      });
+  const auto iter = std::find_if(_outputs.begin(), _outputs.end(), [&](const auto& other) {
+  /**
+        * HACK! We're checking for other.expired() here as well when looking for `output`
+       * If nothing else breaks the only way we might get `other.expired()` to be true is if `other` is the expired
+        * weak_ptr<> to output - and thus the element we're looking for - in the following scenario:
+         *
+         * auto node_a = Node::make()
+         * auto node_b = Node::make(..., node_a)
+         *
+         * node_b.reset(); // ~AbstractLQPNode() will call `node_a_remove_output_pointer(node_b)`
+         *                 // But we can't lock node_b anymore, since its ref count is already 0
+         */
+   return &output == other.lock().get() || other.expired();
+  });
   DebugAssert(iter != _outputs.end(), "Specified output node is not actually a output node of this node.");
 
   /**

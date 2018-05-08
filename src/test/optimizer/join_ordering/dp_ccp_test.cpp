@@ -57,6 +57,10 @@ class DpCcpTest : public ::testing::Test {
 };
 
 TEST_F(DpCcpTest, Basic) {
+  /**
+   * Test two vertices and a single join predicate
+   */
+
   auto join_edge = std::make_shared<JoinEdge>(boost::dynamic_bitset<>{2, 0b11}, std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>({a_eq_d}));
   auto join_graph = std::make_shared<JoinGraph>(
     std::vector<std::shared_ptr<AbstractLQPNode>>({vertex_r, vertex_s}),

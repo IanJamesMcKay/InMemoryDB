@@ -504,9 +504,15 @@ int main(int argc, char ** argv) {
 
       const auto cardinality_estimator = std::make_shared<CardinalityEstimatorExecution>();
 
+      std::cout << "Before DpCcp" << std::endl;
+      lqp->print();
+
       DpCcpTopK dp_ccp_top_k{DpSubplanCacheTopK::NO_ENTRY_LIMIT, cost_model, cardinality_estimator};
 
       dp_ccp_top_k(join_graph);
+
+      std::cout << "After DpCcp" << std::endl;
+      lqp->print();
 
       JoinVertexSet all_vertices{join_graph->vertices.size()};
       all_vertices.flip();

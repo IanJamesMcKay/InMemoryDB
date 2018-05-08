@@ -68,4 +68,13 @@ bool MockNode::shallow_equals(const AbstractLQPNode& rhs) const {
   return _constructor_arguments == mock_node._constructor_arguments;
 }
 
+std::shared_ptr<TableStatistics> MockNode::derive_statistics_from(
+  const std::shared_ptr<AbstractLQPNode>& left_input,
+  const std::shared_ptr<AbstractLQPNode>& right_input) const {
+  if (_constructor_arguments.type() != typeid(std::shared_ptr<TableStatistics>)) {
+    return boost::get<std::shared_ptr<TableStatistics>>(_constructor_arguments);
+  }
+  return AbstractLQPNode::derive_statistics_from(left_input, right_input);
+}
+
 }  // namespace opossum

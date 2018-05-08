@@ -77,9 +77,9 @@ set(
 #    optimizer/expression_test.cpp
     optimizer/join_ordering/dp_ccp_test.cpp
 #    optimizer/join_ordering/enumerate_ccp_test.cpp
-#    optimizer/join_ordering/join_graph_builder_test.cpp
-#    optimizer/join_ordering/join_graph_test.cpp
-#    optimizer/join_ordering/join_plan_predicate_test.cpp
+    optimizer/join_ordering/join_graph_builder_test.cpp
+    optimizer/join_ordering/join_graph_test.cpp
+    optimizer/join_ordering/join_plan_predicate_test.cpp
     optimizer/join_ordering/join_plan_test.cpp
 #    optimizer/lqp_translator_test.cpp
 #    optimizer/optimizer_test.cpp
@@ -135,6 +135,7 @@ set(
 #    utils/numa_memory_resource_test.cpp
 #    utils/format_bytes_test.cpp
     statistics/cardinality_estimator_column_statistics_test.cpp
+    statistics/cardinality_estimator_execution_test.cpp
 )
 
 set (
