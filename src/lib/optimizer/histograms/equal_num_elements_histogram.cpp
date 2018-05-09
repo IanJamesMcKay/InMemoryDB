@@ -24,11 +24,11 @@ void EqualNumElementsHistogram<T>::generate(const ColumnID column_id, const size
 
   // If there are fewer distinct values than the number of desired buckets use that instead.
   const auto distinct_count = result->row_count();
-  this->_num_buckets = distinct_count < max_num_buckets ? static_cast<size_t>(distinct_count) : max_num_buckets;
+  const auto num_buckets = distinct_count < max_num_buckets ? static_cast<size_t>(distinct_count) : max_num_buckets;
 
   // Split values evenly among buckets.
-  _values_per_bucket = distinct_count / this->_num_buckets;
-  const auto num_buckets_with_extra_value = distinct_count % this->_num_buckets;
+  _values_per_bucket = distinct_count / num_buckets;
+  const auto num_buckets_with_extra_value = distinct_count % num_buckets;
 
   // TODO(tim): fix
   DebugAssert(result->chunk_count() == 1, "Multiple chunks are currently not supported.");
@@ -41,7 +41,7 @@ void EqualNumElementsHistogram<T>::generate(const ColumnID column_id, const size
   const auto count_column =
       std::static_pointer_cast<const ValueColumn<int64_t>>(result->get_chunk(ChunkID{0})->get_column(ColumnID{1}));
 
-  for (size_t bucket_index = 0; bucket_index < this->_num_buckets; bucket_index++) {
+  for (size_t bucket_index = 0; bucket_index < num_buckets; bucket_index++) {
     const auto begin_index = bucket_index * _values_per_bucket;
     const auto end_index = (bucket_index + 1) * _values_per_bucket - 1;
 

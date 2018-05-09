@@ -16,7 +16,7 @@ AbstractHistogram<T>::AbstractHistogram(const std::shared_ptr<Table> table) : _t
 
 template <typename T>
 size_t AbstractHistogram<T>::num_buckets() const {
-  return _num_buckets;
+  return _counts.size();
 }
 
 template <typename T>

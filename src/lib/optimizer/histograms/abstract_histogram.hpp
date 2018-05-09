@@ -33,7 +33,6 @@ class AbstractHistogram {
   const std::shared_ptr<const Table> _get_value_counts(const ColumnID column_id) const;
 
   const std::weak_ptr<Table> _table;
-  size_t _num_buckets;
   std::vector<T> _mins;
   std::vector<T> _maxs;
   std::vector<uint64_t> _count_distincts;
