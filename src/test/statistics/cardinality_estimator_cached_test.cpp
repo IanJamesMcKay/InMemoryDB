@@ -83,26 +83,13 @@ TEST_F(CardinalityEstimatorCachedTest, Cache) {
   EXPECT_EQ(cardinality_estimation_cache->get({{vertex_a},{a0_gt_b0}}), std::nullopt);
 }
 
-TEST_F(CardinalityEstimatorCachedTest, CacheGet) {
-  cardinality_estimation_cache->put({{vertex_a}, {}}, 5);
-  EXPECT_EQ(cardinality_estimation_cache->size(), 1u);
-
-  cardinality_estimation_cache->put({{vertex_b}, {}}, 33);
-  EXPECT_EQ(cardinality_estimation_cache->size(), 2u);
-
-  cardinality_estimation_cache->put({{vertex_a, vertex_b}, {}}, 165);
-  EXPECT_EQ(cardinality_estimation_cache->size(), 3u);
-
-  cardinality_estimation_cache->put({{vertex_a, vertex_b}, {a0_eq_b0}}, 22);
-  EXPECT_EQ(cardinality_estimation_cache->size(), 4u);
-
-  cardinality_estimation_cache->put({{vertex_a, vertex_b}, {a0_gt_b0}}, 100);
-  EXPECT_EQ(cardinality_estimation_cache->size(), 5u);
-}
-
 TEST_F(CardinalityEstimatorCachedTest, EmptyCache) {
   EXPECT_EQ(cardinality_estimator->estimate({}, {}), 42);
-  EXPECT_EQ(cardinality_estimator->estimate({vertex_a, vertex_b}, {}), 42);
+  EXPECT_EQ(cardinality_estimator->estimate({vertex_a}, {}), 42);
+  EXPECT_EQ(cardinality_estimator->estimate({vertex_a, vertex_b}, {a0_eq_b0}), 42);
+
+  cardinality_estimation_cache->put({{vertex_a}, {}}, 5);
+  EXPECT_EQ(cardinality_estimator->estimate({vertex_a}, {}), 5);
   EXPECT_EQ(cardinality_estimator->estimate({vertex_a, vertex_b}, {a0_eq_b0}), 42);
 }
 

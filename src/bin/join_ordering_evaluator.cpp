@@ -37,6 +37,9 @@
 #include "planviz/sql_query_plan_visualizer.hpp"
 #include "scheduler/current_scheduler.hpp"
 #include "statistics/cardinality_estimator_execution.hpp"
+#include "statistics/cardinality_estimator_column_statistics.hpp"
+#include "statistics/cardinality_estimation_cache.hpp"
+#include "statistics/cardinality_estimator_cached.hpp"
 #include "statistics/statistics_import_export.hpp"
 #include "sql/sql_pipeline_statement.hpp"
 #include "sql/sql.hpp"
@@ -487,6 +490,14 @@ int main(int argc, char ** argv) {
 
   auto dotfile = boost::lexical_cast<std::string>((boost::uuids::random_generator())()) + ".dot";
 
+  const auto cardinality_estimation_cache = std::make_shared<CardinalityEstimationCache>();
+  const auto fallback_cardinality_estimator = std::make_shared<CardinalityEstimatorExecution>();
+
+//  const auto main_cardinality_estimator = std::make_shared<CardinalityEstimatorCached>(cardinality_estimation_cache,
+//    CardinalityEstimationCacheMode::ReadAndUpdate, fallback_cardinality_estimator);
+
+  const auto main_cardinality_estimator = std::make_shared<CardinalityEstimatorColumnStatistics>();
+
   for (const auto& cost_model : cost_models) {
     out() << "-- Evaluating Cost Model " << cost_model->name() << std::endl;
 
@@ -502,12 +513,10 @@ int main(int argc, char ** argv) {
       const auto lqp_root = LogicalPlanRootNode::make(lqp);
       const auto join_graph = JoinGraph::from_lqp(lqp);
 
-      const auto cardinality_estimator = std::make_shared<CardinalityEstimatorExecution>();
-
       std::cout << "Before DpCcp" << std::endl;
       lqp->print();
 
-      DpCcpTopK dp_ccp_top_k{DpSubplanCacheTopK::NO_ENTRY_LIMIT, cost_model, cardinality_estimator};
+      DpCcpTopK dp_ccp_top_k{DpSubplanCacheTopK::NO_ENTRY_LIMIT, cost_model, main_cardinality_estimator};
 
       dp_ccp_top_k(join_graph);
 
@@ -654,6 +663,11 @@ int main(int argc, char ** argv) {
           csv << plan_idx << "," << plan_durations[plan_idx] << "," << plan_cost_samples[plan_idx] << "\n";
         }
         csv.close();
+
+        /**
+         *
+         */
+        out() << "-- Cardinality Estimation Cache State " << cardinality_estimation_cache->cache_hit_count() << "|" << cardinality_estimation_cache->cache_miss_count() << std::endl;
       }
     }
   }
