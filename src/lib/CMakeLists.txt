@@ -288,6 +288,10 @@ set(
     statistics/statistics_import_export.hpp
     statistics/abstract_column_statistics.cpp
     statistics/abstract_column_statistics.hpp
+    statistics/cardinality_estimation_cache.cpp
+    statistics/cardinality_estimation_cache.hpp
+    statistics/cardinality_estimator_cached.cpp
+    statistics/cardinality_estimator_cached.hpp
     statistics/cardinality_estimator_column_statistics.cpp
     statistics/cardinality_estimator_column_statistics.hpp
     statistics/cardinality_estimator_execution.cpp

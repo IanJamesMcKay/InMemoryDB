@@ -53,6 +53,8 @@ class MockNode : public EnableMakeForLQPNode<MockNode>, public AbstractLQPNode {
       const std::shared_ptr<AbstractLQPNode>& copied_left_input,
       const std::shared_ptr<AbstractLQPNode>& copied_right_input) const override;
 
+  size_t _on_hash() const override;
+
  private:
   std::vector<std::string> _output_column_names;
 

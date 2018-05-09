@@ -2,9 +2,12 @@
 
 #include <unordered_set>
 
+#include "boost/functional/hash.hpp"
 #include "logical_query_plan/abstract_lqp_node.hpp"
 #include "logical_query_plan/lqp_column_reference.hpp"
 #include "utils/assert.hpp"
+#include "base_join_graph.hpp"
+#include "join_plan_predicate.hpp"
 
 namespace opossum {
 
@@ -25,6 +28,40 @@ std::shared_ptr<AbstractLQPNode> BaseJoinGraph::find_vertex(const LQPColumnRefer
     if (vertex->find_output_column_id(column_reference)) return vertex;
   }
   Fail("Couldn't find vertex");
+}
+
+bool BaseJoinGraph::operator==(const BaseJoinGraph& rhs) const {
+  return std::hash<BaseJoinGraph>{}(*this) == std::hash<BaseJoinGraph>{}(rhs);
+}
+
+}
+
+namespace std {
+
+using namespace opossum;  // NOLINT
+
+size_t hash<opossum::BaseJoinGraph>::operator()(const opossum::BaseJoinGraph& join_graph) const {
+  auto vertices = join_graph.vertices;
+  std::sort(vertices.begin(), vertices.end(), [](const auto& lhs, const auto& rhs) {
+    return lhs->hash() < rhs->hash();
+  });
+
+  auto predicates = join_graph.predicates;
+  std::sort(predicates.begin(), predicates.end(), [](const auto& lhs, const auto& rhs) {
+    return lhs->hash() < rhs->hash();
+  });
+
+  auto hash = boost::hash_value(vertices.size());
+  boost::hash_combine(hash, predicates.size());
+
+  for (const auto& vertex : vertices) {
+    boost::hash_combine(hash, vertex->hash());
+  }
+  for (const auto& predicate : predicates) {
+    boost::hash_combine(hash, predicate->hash());
+  }
+
+  return hash;
 }
 
 }

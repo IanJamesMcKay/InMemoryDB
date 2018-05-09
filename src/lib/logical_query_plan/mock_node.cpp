@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "boost/functional/hash.hpp"
 #include "statistics/table_statistics.hpp"
 #include "utils/assert.hpp"
 
@@ -75,6 +76,20 @@ std::shared_ptr<TableStatistics> MockNode::derive_statistics_from(
     return boost::get<std::shared_ptr<TableStatistics>>(_constructor_arguments);
   }
   return AbstractLQPNode::derive_statistics_from(left_input, right_input);
+}
+
+size_t MockNode::_on_hash() const {
+  if (_constructor_arguments.type() == typeid(ColumnDefinitions)) {
+    size_t hash = 0;
+    for (const auto& column_definition : boost::get<ColumnDefinitions>(_constructor_arguments)) {
+      boost::hash_combine(hash, static_cast<size_t>(column_definition.first));
+      boost::hash_combine(hash, column_definition.second);
+    }
+    return hash;
+  }
+  else {
+    return AbstractLQPNode::_on_hash();
+  }
 }
 
 }  // namespace opossum
