@@ -493,10 +493,10 @@ int main(int argc, char ** argv) {
   const auto cardinality_estimation_cache = std::make_shared<CardinalityEstimationCache>();
   const auto fallback_cardinality_estimator = std::make_shared<CardinalityEstimatorExecution>();
 
-//  const auto main_cardinality_estimator = std::make_shared<CardinalityEstimatorCached>(cardinality_estimation_cache,
-//    CardinalityEstimationCacheMode::ReadAndUpdate, fallback_cardinality_estimator);
+  const auto main_cardinality_estimator = std::make_shared<CardinalityEstimatorCached>(cardinality_estimation_cache,
+    CardinalityEstimationCacheMode::ReadAndUpdate, fallback_cardinality_estimator);
 
-  const auto main_cardinality_estimator = std::make_shared<CardinalityEstimatorColumnStatistics>();
+//  const auto main_cardinality_estimator = std::make_shared<CardinalityEstimatorColumnStatistics>();
 
   for (const auto& cost_model : cost_models) {
     out() << "-- Evaluating Cost Model " << cost_model->name() << std::endl;
@@ -516,7 +516,7 @@ int main(int argc, char ** argv) {
       std::cout << "Before DpCcp" << std::endl;
       lqp->print();
 
-      DpCcpTopK dp_ccp_top_k{DpSubplanCacheTopK::NO_ENTRY_LIMIT, cost_model, main_cardinality_estimator};
+      DpCcpTopK dp_ccp_top_k{1, cost_model, main_cardinality_estimator};
 
       dp_ccp_top_k(join_graph);
 
