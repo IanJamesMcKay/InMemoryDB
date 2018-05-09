@@ -162,6 +162,10 @@ set(
     statistics/chunk_statistics/chunk_statistics.hpp
     statistics/chunk_statistics/min_max_filter.hpp
     statistics/chunk_statistics/range_filter.hpp
+    optimizer/histograms/abstract_histogram.cpp
+    optimizer/histograms/abstract_histogram.hpp
+    optimizer/histograms/equal_num_elements_histogram.cpp
+    optimizer/histograms/equal_num_elements_histogram.hpp
     optimizer/join_ordering/join_edge.cpp
     optimizer/join_ordering/join_edge.hpp
     optimizer/join_ordering/join_graph_builder.cpp

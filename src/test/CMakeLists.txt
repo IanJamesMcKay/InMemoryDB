@@ -73,6 +73,7 @@ set(
     operators/validate_test.cpp
     operators/validate_visibility_test.cpp
     optimizer/expression_test.cpp
+    optimizer/histogram_test.cpp
     optimizer/join_ordering/join_graph_builder_test.cpp
     optimizer/join_ordering/join_graph_test.cpp
     optimizer/join_ordering/join_plan_predicate_test.cpp
