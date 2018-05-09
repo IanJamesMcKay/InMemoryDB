@@ -14,25 +14,29 @@ HistogramType EqualWidthHistogram<T>::histogram_type() const {
 }
 
 template <typename T>
-size_t EqualWidthHistogram<T>::bucket_for_value(const T value) {
+BucketID EqualWidthHistogram<T>::bucket_for_value(const T value) {
+  if (value < _min || value > _max) {
+    return INVALID_BUCKET_ID;
+  }
+
   // All buckets have the same number of distinct values, so we can use index 0.
-  return value / bucket_count_distinct(0);
+  return (value - _min) / bucket_count_distinct(0);
 }
 
 template <typename T>
-T EqualWidthHistogram<T>::bucket_min(const size_t index) {
+T EqualWidthHistogram<T>::bucket_min(const BucketID index) {
   DebugAssert(index < this->num_buckets(), "Index is not a valid bucket.");
   return _min + index * bucket_count_distinct(index);
 }
 
 template <typename T>
-T EqualWidthHistogram<T>::bucket_max(const size_t index) {
+T EqualWidthHistogram<T>::bucket_max(const BucketID index) {
   DebugAssert(index < this->num_buckets(), "Index is not a valid bucket.");
   return bucket_min(index) + bucket_count_distinct(index) - 1;
 }
 
 template <typename T>
-uint64_t EqualWidthHistogram<T>::bucket_count_distinct(const size_t index) {
+uint64_t EqualWidthHistogram<T>::bucket_count_distinct(const BucketID index) {
   DebugAssert(index < this->num_buckets(), "Index is not a valid bucket.");
   return (_max - _min + 1) / this->num_buckets();
 }

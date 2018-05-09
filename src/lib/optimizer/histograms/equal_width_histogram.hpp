@@ -17,10 +17,10 @@ class EqualWidthHistogram : public AbstractHistogram<T> {
   void generate(const ColumnID column_id, const size_t max_num_buckets) override;
 
   HistogramType histogram_type() const override;
-  size_t bucket_for_value(const T value) override;
-  T bucket_min(const size_t index) override;
-  T bucket_max(const size_t index) override;
-  uint64_t bucket_count_distinct(const size_t index) override;
+  BucketID bucket_for_value(const T value) override;
+  T bucket_min(const BucketID index) override;
+  T bucket_max(const BucketID index) override;
+  uint64_t bucket_count_distinct(const BucketID index) override;
 
  private:
   T _min;

@@ -17,7 +17,7 @@ class EqualNumElementsHistogram : public AbstractHistogram<T> {
   void generate(const ColumnID column_id, const size_t max_num_buckets) override;
 
   HistogramType histogram_type() const override;
-  uint64_t bucket_count_distinct(const size_t index) override;
+  uint64_t bucket_count_distinct(const BucketID index) override;
 
  private:
   uint64_t _values_per_bucket;

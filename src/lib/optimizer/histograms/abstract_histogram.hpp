@@ -22,12 +22,12 @@ class AbstractHistogram {
   float estimate_cardinality(const T value, const PredicateCondition predicate_condition);
 
   size_t num_buckets() const;
-  virtual size_t bucket_for_value(const T value);
+  virtual BucketID bucket_for_value(const T value);
 
-  virtual T bucket_min(const size_t index);
-  virtual T bucket_max(const size_t index);
-  virtual uint64_t bucket_count(const size_t index);
-  virtual uint64_t bucket_count_distinct(const size_t index);
+  virtual T bucket_min(const BucketID index);
+  virtual T bucket_max(const BucketID index);
+  virtual uint64_t bucket_count(const BucketID index);
+  virtual uint64_t bucket_count_distinct(const BucketID index);
 
  protected:
   const std::shared_ptr<const Table> _get_value_counts(const ColumnID column_id) const;

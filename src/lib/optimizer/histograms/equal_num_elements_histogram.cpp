@@ -14,7 +14,7 @@ HistogramType EqualNumElementsHistogram<T>::histogram_type() const {
 }
 
 template <typename T>
-uint64_t EqualNumElementsHistogram<T>::bucket_count_distinct(const size_t index) {
+uint64_t EqualNumElementsHistogram<T>::bucket_count_distinct(const BucketID index) {
   return _values_per_bucket;
 }
 

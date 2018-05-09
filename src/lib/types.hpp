@@ -135,11 +135,14 @@ using AttributeVectorWidth = uint8_t;
 using PosList = pmr_vector<RowID>;
 using ColumnIDPair = std::pair<ColumnID, ColumnID>;
 
+using BucketID = uint64_t;
+
 constexpr NodeID INVALID_NODE_ID{std::numeric_limits<NodeID::base_type>::max()};
 constexpr TaskID INVALID_TASK_ID{std::numeric_limits<TaskID>::max()};
 constexpr CpuID INVALID_CPU_ID{std::numeric_limits<CpuID::base_type>::max()};
 constexpr WorkerID INVALID_WORKER_ID{std::numeric_limits<WorkerID>::max()};
 constexpr ColumnID INVALID_COLUMN_ID{std::numeric_limits<ColumnID::base_type>::max()};
+constexpr BucketID INVALID_BUCKET_ID{std::numeric_limits<BucketID>::max()};
 
 constexpr NodeID CURRENT_NODE_ID{std::numeric_limits<NodeID::base_type>::max() - 1};
 

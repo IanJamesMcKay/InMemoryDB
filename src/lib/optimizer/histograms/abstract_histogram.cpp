@@ -20,33 +20,39 @@ size_t AbstractHistogram<T>::num_buckets() const {
 }
 
 template <typename T>
-T AbstractHistogram<T>::bucket_min(const size_t index) {
-  DebugAssert(static_cast<uint64_t>(index) < _mins.size(), "Index is not a valid bucket.");
+T AbstractHistogram<T>::bucket_min(const BucketID index) {
+  DebugAssert(index < _mins.size(), "Index is not a valid bucket.");
   return _mins[index];
 }
 
 template <typename T>
-T AbstractHistogram<T>::bucket_max(const size_t index) {
-  DebugAssert(static_cast<uint64_t>(index) < _maxs.size(), "Index is not a valid bucket.");
+T AbstractHistogram<T>::bucket_max(const BucketID index) {
+  DebugAssert(index < _maxs.size(), "Index is not a valid bucket.");
   return _maxs[index];
 }
 
 template <typename T>
-uint64_t AbstractHistogram<T>::bucket_count(const size_t index) {
-  DebugAssert(static_cast<uint64_t>(index) < _counts.size(), "Index is not a valid bucket.");
+uint64_t AbstractHistogram<T>::bucket_count(const BucketID index) {
+  DebugAssert(index < _counts.size(), "Index is not a valid bucket.");
   return _counts[index];
 }
 
 template <typename T>
-uint64_t AbstractHistogram<T>::bucket_count_distinct(const size_t index) {
-  DebugAssert(static_cast<uint64_t>(index) < _count_distincts.size(), "Index is not a valid bucket.");
+uint64_t AbstractHistogram<T>::bucket_count_distinct(const BucketID index) {
+  DebugAssert(index < _count_distincts.size(), "Index is not a valid bucket.");
   return _count_distincts[index];
 }
 
 template <typename T>
-size_t AbstractHistogram<T>::bucket_for_value(const T value) {
+BucketID AbstractHistogram<T>::bucket_for_value(const T value) {
   const auto it = std::lower_bound(_maxs.begin(), _maxs.end(), value);
-  return static_cast<size_t>(std::distance(_maxs.begin(), it));
+  const auto index = static_cast<BucketID>(std::distance(_maxs.begin(), it));
+
+  if (it == _maxs.end() || value < bucket_min(index) || value > bucket_max(index)) {
+    return INVALID_BUCKET_ID;
+  }
+
+  return index;
 }
 
 template <typename T>
@@ -65,7 +71,7 @@ const std::shared_ptr<const Table> AbstractHistogram<T>::_get_value_counts(const
   sort->execute();
 
   return sort->get_output();
-};
+}
 
 template <typename T>
 float AbstractHistogram<T>::estimate_cardinality(const T value, const PredicateCondition predicate_condition) {
@@ -73,7 +79,7 @@ float AbstractHistogram<T>::estimate_cardinality(const T value, const PredicateC
     case PredicateCondition::Equals: {
       const auto index = bucket_for_value(value);
 
-      if (index >= num_buckets() || bucket_min(index) > value || bucket_max(index) < value) {
+      if (index == INVALID_BUCKET_ID) {
         return 0.f;
       }
 
