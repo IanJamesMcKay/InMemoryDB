@@ -1,0 +1,7 @@
+user|table|column|threshold|action
+string|string|string|float|string
+fabian|table_a|*|0.5|block
+max|customer|*|0.5|block
+max|customer|c_custkey|0.8|block
+max|customer|c_name|0.7|block
+moritz|customer|*|0.1|block

@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "base_column.hpp"
+#include "bloom_filter.hpp"
 #include "chunk.hpp"
 #include "proxy_chunk.hpp"
 #include "storage/index/index_info.hpp"
@@ -68,6 +69,16 @@ class Table : private Noncopyable {
    * @return row_count() == 0
    */
   bool empty() const;
+
+  /**
+   * Apply bloom filter to a result table
+   */
+  bool apply_and_check_bloom_filter(const uint16_t user_id) const;
+
+  /**
+   * Set bloom filter. Should only be called after all columns have been added.
+   */
+  void set_bloom_filter(const uint16_t user_id, const ColumnID column_id, const BloomFilterSizeType threshold);
 
   /**
    * @defgroup Accessing and adding Chunks
@@ -165,5 +176,8 @@ class Table : private Noncopyable {
   std::shared_ptr<TableStatistics> _table_statistics;
   std::unique_ptr<std::mutex> _append_mutex;
   std::vector<IndexInfo> _indexes;
+
+  // bloom filter is mutable so that it can be modified on const tables
+  mutable TableBloomFilter _bloom_filter;
 };
 }  // namespace opossum

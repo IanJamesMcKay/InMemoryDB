@@ -52,6 +52,8 @@ class StorageManager : private Noncopyable {
   // prints information about all tables in the storage manager (name, #columns, #rows, #chunks)
   void print(std::ostream& out = std::cout) const;
 
+  std::map<std::string, uint16_t>& user_mapping();
+
   // deletes the entire StorageManager and creates a new one, used especially in tests
   // This can lead to a lot of issues if there are still running tasks / threads that
   // want to access a resource. You should be very sure that this is what you want.
@@ -69,5 +71,8 @@ class StorageManager : private Noncopyable {
 
   std::map<std::string, std::shared_ptr<Table>> _tables;
   std::map<std::string, std::shared_ptr<const AbstractLQPNode>> _views;
+
+  // used in bloom filter
+  std::map<std::string, uint16_t> _user_mapping;
 };
 }  // namespace opossum

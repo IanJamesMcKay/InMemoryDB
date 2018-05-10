@@ -111,6 +111,8 @@ void StorageManager::print(std::ostream& out) const {
   }
 }
 
+std::map<std::string, uint16_t>& StorageManager::user_mapping() { return _user_mapping; }
+
 void StorageManager::reset() { get() = StorageManager(); }
 
 void StorageManager::export_all_tables_as_csv(const std::string& path) {

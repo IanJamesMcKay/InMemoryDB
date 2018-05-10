@@ -266,6 +266,7 @@ set(
     storage/base_encoded_column.cpp
     storage/base_encoded_column.hpp
     storage/base_value_column.hpp
+    storage/bloom_filter.hpp
     storage/chunk.cpp
     storage/chunk_encoder.cpp
     storage/chunk_encoder.hpp

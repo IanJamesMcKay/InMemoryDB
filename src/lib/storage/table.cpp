@@ -1,6 +1,7 @@
 #include "table.hpp"
 
 #include <algorithm>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <numeric>
@@ -113,6 +114,66 @@ uint64_t Table::row_count() const {
 }
 
 bool Table::empty() const { return row_count() == 0u; }
+
+bool Table::apply_and_check_bloom_filter(const uint16_t user_id) const {
+  if (_type == TableType::Data && (user_id >= _bloom_filter.size() || _bloom_filter[user_id].empty())) {
+    // no thresholds defined for the user in this data table
+    return false;
+  }
+  ChunkID chunk_id{0};
+  for (const auto& chunk : _chunks) {
+    size_t prev_rows = _max_chunk_size * chunk_id;
+    ColumnID column_id{0};
+    for (const auto& column : chunk->columns()) {
+      if (auto ref_column = std::dynamic_pointer_cast<ReferenceColumn>(column)) {
+        auto table = ref_column->referenced_table();
+
+        auto &bloom_filter = table->_bloom_filter;
+        auto column_id = ref_column->referenced_column_id();
+
+        if (user_id >= bloom_filter.size() || bloom_filter[user_id].empty()
+                || bloom_filter[user_id][column_id].first == bloom_filter_size) {
+          continue;
+        }
+
+        for (const auto& row_id : *ref_column->pos_list()) {
+          size_t row_number = table->max_chunk_size() * row_id.chunk_id + row_id.chunk_offset;
+          size_t hash = std::hash<size_t>{}(row_number) % bloom_filter_size;
+          bloom_filter[user_id][column_id].second.set(hash, true);
+        }
+
+        bool above_threshold = bloom_filter[user_id][column_id].second.count() > bloom_filter[user_id][column_id].first;
+        if (above_threshold) return true;
+
+      } else { // dict or value column
+
+        for (ChunkOffset chunk_offset{0}; chunk_offset < column->size(); ++chunk_offset) {
+          size_t row_number = prev_rows + chunk_offset;
+          size_t hash = std::hash<size_t>{}(row_number) % bloom_filter_size;
+          _bloom_filter[user_id][column_id].second.set(hash, true);
+        }
+
+        bool above_threshold =
+                _bloom_filter[user_id][column_id].second.count() > _bloom_filter[user_id][column_id].first;
+        if (above_threshold) return true;
+      }
+      ++column_id;
+    }
+    ++chunk_id;
+  }
+  return false;
+}
+
+void Table::set_bloom_filter(const uint16_t user_id, const ColumnID column_id, const BloomFilterSizeType threshold) {
+  DebugAssert(_type == TableType::Data, "Can only set bloom filters on data tables");
+  if (user_id >= _bloom_filter.size()) _bloom_filter.resize(user_id + 1);
+  if (_bloom_filter[user_id].empty()) {
+    // per default the threshold for each column is set to max bloom filter size,
+    // if this is the case the filter is ignored during checking
+    _bloom_filter[user_id].resize(column_count(), std::make_pair(bloom_filter_size, BloomBitset()));
+  }
+  _bloom_filter[user_id][column_id].first = threshold;
+}
 
 ChunkID Table::chunk_count() const { return static_cast<ChunkID>(_chunks.size()); }
 
