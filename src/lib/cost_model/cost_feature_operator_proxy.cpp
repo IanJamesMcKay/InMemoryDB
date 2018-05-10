@@ -83,6 +83,9 @@ CostFeatureVariant CostFeatureOperatorProxy::_extract_feature_impl(const CostFea
         Fail("CostFeature not defined for LQPNodeType");
       }
 
+    case CostFeature::OperatorType:
+      return _op->type();
+
     default:
       Fail("Extraction of this feature is not implemented. Maybe it should be handled in AbstractCostFeatureProxy?");
   }

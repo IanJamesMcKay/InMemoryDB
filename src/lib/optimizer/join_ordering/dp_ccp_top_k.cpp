@@ -16,8 +16,8 @@
 namespace opossum {
 
 DpCcpTopK::DpCcpTopK(const size_t max_entry_count_per_set, const std::shared_ptr<const AbstractCostModel>& cost_model,
-                     const std::shared_ptr<const TableStatisticsCache>& statistics_cache)
-    : AbstractDpAlgorithm(std::make_shared<DpSubplanCacheTopK>(max_entry_count_per_set), cost_model, statistics_cache) {}
+                     const std::shared_ptr<AbstractCardinalityEstimator>& cardinality_estimator)
+    : AbstractDpAlgorithm(std::make_shared<DpSubplanCacheTopK>(max_entry_count_per_set), cost_model, cardinality_estimator) {}
 
 std::shared_ptr<DpSubplanCacheTopK> DpCcpTopK::subplan_cache() {
   return std::static_pointer_cast<DpSubplanCacheTopK>(_subplan_cache);
@@ -59,7 +59,7 @@ void DpCcpTopK::_on_execute() {
 
     for (const auto& plan_left : best_plans_left) {
       for (const auto& plan_right : best_plans_right) {
-        const auto current_plan = build_join_plan_join_node(*_cost_model, plan_left, plan_right, predicates, *_statistics_cache);
+        const auto current_plan = build_join_plan_join_node(*_cost_model, plan_left, plan_right, predicates, *_cardinality_estimator);
         subplan_cache()->cache_plan(csg_cmp_pair.first | csg_cmp_pair.second, current_plan);
       }
     }

@@ -22,6 +22,16 @@ namespace opossum {
  * Test that the correct CCPs are enumerated for _very_ simple graphs and that they are enumerated in the correct order
  */
 
+TEST(EnumerateCcpTest, Simple) {
+  std::vector<std::pair<size_t, size_t>> edges{{0, 1}};
+
+  const auto pairs = EnumerateCcp{2, edges}();
+
+  ASSERT_EQ(pairs.size(), 1u);
+
+  EXPECT_TRUE(equals(pairs[0], std::make_pair(0b01ul, 0b10ul)));
+}
+
 TEST(EnumerateCcpTest, Chain) {
   std::vector<std::pair<size_t, size_t>> edges{{0, 1}, {1, 2}, {2, 3}};
 

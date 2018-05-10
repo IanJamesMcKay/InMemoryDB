@@ -1,5 +1,6 @@
 #include "join_plan_predicate.hpp"
 
+#include "boost/functional/hash.hpp"
 #include "constant_mappings.hpp"
 #include "logical_query_plan/abstract_lqp_node.hpp"
 
@@ -54,6 +55,14 @@ void JoinPlanLogicalPredicate::print(std::ostream& stream, const bool enclosing_
   if (enclosing_braces) stream << ")";
 }
 
+size_t JoinPlanLogicalPredicate::hash() const {
+  auto hash = boost::hash_value(static_cast<size_t>(type()));
+  boost::hash_combine(hash, left_operand->hash());
+  boost::hash_combine(hash, static_cast<size_t>(logical_operator));
+  boost::hash_combine(hash, right_operand->hash());
+  return hash;
+}
+
 bool JoinPlanLogicalPredicate::operator==(const JoinPlanLogicalPredicate& rhs) const {
   return left_operand == rhs.left_operand && logical_operator == rhs.logical_operator &&
          right_operand == rhs.right_operand;
@@ -84,6 +93,14 @@ void JoinPlanAtomicPredicate::print(std::ostream& stream, const bool enclosing_b
   stream << left_operand.description() << " ";
   stream << predicate_condition_to_string.left.at(predicate_condition) << " ";
   stream << right_operand;
+}
+
+size_t JoinPlanAtomicPredicate::hash() const {
+  auto hash = boost::hash_value(static_cast<size_t>(type()));
+  boost::hash_combine(hash, std::hash<LQPColumnReference>{}(left_operand));
+  boost::hash_combine(hash, static_cast<size_t>(predicate_condition));
+  boost::hash_combine(hash, std::hash<AllParameterVariant>{}(right_operand));
+  return hash;
 }
 
 bool JoinPlanAtomicPredicate::operator==(const JoinPlanAtomicPredicate& rhs) const {

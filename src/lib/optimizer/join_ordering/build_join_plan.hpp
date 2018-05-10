@@ -7,23 +7,25 @@
 
 namespace opossum {
 
+class AbstractCardinalityEstimator;
 class AbstractCostModel;
 class AbstractJoinPlanNode;
 class AbstractLQPNode;
 class AbstractJoinPlanPredicate;
 class JoinPlanJoinNode;
 class JoinPlanVertexNode;
-class TableStatisticsCache;
 
 JoinPlanNode build_join_plan_join_node(
     const AbstractCostModel& cost_model,
     const JoinPlanNode& left_input,
     const JoinPlanNode& right_input,
-    const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates, const TableStatisticsCache& statistics_cache);
+    const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates,
+    const AbstractCardinalityEstimator& cardinality_estimator);
 
 JoinPlanNode build_join_plan_vertex_node(
     const AbstractCostModel& cost_model,
     const std::shared_ptr<AbstractLQPNode>& vertex_node,
-    std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> predicates, const TableStatisticsCache& statistics_cache);
+    const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates,
+    const AbstractCardinalityEstimator& cardinality_estimator);
 
 }  // namespace opossum

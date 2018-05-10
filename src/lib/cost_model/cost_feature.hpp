@@ -7,6 +7,8 @@
 
 namespace opossum {
 
+enum class OperatorType;
+
 /**
  * List of features usable in AbstractCostModels.
  *
@@ -29,6 +31,7 @@ enum class CostFeature {
   /**
    * Categorical features
    */
+  OperatorType,
   LeftDataType, RightDataType, // Only valid for Predicated Joins, TableScans
   PredicateCondition, // Only valid for Predicated Joins, TableScans
 
@@ -43,7 +46,7 @@ enum class CostFeature {
 using CostFeatureWeights = std::map<CostFeature, float>;
 
 /**
- * Wraps a Variant of all data types for CostFeatues and provides getters for the member types of the variants that
+ * Wraps a Variant of all data types for CostFeatures and provides getters for the member types of the variants that
  * perform type checking at runtime.
  */
 struct CostFeatureVariant {
@@ -54,8 +57,9 @@ struct CostFeatureVariant {
   float scalar() const;
   DataType data_type() const;
   PredicateCondition predicate_condition() const;
+  OperatorType operator_type() const;
 
-  boost::variant<float, DataType, PredicateCondition, bool> value;
+  boost::variant<float, DataType, PredicateCondition, OperatorType, bool> value;
 };
 
 }  // namespace opossum

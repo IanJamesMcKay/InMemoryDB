@@ -4,6 +4,8 @@
 #include <operators/get_table.hpp>
 #include <storage/storage_manager.hpp>
 
+#include "cost_model/cost_feature_operator_proxy.hpp"
+#include "cost_model/cost_feature_lqp_node_proxy.hpp"
 #include "planviz/abstract_visualizer.hpp"
 #include "planviz/sql_query_plan_visualizer.hpp"
 #include "logical_query_plan/abstract_lqp_node.hpp"
@@ -88,10 +90,18 @@ void SQLQueryPlanVisualizer::_add_operator(const std::shared_ptr<const AbstractO
     info.shape = "record";
     auto label = op->description(DescriptionMode::MultiLine);
 
-    if (op->get_output()) {
-      auto wall_time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(op->base_performance_data().total);
-      label += "\\n\\n" + format_duration(wall_time_ns);
-      info.pen_width = std::fmax(1, std::ceil(std::log10(wall_time_ns.count()) / 2));
+    const auto node_cost = _cost_model->estimate_cost(CostFeatureLQPNodeProxy(op->lqp_node()));
+    if (node_cost > 0) {
+      cost_info.add_label(format_integer(static_cast<int>(node_cost)) + " est");
+    } else {
+      cost_info.add_label("-");
+    }
+
+    const auto op_cost = _cost_model->estimate_cost(CostFeatureOperatorProxy(std::const_pointer_cast<AbstractOperator>(op)));
+    if (op_cost > 0) {
+      cost_info.add_label(format_integer(static_cast<int>(op_cost)) + " re-est");
+    } else {
+      cost_info.add_label("-");
     }
 
     VizRecordLayout layout;

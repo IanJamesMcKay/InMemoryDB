@@ -1,6 +1,7 @@
 #include "cost_model_naive.hpp"
 
 #include "abstract_cost_feature_proxy.hpp"
+#include "cost_feature_operator_proxy.hpp"
 #include "operators/abstract_operator.hpp"
 
 namespace opossum {
@@ -10,11 +11,11 @@ std::string CostModelNaive::name() const {
 }
 
 Cost CostModelNaive::get_reference_operator_cost(const std::shared_ptr<AbstractOperator>& op) const {
-  return estimate_operator_cost(op);
+  return estimate_cost(CostFeatureOperatorProxy(op));
 }
 
-Cost CostModelNaive::_cost_model_impl(const OperatorType operator_type, const AbstractCostFeatureProxy& feature_proxy) const {
-  switch (operator_type) {
+Cost CostModelNaive::estimate_cost(const AbstractCostFeatureProxy& feature_proxy) const {
+  switch (feature_proxy.extract_feature(CostFeature::OperatorType).operator_type()) {
     case OperatorType::JoinHash:
       return feature_proxy.extract_feature(CostFeature::LeftInputRowCount).scalar() +
              feature_proxy.extract_feature(CostFeature::RightInputRowCount).scalar() ;

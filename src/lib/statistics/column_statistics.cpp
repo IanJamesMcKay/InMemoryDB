@@ -104,6 +104,14 @@ ColumnValueEstimate ColumnStatistics<std::string>::estimate_predicate_with_value
     case PredicateCondition::NotEquals: {
       return estimate_not_equals_with_value(casted_value);
     }
+    // TODO(anybody) we don't do (Not)Like estimations yet, thus resort to magic numbers
+    case PredicateCondition::Like: {
+      return {TableStatistics::DEFAULT_LIKE_SELECTIVITY, without_null_values()};
+    }
+    case PredicateCondition::NotLike: {
+      return {1.0f - TableStatistics::DEFAULT_LIKE_SELECTIVITY, without_null_values()};
+    }
+
     // TODO(anybody) implement other table-scan operators for string.
     default: { return {non_null_value_ratio(), without_null_values()}; }
   }
@@ -220,6 +228,11 @@ ColumnColumnEstimate ColumnStatistics<ColumnDataType>::estimate_predicate_with_c
 
   const auto overlapping_range_min = std::max(_min, right_column_statistics.min());
   const auto overlapping_range_max = std::min(_max, right_column_statistics.max());
+
+  // Ranges do not overlap
+  if (overlapping_range_min > overlapping_range_max) {
+    return {0.f, without_null_values(), right_column_statistics.without_null_values()};
+  }
 
   // calculate ratio of values before, in and above the common value range
   const auto left_overlapping_ratio = estimate_range_selectivity(overlapping_range_min, overlapping_range_max);

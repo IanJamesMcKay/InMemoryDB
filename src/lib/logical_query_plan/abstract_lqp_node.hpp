@@ -43,7 +43,15 @@ enum class LQPNodeType {
 enum class LQPInputSide { Left, Right };
 
 // Describes the output of a Node and which of the output's inputs a node is
-struct LQPOutputRelation {
+struct LQPOutputRelation final {
+  LQPOutputRelation() = default;
+  LQPOutputRelation(const std::shared_ptr<AbstractLQPNode>& output, const LQPInputSide& input_side):
+    output(output), input_side(input_side) { }
+
+  bool operator==(const LQPOutputRelation& rhs) const {
+    return output == rhs.output && input_side == rhs.input_side;
+  }
+
   std::shared_ptr<AbstractLQPNode> output;
   LQPInputSide input_side{LQPInputSide::Left};
 };

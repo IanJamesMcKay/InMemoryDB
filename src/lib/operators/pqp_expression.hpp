@@ -2,7 +2,7 @@
 
 #include <optional>
 
-#include "abstract_expression.hpp"
+#include "abstract_expression2.hpp"
 #include "types.hpp"
 
 namespace opossum {

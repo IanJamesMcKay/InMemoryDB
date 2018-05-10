@@ -9,8 +9,8 @@ namespace opossum {
 
 AbstractDpAlgorithm::AbstractDpAlgorithm(const std::shared_ptr<AbstractDpSubplanCache>& subplan_cache,
                                          const std::shared_ptr<const AbstractCostModel>& cost_model,
-const std::shared_ptr<const TableStatisticsCache>& statistics_cache)
-    : _subplan_cache(subplan_cache), _cost_model(cost_model), _statistics_cache(statistics_cache) {}
+                                         const std::shared_ptr<AbstractCardinalityEstimator>& cardinality_estimator)
+    : _subplan_cache(subplan_cache), _cost_model(cost_model), _cardinality_estimator(cardinality_estimator) {}
 
 JoinPlanNode AbstractDpAlgorithm::operator()(
     const std::shared_ptr<const JoinGraph>& join_graph) {
@@ -26,8 +26,10 @@ JoinPlanNode AbstractDpAlgorithm::operator()(
 
     const auto vertex_predicates = _join_graph->find_predicates(vertex_bit);
 
+    const auto vertex = _join_graph->vertices[vertex_idx];
+
     _subplan_cache->cache_plan(
-        vertex_bit, build_join_plan_vertex_node(*_cost_model, _join_graph->vertices[vertex_idx], vertex_predicates, *_statistics_cache));
+        vertex_bit, build_join_plan_vertex_node(*_cost_model, vertex, vertex_predicates, *_cardinality_estimator));
   }
 
   _on_execute();

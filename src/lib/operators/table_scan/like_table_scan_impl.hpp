@@ -82,7 +82,7 @@ class LikeTableScanImpl : public BaseSingleColumnTableScanImpl {
   void _scan_iterable(const Iterable& iterable,
                       const ChunkID chunk_id,
                       PosList& matches_out,
-                     const ChunkOffsetsList* const mapped_chunk_offsets);
+                      const ChunkOffsetsList* const mapped_chunk_offsets);
 
   /**
    * Used for dictionary columns

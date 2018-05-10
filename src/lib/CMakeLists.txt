@@ -2,7 +2,7 @@
 set(
     SOURCES
     abstract_expression.cpp
-    abstract_expression.hpp
+    abstract_expression2.hpp
     all_parameter_variant.cpp
     all_parameter_variant.hpp
     all_type_variant.cpp
@@ -15,6 +15,26 @@ set(
     concurrency/transaction_manager.hpp
     constant_mappings.cpp
     constant_mappings.hpp
+    expression/abstract_expression2.cpp
+    expression/abstract_expression2.hpp
+    expression/abstract_predicate_expression.cpp
+    expression/abstract_predicate_expression.hpp
+    expression/between_expression.cpp
+    expression/between_expression.hpp
+    expression/binary_predicate_expression.cpp
+    expression/binary_predicate_expression.hpp
+    expression/expression_utils.cpp
+    expression/expression_utils.hpp
+    expression/in_expression.cpp
+    expression/in_expression.hpp
+    expression/is_null_expression.cpp
+    expression/is_null_expression.hpp
+    expression/logical_expression.cpp
+    expression/logical_expression.hpp
+    expression/lqp_column_expression.cpp
+    expression/lqp_column_expression.hpp
+    expression/not_expression.cpp
+    expression/not_expression.hpp
     import_export/binary.hpp
     import_export/csv_converter.cpp
     import_export/csv_converter.hpp
@@ -171,8 +191,14 @@ set(
     optimizer/join_ordering/abstract_join_plan_node.hpp
     optimizer/join_ordering/build_join_plan.cpp
     optimizer/join_ordering/build_join_plan.hpp
+    optimizer/join_ordering/dp_subplan_cache_top_k.hpp
+    cost_model/cost.hpp
+    cost_model/cost_lqp.cpp
+    cost_model/cost_lqp.hpp
     cost_model/cost_feature.cpp
     cost_model/cost_feature.hpp
+    cost_model/cost_feature_join_plan_proxy.cpp
+    cost_model/cost_feature_join_plan_proxy.hpp
     cost_model/cost_feature_lqp_node_proxy.cpp
     cost_model/cost_feature_lqp_node_proxy.hpp
     cost_model/cost_feature_operator_proxy.cpp
@@ -183,6 +209,10 @@ set(
     cost_model/cost_model_linear.hpp
     cost_model/cost_model_segmented_sampler.cpp
     cost_model/cost_model_segmented_sampler.hpp
+    optimizer/join_ordering/base_join_graph.cpp
+    optimizer/join_ordering/base_join_graph.hpp
+    optimizer/join_ordering/build_lqp_for_predicate.cpp
+    optimizer/join_ordering/build_lqp_for_predicate.hpp
     optimizer/join_ordering/dp_ccp.cpp
     optimizer/join_ordering/dp_ccp.hpp
     optimizer/join_ordering/dp_ccp_top_k.cpp
@@ -190,8 +220,6 @@ set(
     optimizer/join_ordering/dp_subplan_cache_best.cpp
     optimizer/join_ordering/dp_subplan_cache_best.hpp
     optimizer/join_ordering/dp_subplan_cache_top_k.cpp
-    optimizer/join_ordering/dp_subplan_cache_top_k.hpp
-    cost_model/cost.hpp
     optimizer/join_ordering/enumerate_ccp.cpp
     optimizer/join_ordering/enumerate_ccp.hpp
     optimizer/join_ordering/join_plan_node.cpp
@@ -251,6 +279,7 @@ set(
     statistics/chunk_statistics/min_max_filter.hpp
     statistics/chunk_statistics/range_filter.hpp
     statistics/chunk_statistics/range_filter.hpp
+    statistics/abstract_cardinality_estimator.hpp
     statistics/table_statistics.cpp
     statistics/table_statistics.hpp
     statistics/column_statistics.cpp
@@ -259,6 +288,14 @@ set(
     statistics/statistics_import_export.hpp
     statistics/abstract_column_statistics.cpp
     statistics/abstract_column_statistics.hpp
+    statistics/cardinality_estimation_cache.cpp
+    statistics/cardinality_estimation_cache.hpp
+    statistics/cardinality_estimator_cached.cpp
+    statistics/cardinality_estimator_cached.hpp
+    statistics/cardinality_estimator_column_statistics.cpp
+    statistics/cardinality_estimator_column_statistics.hpp
+    statistics/cardinality_estimator_execution.cpp
+    statistics/cardinality_estimator_execution.hpp
     statistics/generate_column_statistics.cpp
     statistics/generate_column_statistics.hpp
     statistics/generate_table_statistics.cpp

@@ -18,8 +18,7 @@ class CostModelNaive: public AbstractCostModel {
 
   Cost get_reference_operator_cost(const std::shared_ptr<AbstractOperator>& op) const override;
 
- protected:
-  Cost _cost_model_impl(const OperatorType operator_type, const AbstractCostFeatureProxy& feature_proxy) const override;
+  Cost estimate_cost(const AbstractCostFeatureProxy& feature_proxy) const override;
 };
 
 }  // namespace opossum

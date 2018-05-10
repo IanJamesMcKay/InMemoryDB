@@ -17,23 +17,27 @@ namespace opossum {
 class JoinGraphBuilderTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    //  [0] [Projection] z1, y1
-    //   \_[1] [Predicate] x2 <= z1
-    //      \_[2] [Cross Join]
-    //         \_[3] [Predicate] sum_a <= y1
-    //         |  \_[4] [Predicate] y1 > 32
-    //         |     \_[5] [Inner Join] x2 = y2
-    //         |        \_[6] [Predicate] sum_a = 5
-    //         |        |  \_[7] [Aggregate] SUM(x1) AS "sum_a" GROUP BY [x2]
-    //         |        |     \_[8] [MockTable]
-    //         |        \_[9] [Predicate] y2 < 200
-    //         |           \_[10] [UnionNode] Mode: UnionPositions
-    //         |              \_[11] [Predicate] y2 = 7
-    //         |              |  \_[12] [Predicate] y1 = 6
-    //         |              |     \_[13] [MockTable]
-    //         |              \_[14] [Predicate] y1 >= 8
-    //         |                 \_Recurring Node --> [13]
-    //         \_[15] [MockTable]
+    //[0] [Projection] z1, y1
+    // \_[1] [Predicate] y2 BETWEEN 1 AND 42
+    //    \_[2] [Predicate] x2 <= z1
+    //       \_[3] [Cross Join]
+    //          \_[4] [Predicate] sum_a <= y1
+    //          |  \_[5] [Predicate] y1 > 32
+    //          |     \_[6] [Inner Join] x2 = y2
+    //          |        \_[7] [Predicate] sum_a = 5
+    //          |        |  \_[8] [Aggregate] SUM(x1) AS "sum_a" GROUP BY [x2]
+    //          |        |     \_[9] [MockTable]
+    //          |        \_[10] [Predicate] y2 < 200
+    //          |           \_[11] [UnionNode] Mode: UnionPositions
+    //          |              \_[12] [Predicate] y2 = 7
+    //          |              |  \_[13] [Predicate] y1 = 6
+    //          |              |     \_[14] [MockTable]
+    //          |              \_[15] [UnionNode] Mode: UnionPositions
+    //          |                 \_[16] [Predicate] y1 >= 8
+    //          |                 |  \_Recurring Node --> [14]
+    //          |                 \_[17] [Predicate] y2 = 9
+    //          |                    \_Recurring Node --> [14]
+    //          \_[18] [MockTable]
 
     _mock_node_a =
         std::make_shared<MockNode>(MockNode::ColumnDefinitions{{DataType::Int, "x1"}, {DataType::Int, "x2"}});
@@ -104,8 +108,6 @@ class JoinGraphBuilderTest : public ::testing::Test {
     _predicate_node_d->set_left_input(_mock_node_b);
     _predicate_node_i->set_left_input(_mock_node_b);
     _predicate_node_a->set_left_input(_aggregate_node_a);
-
-    _join_graph = JoinGraphBuilder{}(_lqp);  // NOLINT
   }
 
   std::string to_string(const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate) {
@@ -128,11 +130,11 @@ class JoinGraphBuilderTest : public ::testing::Test {
 
   LQPColumnReference _mock_node_a_x1, _mock_node_a_x2, _sum_mock_node_a_x1, _mock_node_b_y1, _mock_node_b_y2,
       _mock_node_c_z1;
-
-  std::shared_ptr<JoinGraph> _join_graph;
 };
 
 TEST_F(JoinGraphBuilderTest, ComplexLQP) {
+  const auto join_graph = JoinGraphBuilder{}(_lqp);  // NOLINT
+
   /**
    * Test that the expected JoinGraph has been generated
    */
@@ -140,21 +142,21 @@ TEST_F(JoinGraphBuilderTest, ComplexLQP) {
   /**
    * Test vertices
    */
-  ASSERT_EQ(_join_graph->vertices.size(), 3u);
+  ASSERT_EQ(join_graph->vertices.size(), 3u);
 
-  EXPECT_EQ(_join_graph->vertices.at(0), _aggregate_node_a);
-  EXPECT_EQ(_join_graph->vertices.at(1), _mock_node_b);
-  EXPECT_EQ(_join_graph->vertices.at(2), _mock_node_c);
+  EXPECT_EQ(join_graph->vertices.at(0), _aggregate_node_a);
+  EXPECT_EQ(join_graph->vertices.at(1), _mock_node_b);
+  EXPECT_EQ(join_graph->vertices.at(2), _mock_node_c);
 
   /**
    * Test edges
    */
-  const auto edge_a = _join_graph->find_edge(JoinVertexSet{3, 0b001});
+  const auto edge_a = join_graph->find_edge(JoinVertexSet{3, 0b001});
   ASSERT_NE(edge_a, nullptr);
   ASSERT_EQ(edge_a->predicates.size(), 1u);
   EXPECT_EQ(to_string(edge_a->predicates.at(0)), "sum_a = 5");
 
-  const auto edge_b = _join_graph->find_edge(JoinVertexSet{3, 0b010});
+  const auto edge_b = join_graph->find_edge(JoinVertexSet{3, 0b010});
   ASSERT_NE(edge_b, nullptr);
   ASSERT_EQ(edge_b->predicates.size(), 5u);
   EXPECT_EQ(to_string(edge_b->predicates.at(0)), "y2 >= 1");
@@ -163,13 +165,13 @@ TEST_F(JoinGraphBuilderTest, ComplexLQP) {
   EXPECT_EQ(to_string(edge_b->predicates.at(3)), "y2 < 200");
   EXPECT_EQ(to_string(edge_b->predicates.at(4)), "(y2 = 7 AND y1 = 6) OR (y1 >= 8 OR y2 = 9)");
 
-  const auto edge_ab = _join_graph->find_edge(JoinVertexSet{3, 0b011});
+  const auto edge_ab = join_graph->find_edge(JoinVertexSet{3, 0b011});
   ASSERT_NE(edge_ab, nullptr);
   ASSERT_EQ(edge_ab->predicates.size(), 2u);
   EXPECT_EQ(to_string(edge_ab->predicates.at(0)), "sum_a <= y1");
   EXPECT_EQ(to_string(edge_ab->predicates.at(1)), "x2 = y2");
 
-  const auto edge_ac = _join_graph->find_edge(JoinVertexSet{3, 0b101});
+  const auto edge_ac = join_graph->find_edge(JoinVertexSet{3, 0b101});
   ASSERT_NE(edge_ac, nullptr);
   ASSERT_EQ(edge_ac->predicates.size(), 1u);
   EXPECT_EQ(to_string(edge_ac->predicates.at(0)), "x2 <= z1");
@@ -177,9 +179,30 @@ TEST_F(JoinGraphBuilderTest, ComplexLQP) {
   /**
    * Test output relations
    */
-  ASSERT_EQ(_join_graph->output_relations.size(), 1u);
-  EXPECT_EQ(_join_graph->output_relations.at(0).output, _projection_node_a);
-  EXPECT_EQ(_join_graph->output_relations.at(0).input_side, LQPInputSide::Left);
+  ASSERT_EQ(join_graph->output_relations.size(), 1u);
+  EXPECT_EQ(join_graph->output_relations.at(0).output, _projection_node_a);
+  EXPECT_EQ(join_graph->output_relations.at(0).input_side, LQPInputSide::Left);
+}
+
+TEST_F(JoinGraphBuilderTest, SingleVertex) {
+  const auto join_graph = JoinGraphBuilder{}(_mock_node_b);  // NOLINT
+  EXPECT_TRUE(join_graph->output_relations.empty());
+  EXPECT_EQ(join_graph->vertices.size(), 1u);
+  EXPECT_EQ(join_graph->vertices.at(0), _mock_node_b);
+}
+
+TEST_F(JoinGraphBuilderTest, OutputRelationsInSharedLQP) {
+  // Hacky as it seems, an LQP node can be part of multiple LQPs - in other words, LQPs might share nodes.
+  // The output_relations in the JoinGraph should be from the LQP that was queried with the JoinGraphBuilder
+  const auto dummy_projection_node = ProjectionNode::make(std::vector<std::shared_ptr<LQPExpression>>(), _predicate_node_j);
+
+  const auto join_graph_a = JoinGraphBuilder{}(_lqp);  // NOLINT
+  ASSERT_EQ(join_graph_a->output_relations.size(), 1u);
+  EXPECT_EQ(join_graph_a->output_relations.at(0), LQPOutputRelation(_projection_node_a, LQPInputSide::Left));
+
+  const auto join_graph_b = JoinGraphBuilder{}(dummy_projection_node);  // NOLINT
+  ASSERT_EQ(join_graph_b->output_relations.size(), 1u);
+  EXPECT_EQ(join_graph_b->output_relations.at(0), LQPOutputRelation(dummy_projection_node, LQPInputSide::Left));
 }
 
 }  // namespace opossum

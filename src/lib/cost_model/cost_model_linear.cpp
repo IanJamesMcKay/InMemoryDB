@@ -163,7 +163,9 @@ Cost CostModelLinear::get_reference_operator_cost(const std::shared_ptr<Abstract
   return static_cast<Cost>(duration.count());
 }
 
-Cost CostModelLinear::_cost_model_impl(const OperatorType operator_type, const AbstractCostFeatureProxy& feature_proxy) const {
+Cost CostModelLinear::estimate_cost(const AbstractCostFeatureProxy& feature_proxy) const {
+  const auto operator_type = feature_proxy.extract_feature(CostFeature::OperatorType).operator_type();
+
   switch (operator_type) {
     case OperatorType::TableScan: {
       const auto predicate_condition = feature_proxy.extract_feature(CostFeature::PredicateCondition).predicate_condition();

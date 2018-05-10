@@ -7,6 +7,7 @@
 
 #include "abstract_lqp_node.hpp"
 #include "all_type_variant.hpp"
+#include "statistics/table_statistics.hpp"
 
 namespace opossum {
 
@@ -35,10 +36,24 @@ class MockNode : public EnableMakeForLQPNode<MockNode>, public AbstractLQPNode {
 
   bool shallow_equals(const AbstractLQPNode& rhs) const override;
 
+  std::string cardinality_estimation_info() const override {
+    if (_constructor_arguments.which() == 1) {
+      return boost::get<std::shared_ptr<TableStatistics>>(_constructor_arguments)->description();
+    }
+    return "";
+  }
+
+  std::shared_ptr<TableStatistics> derive_statistics_from(
+  const std::shared_ptr<AbstractLQPNode>& left_input,
+  const std::shared_ptr<AbstractLQPNode>& right_input = nullptr) const override;
+
+
  protected:
   std::shared_ptr<AbstractLQPNode> _deep_copy_impl(
       const std::shared_ptr<AbstractLQPNode>& copied_left_input,
       const std::shared_ptr<AbstractLQPNode>& copied_right_input) const override;
+
+  size_t _on_hash() const override;
 
  private:
   std::vector<std::string> _output_column_names;

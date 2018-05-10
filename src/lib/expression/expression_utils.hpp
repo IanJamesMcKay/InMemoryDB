@@ -1,0 +1,75 @@
+#pragma once
+
+#include <functional>
+#include <memory>
+#include <vector>
+#include <unordered_map>
+#include <queue>
+
+#include "abstract_expression2.hpp"
+namespace opossum {
+
+class AbstractLQPNode;
+class LQPColumnExpression;
+
+bool expressions_equal(const std::vector<std::shared_ptr<AbstractExpression2>>& expressions_a,
+                             const std::vector<std::shared_ptr<AbstractExpression2>>& expressions_b);
+
+///**
+// * Utility to compare vectors of Expressions from different LQPs
+// */
+//bool expressions_equal_to_expressions_in_different_lqp(
+//const std::vector<std::shared_ptr<AbstractExpression2>> &expressions_left,
+//const std::vector<std::shared_ptr<AbstractExpression2>> &expressions_right,
+//const LQPNodeMapping& node_mapping);
+
+///**
+// * Utility to compare two Expressions from different LQPs
+// */
+//bool expression_equal_to_expression_in_different_lqp(const AbstractExpression2& expression_left,
+//                       const AbstractExpression2& expression_right,
+//                       const LQPNodeMapping& node_mapping);
+
+
+std::vector<std::shared_ptr<AbstractExpression2>> expressions_copy(
+  const std::vector<std::shared_ptr<AbstractExpression2>>& expressions);
+
+//std::vector<std::shared_ptr<AbstractExpression2>> expressions_copy_and_adapt_to_different_lqp(
+//  const std::vector<std::shared_ptr<AbstractExpression2>>& expressions,
+//  const LQPNodeMapping& node_mapping);
+
+//std::shared_ptr<AbstractExpression2> expression_copy_and_adapt_to_different_lqp(
+//  const AbstractExpression2& expression,
+//  const LQPNodeMapping& node_mapping);
+
+///**
+// * Makes all ColumnExpressions points to their equivalent in a copied LQP
+// */
+//void expression_adapt_to_different_lqp(
+//  std::shared_ptr<AbstractExpression2>& expression,
+//  const LQPNodeMapping& node_mapping);
+//
+//std::shared_ptr<LQPColumnExpression> expression_adapt_to_different_lqp(
+//  const LQPColumnExpression& lqp_column_expression,
+//  const LQPNodeMapping& node_mapping);
+
+std::string expression_column_names(const std::vector<std::shared_ptr<AbstractExpression2>> &expressions);
+
+template<typename Visitor>
+void visit_expression(std::shared_ptr<AbstractExpression2>& expression, Visitor visitor){
+  std::queue<std::reference_wrapper<std::shared_ptr<AbstractExpression2>>> expression_queue;
+  expression_queue.push(expression);
+
+  while (!expression_queue.empty()) {
+    auto expression_reference = expression_queue.front();
+    expression_queue.pop();
+
+    if (visitor(expression_reference.get())) {
+      for (auto& argument : expression_reference.get()->arguments) {
+        expression_queue.push(argument);
+      }
+    }
+  }
+}
+
+}  // namespace opossum

@@ -36,6 +36,8 @@ class AbstractJoinPlanPredicate {
    */
   virtual void print(std::ostream& stream = std::cout, const bool enclosing_braces = false) const = 0;
 
+  virtual size_t hash() const = 0;
+
  private:
   const JoinPlanPredicateType _type;
 };
@@ -52,6 +54,8 @@ class JoinPlanLogicalPredicate : public AbstractJoinPlanPredicate {
   JoinVertexSet get_accessed_vertex_set(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices) const override;
 
   void print(std::ostream& stream = std::cout, const bool enclosing_braces = false) const override;
+
+  size_t hash() const override;
 
   bool operator==(const JoinPlanLogicalPredicate& rhs) const;
 
@@ -71,6 +75,8 @@ class JoinPlanAtomicPredicate : public AbstractJoinPlanPredicate {
   JoinVertexSet get_accessed_vertex_set(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices) const override;
 
   void print(std::ostream& stream = std::cout, const bool enclosing_braces = false) const override;
+
+  size_t hash() const override;
 
   bool operator==(const JoinPlanAtomicPredicate& rhs) const;
 

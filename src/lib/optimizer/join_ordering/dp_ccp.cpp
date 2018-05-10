@@ -16,7 +16,7 @@
 namespace opossum {
 
 DpCcp::DpCcp(const std::shared_ptr<const AbstractCostModel>& cost_model,
-             const std::shared_ptr<const TableStatisticsCache>& statistics_cache) : AbstractDpAlgorithm(std::make_shared<DpSubplanCacheBest>(), cost_model, statistics_cache) {}
+             const std::shared_ptr<AbstractCardinalityEstimator>& cardinality_estimator) : AbstractDpAlgorithm(std::make_shared<DpSubplanCacheBest>(), cost_model, cardinality_estimator) {}
 
 void DpCcp::_on_execute() {
   /**
@@ -41,13 +41,13 @@ void DpCcp::_on_execute() {
     std::cout << "Considering plan for " << (csg_cmp_pair.first | csg_cmp_pair.second) << ": " << csg_cmp_pair.first
               << " + " << csg_cmp_pair.second << std::endl;
 #endif
+    const auto predicates = _join_graph->find_predicates(csg_cmp_pair.first, csg_cmp_pair.second);
 
     const auto best_plan_left = _subplan_cache->get_best_plan(csg_cmp_pair.first);
     const auto best_plan_right = _subplan_cache->get_best_plan(csg_cmp_pair.second);
     DebugAssert(best_plan_left && best_plan_right, "Subplan missing");
 
-    const auto predicates = _join_graph->find_predicates(csg_cmp_pair.first, csg_cmp_pair.second);
-    const auto current_plan = build_join_plan_join_node(*_cost_model, *best_plan_left, *best_plan_right, predicates, *_statistics_cache);
+    auto current_plan = build_join_plan_join_node(*_cost_model, *best_plan_left, *best_plan_right, predicates, *_cardinality_estimator);
 
 #if VERBOSE
     std::cout << "Cost=" << current_plan->cost() << std::endl;

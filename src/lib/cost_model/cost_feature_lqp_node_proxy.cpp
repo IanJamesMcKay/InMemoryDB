@@ -2,6 +2,7 @@
 
 #include <cmath>
 
+#include "operators/abstract_operator.hpp"
 #include "logical_query_plan/abstract_lqp_node.hpp"
 #include "logical_query_plan/join_node.hpp"
 #include "logical_query_plan/predicate_node.hpp"
@@ -12,12 +13,9 @@
 
 namespace opossum {
 
-CostFeatureLQPNodeProxy::CostFeatureLQPNodeProxy(const std::shared_ptr<AbstractLQPNode>& node):
-  _node(node) {
+CostFeatureLQPNodeProxy::CostFeatureLQPNodeProxy(const std::shared_ptr<AbstractLQPNode>& node) : _node(node) {}
 
-}
-
-CostFeatureVariant CostFeatureLQPNodeProxy::_extract_feature_impl(const CostFeature cost_feature) const  {
+CostFeatureVariant CostFeatureLQPNodeProxy::_extract_feature_impl(const CostFeature cost_feature) const {
   switch (cost_feature) {
     case CostFeature::LeftInputRowCount:
       Assert(_node->left_input(), "Node doesn't have left input");
@@ -34,6 +32,37 @@ CostFeatureVariant CostFeatureLQPNodeProxy::_extract_feature_impl(const CostFeat
     case CostFeature::OutputRowCount:
       return _node->get_statistics()->row_count();
 
+    case CostFeature::OperatorType: {
+      /**
+       * The following switch makes assumptions about the concrete Operator that the LQPTranslator will choose.
+       * TODO(anybody) somehow ask the LQPTranslator about this instead of making assumptions.
+       */
+
+      switch (_node->type()) {
+        case LQPNodeType::Predicate: return OperatorType::TableScan;
+
+        case LQPNodeType::Join: {
+          const auto join_node = std::static_pointer_cast<JoinNode>(_node);
+
+          if (join_node->join_mode() == JoinMode::Cross) {
+            return OperatorType::Product;
+          } else if (join_node->join_mode() == JoinMode::Inner &&
+                     join_node->predicate_condition() == PredicateCondition::Equals) {
+            return OperatorType::JoinHash;
+          } else {
+            return OperatorType::JoinSortMerge;
+          }
+        }
+
+        case LQPNodeType::Union: {
+          return OperatorType::UnionPositions;
+        }
+
+        default:
+          return OperatorType::Mock;
+      }
+    }
+
     case CostFeature::LeftDataType:
     case CostFeature::RightDataType: {
       auto column_reference = LQPColumnReference{};
@@ -43,9 +72,8 @@ CostFeatureVariant CostFeatureLQPNodeProxy::_extract_feature_impl(const CostFeat
         const auto column_references = join_node->join_column_references();
         Assert(column_references, "No columns referenced in this JoinMode");
 
-        column_reference = cost_feature == CostFeature::LeftDataType ?
-                           column_references->first :
-                           column_references->second;
+        column_reference =
+            cost_feature == CostFeature::LeftDataType ? column_references->first : column_references->second;
       } else if (_node->type() == LQPNodeType::Predicate) {
         const auto predicate_node = std::static_pointer_cast<PredicateNode>(_node);
         if (cost_feature == CostFeature::LeftDataType) {

@@ -37,13 +37,6 @@ TableStatistics TableStatistics::estimate_predicate(const ColumnID column_id,
     return table_statistics.estimate_predicate(column_id, PredicateCondition::LessThanEquals, *value2);
   }
 
-  // TODO(anybody) we don't do (Not)Like estimations yet, thus resort to magic numbers
-  if (predicate_condition == PredicateCondition::Like || predicate_condition == PredicateCondition::NotLike) {
-    const auto selectivity =
-        predicate_condition == PredicateCondition::Like ? DEFAULT_LIKE_SELECTIVITY : 1.0f - DEFAULT_LIKE_SELECTIVITY;
-    return {TableType::References, _row_count * selectivity, _column_statistics};
-  }
-
   // Create copies to modify below and insert into result
   auto predicated_row_count = _row_count;
   auto predicated_column_statistics = _column_statistics;
@@ -80,7 +73,7 @@ TableStatistics TableStatistics::estimate_predicate(const ColumnID column_id,
   }
 
   auto predicated_statistics = TableStatistics{TableType::References, predicated_row_count, predicated_column_statistics};
-  predicated_statistics.cap_distinct_counts();
+ // predicated_statistics.cap_distinct_counts();
 
   return predicated_statistics;
 }
@@ -271,7 +264,7 @@ TableStatistics TableStatistics::estimate_predicated_join(const TableStatistics&
     default: { Fail("Join mode not implemented."); }
   }
 
-  join_table_stats.cap_distinct_counts();
+  //join_table_stats.cap_distinct_counts();
 
   return join_table_stats;
 }
