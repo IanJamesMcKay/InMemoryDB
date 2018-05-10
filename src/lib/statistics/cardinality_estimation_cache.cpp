@@ -1,13 +1,17 @@
 #include "cardinality_estimation_cache.hpp"
 
+#include <iostream>
+
 namespace opossum {
 
 std::optional<Cardinality> CardinalityEstimationCache::get(const BaseJoinGraph& join_graph) {
   const auto cache_iter = _cache.find(join_graph);
   if (cache_iter != _cache.end()) {
+    std::cout << "CardinalityEstimationCache [HIT ]: " << join_graph.description() << ": " << cache_iter->second << std::endl;
     ++_hit_count;
     return cache_iter->second;
   } else {
+    std::cout << "CardinalityEstimationCache [MISS]: " << join_graph.description() << std::endl;
     ++_miss_count;
     return std::nullopt;
   }

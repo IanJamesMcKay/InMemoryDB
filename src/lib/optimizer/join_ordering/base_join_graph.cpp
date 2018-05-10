@@ -1,6 +1,7 @@
 #include "base_join_graph.hpp"
 
 #include <unordered_set>
+#include <sstream>
 
 #include "boost/functional/hash.hpp"
 #include "logical_query_plan/abstract_lqp_node.hpp"
@@ -28,6 +29,21 @@ std::shared_ptr<AbstractLQPNode> BaseJoinGraph::find_vertex(const LQPColumnRefer
     if (vertex->find_output_column_id(column_reference)) return vertex;
   }
   Fail("Couldn't find vertex");
+}
+
+std::string BaseJoinGraph::description() const {
+  std::stringstream stream;
+  stream << "[";
+  for (const auto& vertex : vertices) {
+    stream << vertex->description() << ";";
+  }
+  stream << "] [";
+  for (const auto& predicate : predicates) {
+    predicate->print(stream);
+    stream << "; ";
+  }
+  stream << "]";
+  return stream.str();
 }
 
 bool BaseJoinGraph::operator==(const BaseJoinGraph& rhs) const {

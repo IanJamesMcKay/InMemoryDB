@@ -17,6 +17,8 @@ struct BaseJoinGraph final {
 
   std::shared_ptr<AbstractLQPNode> find_vertex(const LQPColumnReference& column_reference) const;
 
+  std::string description() const;
+
   bool operator==(const BaseJoinGraph& rhs) const;
 
   std::vector<std::shared_ptr<AbstractLQPNode>> vertices;
