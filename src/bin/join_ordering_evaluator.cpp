@@ -364,6 +364,7 @@ int main(int argc, char ** argv) {
   auto workload_str = "tpch"s;
   auto max_plan_count = std::optional<size_t>{0};
   auto save_results = true;
+  auto plan_order_shuffling = std::optional<long>{0};
 
   cxxopts::Options cli_options_description{"Hyrise Join Ordering Evaluator", ""};
 
@@ -380,6 +381,7 @@ int main(int argc, char ** argv) {
     ("visualize", "Visualize every query plan", cxxopts::value<bool>(visualize)->default_value("false"))  // NOLINT
     ("w,workload", "Workload to run (tpch, job). Default: tpch", cxxopts::value(workload_str)->default_value(workload_str))  // NOLINT
     ("save-results", "Save head of result tables.", cxxopts::value(save_results)->default_value("true"))  // NOLINT
+    ("shuffle-idx", "Shuffle plan order from this index on, 0 to disable", cxxopts::value(*plan_order_shuffling)->default_value("0"))  // NOLINT
     ("queries", "Specify queries to run, default is all of the workload that are supported", cxxopts::value<std::vector<std::string>>()); // NOLINT
   ;
   // clang-format on
@@ -476,6 +478,14 @@ int main(int argc, char ** argv) {
     out() << "-- Not saving query results" << std::endl;
   }
 
+  // Process "shuffle-idx" parameter
+  if (*plan_order_shuffling <= 0) {
+    plan_order_shuffling.reset();
+    out() << "-- Plan order shuffling disabled" << std::endl;
+  } else {
+    out() << "-- Plan order shuffling from index  " << (*plan_order_shuffling) << " on" << std::endl;
+  }
+
   // Setup workload
   out() << "-- Setting up workload" << std::endl;
   workload->setup();
@@ -518,12 +528,12 @@ int main(int argc, char ** argv) {
       std::vector<size_t> plan_indices(join_plans.size());
       std::iota(plan_indices.begin(), plan_indices.end(), 0);
 
-      if (plan_indices.size() > 30) {
-        std::random_device rd;
-        std::mt19937 g(rd());
-        auto b = plan_indices.begin();
-        std::advance(b, 20);
-        std::shuffle(b, plan_indices.end(), g);
+      if (plan_order_shuffling) {
+        if (plan_indices.size() > static_cast<size_t>(*plan_order_shuffling)) {
+          std::random_device rd;
+          std::mt19937 g(rd());
+          std::shuffle(plan_indices.begin() + *plan_order_shuffling, plan_indices.end(), g);
+        }
       }
 
       if (max_plan_count) {

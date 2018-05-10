@@ -10,9 +10,9 @@ set(
 set(
     HYRISE_UNIT_TEST_SOURCES
     ${SHARED_SOURCES}
-    base_test.hpp
-    concurrency/commit_context_test.cpp
-    concurrency/transaction_context_test.cpp
+#    base_test.hpp
+#    concurrency/commit_context_test.cpp
+#    concurrency/transaction_context_test.cpp
     gtest_main.cpp
     cost_model/cost_feature_proxy_test.cpp
     import_export/csv_meta_test.cpp

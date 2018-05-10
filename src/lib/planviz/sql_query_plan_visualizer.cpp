@@ -1,6 +1,8 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <operators/get_table.hpp>
+#include <storage/storage_manager.hpp>
 
 #include "planviz/abstract_visualizer.hpp"
 #include "planviz/sql_query_plan_visualizer.hpp"
@@ -75,62 +77,71 @@ void SQLQueryPlanVisualizer::_build_dataflow(const std::shared_ptr<const Abstrac
 
 void SQLQueryPlanVisualizer::_add_operator(const std::shared_ptr<const AbstractOperator>& op) {
   VizVertexInfo info = _default_vertex;
-  info.shape = "record";
-  auto label = op->description(DescriptionMode::MultiLine);
 
-  if (op->get_output()) {
-    auto wall_time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(op->base_performance_data().total);
-    label += "\\n\\n" + format_duration(wall_time_ns);
-    info.pen_width = std::fmax(1, std::ceil(std::log10(wall_time_ns.count()) / 2));
-  }
+  if (op->type() == OperatorType::GetTable) {
+    const auto get_table = std::static_pointer_cast<const GetTable>(op);
+    const auto table = StorageManager::get().get_table(get_table->table_name());
 
-  VizRecordLayout layout;
-  layout.add_label(label);
+    info.shape = "ellipse";
+    info.label = get_table->table_name() + "\n" + std::to_string(table->row_count()) + " rows";
+  } else {
+    info.shape = "record";
+    auto label = op->description(DescriptionMode::MultiLine);
 
-  /**
-   * Optimizer info
-   */
-  if (op->lqp_node()) {
-    auto& optimizer_info = layout.add_sublayout();
+    if (op->get_output()) {
+      auto wall_time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(op->base_performance_data().total);
+      label += "\\n\\n" + format_duration(wall_time_ns);
+      info.pen_width = std::fmax(1, std::ceil(std::log10(wall_time_ns.count()) / 2));
+    }
 
-    optimizer_info.add_label("Hash: " + std::to_string(op->lqp_node()->hash()));
+    VizRecordLayout layout;
+    layout.add_label(label);
 
-    auto& comparisons = optimizer_info.add_sublayout();
+    /**
+     * Optimizer info
+     */
+    if (op->lqp_node()) {
+      auto &optimizer_info = layout.add_sublayout();
 
-    auto& row_count_info = comparisons.add_sublayout();
-    row_count_info.add_label("RowCount");
-    row_count_info.add_label(format_integer(static_cast<size_t>(op->lqp_node()->get_statistics()->row_count())) + " est");
-    row_count_info.add_label("-");
-    if (op->get_output()) row_count_info.add_label(format_integer(op->get_output()->row_count()) + " aim");
+      auto &comparisons = optimizer_info.add_sublayout();
 
-    if (_cost_model) {
-      auto& cost_info = comparisons.add_sublayout();
-      cost_info.add_label("Cost");
+      auto &row_count_info = comparisons.add_sublayout();
+      row_count_info.add_label("RowCount");
+      row_count_info.add_label(
+      format_integer(static_cast<size_t>(op->lqp_node()->get_statistics()->row_count())) + " est");
+      row_count_info.add_label("-");
+      if (op->get_output()) row_count_info.add_label(format_integer(op->get_output()->row_count()) + " aim");
 
-      const auto node_cost = _cost_model->estimate_lqp_node_cost(op->lqp_node());
-      if (node_cost > 0) {
-        cost_info.add_label(format_integer(static_cast<int>(node_cost)) + " est");
-      } else {
-        cost_info.add_label("-");
-      }
+      if (_cost_model) {
+        auto &cost_info = comparisons.add_sublayout();
+        cost_info.add_label("Cost");
 
-      const auto op_cost = _cost_model->estimate_operator_cost(std::const_pointer_cast<AbstractOperator>(op));
-      if (op_cost > 0) {
-        cost_info.add_label(format_integer(static_cast<int>(op_cost)) + " re-est");
-      } else {
-        cost_info.add_label("-");
-      }
+        const auto node_cost = _cost_model->estimate_lqp_node_cost(op->lqp_node());
+        if (node_cost > 0) {
+          cost_info.add_label(format_integer(static_cast<int>(node_cost)) + " est");
+        } else {
+          cost_info.add_label("-");
+        }
 
-      const auto target_cost = _cost_model->get_reference_operator_cost(std::const_pointer_cast<AbstractOperator>(op));
-      if (target_cost > 0) {
-        cost_info.add_label(format_integer(static_cast<int>(target_cost)) + " aim");
-      } else {
-        cost_info.add_label("-");
+        const auto op_cost = _cost_model->estimate_operator_cost(std::const_pointer_cast<AbstractOperator>(op));
+        if (op_cost > 0) {
+          cost_info.add_label(format_integer(static_cast<int>(op_cost)) + " re-est");
+        } else {
+          cost_info.add_label("-");
+        }
+
+        const auto target_cost = _cost_model->get_reference_operator_cost(
+        std::const_pointer_cast<AbstractOperator>(op));
+        if (target_cost > 0) {
+          cost_info.add_label(format_integer(static_cast<int>(target_cost)) + " aim");
+        } else {
+          cost_info.add_label("-");
+        }
       }
     }
-  }
 
-  info.label = layout.to_label_string();
+    info.label = layout.to_label_string();
+  }
   _add_vertex(op, info);
 }
 

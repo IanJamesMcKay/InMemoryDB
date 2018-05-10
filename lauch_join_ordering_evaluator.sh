@@ -1,7 +1,7 @@
 #!/bin/sh
 
 SESSION=moautosession
-COMMAND="./cmake-build-clang-release/hyriseJoinOrderingEvaluator -w job --timeout-plan 320 --timeout-query 2100 --max-plan-count 400 --visualize"
+COMMAND="./cmake-build-clang-release/hyriseJoinOrderingEvaluator -w job --timeout-plan 320 --timeout-query 7200 --max-plan-count 1500 --visualize"
 
 echo $COMMAND
 
