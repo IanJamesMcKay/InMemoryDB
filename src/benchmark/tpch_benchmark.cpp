@@ -17,6 +17,10 @@
 #include "sql/sql_pipeline_builder.hpp"
 #include "tpch/tpch_db_generator.hpp"
 #include "tpch/tpch_queries.hpp"
+#include "storage/storage_manager.hpp"
+#include "utils/load_table.hpp"
+#include "storage/bloom_filter.hpp"
+
 
 /**
  * This benchmark measures Hyrise's performance executing the TPC-H *queries*, it doesn't (yet) support running the
@@ -139,7 +143,45 @@ class TpchBenchmark final {
         _output_file_path(output_file_path),
         _use_mvcc(use_mvcc),
         _query_results_by_query_id(),
-        _enable_visualization(enable_visualization) {}
+        _enable_visualization(enable_visualization) {
+
+    auto &user_mapping = opossum::StorageManager::get().user_mapping();
+    // user in user mapping
+    user_mapping["benchmark_user"] = 0;
+
+//
+//    // Load user rate limiting table.
+//    opossum::StorageManager::get().add_table("user_rate_limiting", opossum::load_table("user_rate_limiting.tbl"));
+//    auto bloom_filter = opossum::load_table("user_bloom_filter_limiting.tbl");
+//
+//    // Load and apply user blomm filter restrictions
+//    opossum::StorageManager::get().add_table("bloom_filter", bloom_filter);
+//    for (size_t row_number = 0; row_number < bloom_filter->row_count(); ++row_number) {
+//      auto user_name = bloom_filter->get_value<std::string>(opossum::ColumnID(0), row_number);
+//      auto table_name = bloom_filter->get_value<std::string>(opossum::ColumnID(1), row_number);
+//      auto column_name = bloom_filter->get_value<std::string>(opossum::ColumnID(2), row_number);
+//      auto threshold = bloom_filter->get_value<float>(opossum::ColumnID(3), row_number);
+//
+//      auto table = opossum::StorageManager::get().get_table(table_name);
+//      auto &user_mapping = opossum::StorageManager::get().user_mapping();
+//      uint16_t user_id = user_mapping.size();
+//      auto itr = user_mapping.find(user_name);
+//      if (itr != user_mapping.end()) {
+//        user_id = itr->second;
+//      } else {
+//        user_mapping[user_name] = user_id;
+//      }
+//      if (column_name == "*") {
+//        for (const std::string& column_name : table->column_names()) {
+//          table->set_bloom_filter(user_id, table->column_id_by_name(column_name), threshold * opossum::bloom_filter_size);
+//        }
+//      } else {
+//        table->set_bloom_filter(user_id, table->column_id_by_name(column_name), threshold * opossum::bloom_filter_size);
+//      }
+//    }
+
+
+  }
 
   void run() {
     /**
@@ -275,7 +317,7 @@ class TpchBenchmark final {
 
     auto pipeline = SQLPipelineBuilder{sql}.with_mvcc(_use_mvcc).create_pipeline();
     // Execute the query, we don't care about the results
-    pipeline.get_result_table();
+    pipeline.get_result_table("benchmark_user");
 
     // If necessary, keep plans for visualization
     if (_enable_visualization) {

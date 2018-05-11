@@ -86,6 +86,11 @@ class TableBuilder {
                              return column_definitions;
                            });
     _table = std::make_shared<opossum::Table>(column_definitions, opossum::TableType::Data, chunk_size, use_mvcc);
+    for (opossum::ColumnID column_id{0}; column_id < _table->column_count(); ++column_id) {
+      // for benchmark the user has id 0
+      uint16_t user_id = 0;
+      _table->set_bloom_filter(user_id, column_id, 100);
+    }
   }
 
   std::shared_ptr<opossum::Table> finish_table() {
@@ -198,6 +203,22 @@ TpchDbGenerator::TpchDbGenerator(float scale_factor, uint32_t chunk_size)
     : _scale_factor(scale_factor), _chunk_size(chunk_size) {}
 
 std::unordered_map<TpchTable, std::shared_ptr<Table>> TpchDbGenerator::generate() {
+
+  // Create audit log table.
+  opossum::TableColumnDefinitions column_definitions;
+  column_definitions.emplace_back("user", opossum::DataType::String, false);
+  column_definitions.emplace_back("commit_id", opossum::DataType::Int, false);
+  column_definitions.emplace_back("epoch_ms", opossum::DataType::Long, false);
+  column_definitions.emplace_back("query", opossum::DataType::String, false);
+  column_definitions.emplace_back("row_count", opossum::DataType::Long, false);
+  column_definitions.emplace_back("execution_time_micros", opossum::DataType::Long, false);
+  column_definitions.emplace_back("query_allowed", opossum::DataType::Int, false);
+  column_definitions.emplace_back("id", opossum::DataType::Int, false);
+  column_definitions.emplace_back("snapshot_id", opossum::DataType::Int, false);
+  std::shared_ptr<opossum::Table> audit_log_table =
+          std::make_shared<opossum::Table>(column_definitions, opossum::TableType::Data);
+  opossum::StorageManager::get().add_table("audit_log", audit_log_table);
+
   TableBuilder customer_builder{_chunk_size, customer_column_types, customer_column_names, UseMvcc::Yes};
   TableBuilder order_builder{_chunk_size, order_column_types, order_column_names, UseMvcc::Yes};
   TableBuilder lineitem_builder{_chunk_size, lineitem_column_types, lineitem_column_names, UseMvcc::Yes};
