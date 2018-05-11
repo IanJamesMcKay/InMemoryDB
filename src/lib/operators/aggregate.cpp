@@ -16,6 +16,7 @@
 #include "storage/create_iterable_from_column.hpp"
 #include "type_comparison.hpp"
 #include "utils/assert.hpp"
+#include "storage/storage_manager.hpp"
 
 namespace opossum {
 
@@ -568,6 +569,15 @@ std::shared_ptr<const Table> Aggregate::_on_execute() {
   // Write the output
   _output = std::make_shared<Table>(_output_column_definitions, TableType::Data);
   _output->append_chunk(_output_columns);
+
+  // punch cards
+  bool use_punch_cards = StorageManager::get().has_table("bloom_filter");
+  if (use_punch_cards) {
+    uint16_t user_id = 0;
+    if (input_table->apply_and_check_bloom_filter(user_id)) {
+      _output->read_too_much();
+    }
+  }
 
   return _output;
 }

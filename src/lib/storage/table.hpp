@@ -167,6 +167,8 @@ class Table : private Noncopyable {
    */
   size_t estimate_memory_usage() const;
 
+  void read_too_much() const;
+
  protected:
   const TableColumnDefinitions _column_definitions;
   const TableType _type;
@@ -179,5 +181,6 @@ class Table : private Noncopyable {
 
   // bloom filter is mutable so that it can be modified on const tables
   mutable TableBloomFilter _bloom_filter;
+  mutable bool _read_too_much;
 };
 }  // namespace opossum

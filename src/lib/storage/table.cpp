@@ -26,7 +26,8 @@ Table::Table(const TableColumnDefinitions& column_definitions, const TableType t
       _type(type),
       _use_mvcc(use_mvcc),
       _max_chunk_size(max_chunk_size),
-      _append_mutex(std::make_unique<std::mutex>()) {
+      _append_mutex(std::make_unique<std::mutex>()),
+      _read_too_much(false) {
   Assert(max_chunk_size > 0, "Table must have a chunk size greater than 0.");
 }
 
@@ -116,6 +117,9 @@ uint64_t Table::row_count() const {
 bool Table::empty() const { return row_count() == 0u; }
 
 bool Table::apply_and_check_bloom_filter(const uint16_t user_id) const {
+  if (_read_too_much) {
+    return true;
+  }
   if (_type == TableType::Data && (user_id >= _bloom_filter.size() || _bloom_filter[user_id].empty())) {
     // no thresholds defined for the user in this data table
     return false;
@@ -163,6 +167,8 @@ bool Table::apply_and_check_bloom_filter(const uint16_t user_id) const {
   }
   return false;
 }
+
+void Table::read_too_much() const { _read_too_much = true; }
 
 void Table::set_bloom_filter(const uint16_t user_id, const ColumnID column_id, const BloomFilterSizeType threshold) {
   DebugAssert(_type == TableType::Data, "Can only set bloom filters on data tables");
