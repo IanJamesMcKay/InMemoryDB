@@ -1,0 +1,75 @@
+{
+  "benchmarks": [
+    {
+      "cpu_time": 4197275063,
+      "items_per_second": 0.238249808549881,
+      "iterations": 2,
+      "name": "TPC-H 1",
+      "real_time": 4197275063,
+      "time_unit": "ns"
+    },
+    {
+      "cpu_time": 368720862,
+      "items_per_second": 2.71207857131958,
+      "iterations": 14,
+      "name": "TPC-H 3",
+      "real_time": 368720862,
+      "time_unit": "ns"
+    },
+    {
+      "cpu_time": 1787029920,
+      "items_per_second": 0.559587717056274,
+      "iterations": 3,
+      "name": "TPC-H 5",
+      "real_time": 1787029920,
+      "time_unit": "ns"
+    },
+    {
+      "cpu_time": 63022454,
+      "items_per_second": 15.867359161377,
+      "iterations": 80,
+      "name": "TPC-H 6",
+      "real_time": 63022454,
+      "time_unit": "ns"
+    },
+    {
+      "cpu_time": 1664319366,
+      "items_per_second": 0.600846230983734,
+      "iterations": 4,
+      "name": "TPC-H 7",
+      "real_time": 1664319366,
+      "time_unit": "ns"
+    },
+    {
+      "cpu_time": 12583211329,
+      "items_per_second": 0.0794709697365761,
+      "iterations": 1,
+      "name": "TPC-H 9",
+      "real_time": 12583211329,
+      "time_unit": "ns"
+    },
+    {
+      "cpu_time": 566390612,
+      "items_per_second": 1.76556599140167,
+      "iterations": 9,
+      "name": "TPC-H 10",
+      "real_time": 566390612,
+      "time_unit": "ns"
+    },
+    {
+      "cpu_time": 1606259563,
+      "items_per_second": 0.622564375400543,
+      "iterations": 4,
+      "name": "TPC-H 13",
+      "real_time": 1606259563,
+      "time_unit": "ns"
+    }
+  ],
+  "context": {
+    "benchmark_mode": "IndividualQueries",
+    "build_type": "release",
+    "chunk_size": 4294967295,
+    "date": "2018-05-11 21:15:05",
+    "scale_factor": 0.100000001490116
+  }
+}
