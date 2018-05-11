@@ -304,7 +304,6 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table(const
       auto find = user_mapping.find(username);
       if (find != user_mapping.end()) {
         // BloomFilters are used for this user
-        std::cerr << "in bloom filter in pipeline" << std::endl;
 
         query_allowed = !_result_table->apply_and_check_bloom_filter(find->second);
 
