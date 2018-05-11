@@ -211,6 +211,6 @@ void Chunk::set_statistics(std::shared_ptr<ChunkStatistics> chunk_statistics) {
 
 void Chunk::set_scramble(const bool scramble) { _scramble = scramble; }
 
-bool Chunk::should_scramble() const { return _scramble; };
+bool Chunk::should_scramble() const { return _scramble; }
 
 }  // namespace opossum
