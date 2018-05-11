@@ -48,6 +48,8 @@ set(
     logical_query_plan/abstract_lqp_node.hpp
     logical_query_plan/aggregate_node.cpp
     logical_query_plan/aggregate_node.hpp
+    logical_query_plan/cardinality_estimation_instrumentation_node.cpp
+    logical_query_plan/cardinality_estimation_instrumentation_node.hpp
     logical_query_plan/create_view_node.cpp
     logical_query_plan/create_view_node.hpp
     logical_query_plan/delete_node.cpp
@@ -102,6 +104,8 @@ set(
     operators/base_operator_performance_data.hpp
     operators/aggregate.cpp
     operators/aggregate.hpp
+    operators/cardinality_estimation_instrumentation_operator.cpp
+    operators/cardinality_estimation_instrumentation_operator.hpp
     operators/delete.cpp
     operators/delete.hpp
     operators/difference.cpp
@@ -241,6 +245,8 @@ set(
     optimizer/optimizer.hpp
     optimizer/strategy/abstract_rule.cpp
     optimizer/strategy/abstract_rule.hpp
+    optimizer/strategy/cardinality_estimation_instrumentation_rule.cpp
+    optimizer/strategy/cardinality_estimation_instrumentation_rule.hpp
     optimizer/strategy/chunk_pruning_rule.cpp
     optimizer/strategy/chunk_pruning_rule.hpp
     optimizer/strategy/constant_calculation_rule.cpp

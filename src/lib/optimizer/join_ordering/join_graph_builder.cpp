@@ -50,7 +50,7 @@ std::shared_ptr<JoinGraph> JoinGraphBuilder::operator()(const std::shared_ptr<Ab
   /**
    * 2. Traverse the LQP from the "JoinGraphRootNode" found above, identifying JoinPlanPredicates and Vertices
    */
-  _traverse(join_graph_root_node);
+  traverse(join_graph_root_node);
 
   /**
    * Turn the predicates into JoinEdges and build the JoinGraph
@@ -63,8 +63,8 @@ std::shared_ptr<JoinGraph> JoinGraphBuilder::operator()(const std::shared_ptr<Ab
   return std::make_shared<JoinGraph>(std::move(_vertices), std::move(output_relations), std::move(edges));
 }
 
-void JoinGraphBuilder::_traverse(const std::shared_ptr<AbstractLQPNode>& node) {
-  // Makes it possible to call _traverse() on inputs without checking whether they exist first.
+void JoinGraphBuilder::traverse(const std::shared_ptr<AbstractLQPNode>& node) {
+  // Makes it possible to call traverse() on inputs without checking whether they exist first.
   if (!node) {
     return;
   }
@@ -91,8 +91,8 @@ void JoinGraphBuilder::_traverse(const std::shared_ptr<AbstractLQPNode>& node) {
       }
 
       if (join_node->join_mode() == JoinMode::Inner || join_node->join_mode() == JoinMode::Cross) {
-        _traverse(node->left_input());
-        _traverse(node->right_input());
+        traverse(node->left_input());
+        traverse(node->right_input());
       } else {
         _vertices.emplace_back(node);
       }
@@ -119,7 +119,7 @@ void JoinGraphBuilder::_traverse(const std::shared_ptr<AbstractLQPNode>& node) {
             predicate_node->column_reference(), predicate_node->predicate_condition(), predicate_node->value()));
       }
 
-      _traverse(node->left_input());
+      traverse(node->left_input());
     } break;
 
     case LQPNodeType::Union: {
@@ -133,7 +133,7 @@ void JoinGraphBuilder::_traverse(const std::shared_ptr<AbstractLQPNode>& node) {
       if (union_node->union_mode() == UnionMode::Positions) {
         const auto parse_result = _parse_union(union_node);
 
-        _traverse(parse_result.base_node);
+        traverse(parse_result.base_node);
         _predicates.emplace_back(parse_result.predicate);
       } else {
         _vertices.emplace_back(node);
@@ -306,6 +306,14 @@ std::vector<std::shared_ptr<JoinEdge>> JoinGraphBuilder::cross_edges_between_com
   }
 
   return inter_component_edges;
+}
+
+const std::vector<std::shared_ptr<AbstractLQPNode>>& JoinGraphBuilder::vertices() const {
+  return _vertices;
+}
+
+const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& JoinGraphBuilder::predicates() const {
+  return _predicates;
 }
 
 }  // namespace opossum

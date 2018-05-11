@@ -20,6 +20,7 @@ class TableStatistics;
 
 enum class LQPNodeType {
   Aggregate,
+  CardinalityEstimationInstrumentation,
   CreateView,
   Delete,
   DropView,

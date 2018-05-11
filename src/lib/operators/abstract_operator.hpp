@@ -18,6 +18,7 @@ class TransactionContext;
 
 enum class OperatorType {
   Aggregate,
+  CardinalityEstimationInstrumentation,
   Delete,
   Difference,
   ExportBinary,

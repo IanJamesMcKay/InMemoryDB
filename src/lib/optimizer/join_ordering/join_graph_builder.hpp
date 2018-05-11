@@ -43,11 +43,15 @@ class JoinGraphBuilder final {
   static std::vector<std::shared_ptr<JoinEdge>> cross_edges_between_components(
       const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices, std::vector<std::shared_ptr<JoinEdge>> edges);
 
- private:
+  const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices() const;
+  const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates() const;
+
   /**
    * Traverse the LQP recursively identifying predicates and vertices along the way
    */
-  void _traverse(const std::shared_ptr<AbstractLQPNode>& node);
+  void traverse(const std::shared_ptr<AbstractLQPNode>& node);
+
+ private:
 
   /**
    * A subgraph in the LQP consisting of UnionNodes and PredicateNodes can be translated into a single complex predicate

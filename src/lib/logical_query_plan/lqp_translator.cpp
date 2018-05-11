@@ -7,6 +7,7 @@
 
 #include "abstract_lqp_node.hpp"
 #include "aggregate_node.hpp"
+#include "cardinality_estimation_instrumentation_node.hpp"
 #include "constant_mappings.hpp"
 #include "create_view_node.hpp"
 #include "delete_node.hpp"
@@ -17,6 +18,7 @@
 #include "limit_node.hpp"
 #include "lqp_expression.hpp"
 #include "operators/aggregate.hpp"
+#include "operators/cardinality_estimation_instrumentation_operator.hpp"
 #include "operators/delete.hpp"
 #include "operators/get_table.hpp"
 #include "operators/index_scan.hpp"
@@ -407,6 +409,12 @@ std::shared_ptr<AbstractOperator> LQPTranslator::_translate_validate_node(
   const auto input_operator = translate_node(node->left_input());
   return std::make_shared<Validate>(input_operator);
 }
+std::shared_ptr<AbstractOperator> LQPTranslator::_translate_cardinality_estimation_instrumentation_node(
+    const std::shared_ptr<AbstractLQPNode>& node) const {
+  const auto input_node = std::static_pointer_cast<CardinalityEstimationInstrumentationNode>(node);
+  const auto input_operator = translate_node(node->left_input());
+  return std::make_shared<CardinalityEstimationInstrumentationOperator>(input_operator, input_node->cardinality_estimation_cache);
+}
 
 std::shared_ptr<AbstractOperator> LQPTranslator::_translate_show_tables_node(
     const std::shared_ptr<AbstractLQPNode>& node) const {
@@ -468,6 +476,8 @@ std::shared_ptr<AbstractOperator> LQPTranslator::_translate_by_node_type(
       return _translate_validate_node(node);
     case LQPNodeType::Union:
       return _translate_union_node(node);
+    case LQPNodeType::CardinalityEstimationInstrumentation:
+      return _translate_cardinality_estimation_instrumentation_node(node);
 
     // Maintenance operators
     case LQPNodeType::ShowTables:
