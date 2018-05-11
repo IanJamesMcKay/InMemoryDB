@@ -299,31 +299,34 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table(const
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
             .count();
 
-    auto &user_mapping = StorageManager::get().user_mapping();
-    auto find = user_mapping.find(username);
-    if (find != user_mapping.end()) {
-      // BloomFilters are used for this user
+    if (StorageManager::get().has_table("bloom_filter")) {
+      auto &user_mapping = StorageManager::get().user_mapping();
+      auto find = user_mapping.find(username);
+      if (find != user_mapping.end()) {
+        // BloomFilters are used for this user
+        std::cerr << "in bloom filter in pipeline" << std::endl;
 
-      query_allowed = !_result_table->apply_and_check_bloom_filter(find->second);
+        query_allowed = !_result_table->apply_and_check_bloom_filter(find->second);
 
-      if (!query_allowed) {
-        // get action
+        if (!query_allowed) {
+          // get action
 
-        // select action
-        // from user_bloom_filter_limiting
-        // where username = username
-        // limit 1
-        auto rl_get_table = std::make_shared<GetTable>("bloom_filter");
-        rl_get_table->execute();
+          // select action
+          // from user_bloom_filter_limiting
+          // where username = username
+          // limit 1
+          auto rl_get_table = std::make_shared<GetTable>("bloom_filter");
+          rl_get_table->execute();
 
-        auto rl_table_scan_user =
-                std::make_shared<TableScan>(rl_get_table, ColumnID{0}, PredicateCondition::Equals, username);
-        rl_table_scan_user->execute();
+          auto rl_table_scan_user =
+                  std::make_shared<TableScan>(rl_get_table, ColumnID{0}, PredicateCondition::Equals, username);
+          rl_table_scan_user->execute();
 
-        const auto rl_result = rl_table_scan_user->get_output();
+          const auto rl_result = rl_table_scan_user->get_output();
 
-        security_breach_action = rl_result->get_value<std::string>(ColumnID(4), 0);
+          security_breach_action = rl_result->get_value<std::string>(ColumnID(4), 0);
 
+        }
       }
     }
 

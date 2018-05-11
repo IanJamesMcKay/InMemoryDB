@@ -1,0 +1,10 @@
+user|table|column|threshold|action
+string|string|string|float|string
+benchmark_user|part|*|0.99|none
+benchmark_user|partsupp|*|0.99|none
+benchmark_user|supplier|*|0.99|none
+benchmark_user|customer|*|0.99|none
+benchmark_user|orders|*|0.99|none
+benchmark_user|lineitem|*|0.99|none
+benchmark_user|nation|*|0.99|none
+benchmark_user|region|*|0.99|none

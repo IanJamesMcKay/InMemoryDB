@@ -133,6 +133,7 @@ class TpchBenchmark final {
   TpchBenchmark(const BenchmarkMode benchmark_mode, std::vector<QueryID> query_ids,
                 const opossum::ChunkOffset chunk_size, const float scale_factor, const size_t max_num_query_runs,
                 const Duration max_duration, const std::optional<std::string>& output_file_path, const UseMvcc use_mvcc,
+                const bool use_punch_card, const bool use_rate_limiting,
                 const bool enable_visualization)
       : _benchmark_mode(benchmark_mode),
         _query_ids(std::move(query_ids)),
@@ -142,54 +143,63 @@ class TpchBenchmark final {
         _max_duration(max_duration),
         _output_file_path(output_file_path),
         _use_mvcc(use_mvcc),
+        _use_punch_card(use_punch_card),
+        _use_rate_limiting(use_rate_limiting),
         _query_results_by_query_id(),
-        _enable_visualization(enable_visualization) {
-
-    auto &user_mapping = opossum::StorageManager::get().user_mapping();
-    // user in user mapping
-    user_mapping["benchmark_user"] = 0;
-
-//
-//    // Load user rate limiting table.
-//    opossum::StorageManager::get().add_table("user_rate_limiting", opossum::load_table("user_rate_limiting.tbl"));
-//    auto bloom_filter = opossum::load_table("user_bloom_filter_limiting.tbl");
-//
-//    // Load and apply user blomm filter restrictions
-//    opossum::StorageManager::get().add_table("bloom_filter", bloom_filter);
-//    for (size_t row_number = 0; row_number < bloom_filter->row_count(); ++row_number) {
-//      auto user_name = bloom_filter->get_value<std::string>(opossum::ColumnID(0), row_number);
-//      auto table_name = bloom_filter->get_value<std::string>(opossum::ColumnID(1), row_number);
-//      auto column_name = bloom_filter->get_value<std::string>(opossum::ColumnID(2), row_number);
-//      auto threshold = bloom_filter->get_value<float>(opossum::ColumnID(3), row_number);
-//
-//      auto table = opossum::StorageManager::get().get_table(table_name);
-//      auto &user_mapping = opossum::StorageManager::get().user_mapping();
-//      uint16_t user_id = user_mapping.size();
-//      auto itr = user_mapping.find(user_name);
-//      if (itr != user_mapping.end()) {
-//        user_id = itr->second;
-//      } else {
-//        user_mapping[user_name] = user_id;
-//      }
-//      if (column_name == "*") {
-//        for (const std::string& column_name : table->column_names()) {
-//          table->set_bloom_filter(user_id, table->column_id_by_name(column_name), threshold * opossum::bloom_filter_size);
-//        }
-//      } else {
-//        table->set_bloom_filter(user_id, table->column_id_by_name(column_name), threshold * opossum::bloom_filter_size);
-//      }
-//    }
-
-
-  }
+        _enable_visualization(enable_visualization) {}
 
   void run() {
+
+
     /**
      * Populate the StorageManager with the TPC-H tables
      */
     out() << "- Generating TPCH Tables with scale_factor=" << _scale_factor << "..." << std::endl;
     opossum::TpchDbGenerator(_scale_factor, _chunk_size).generate_and_store();
     out() << "- Done." << std::endl;
+
+    // user in user mapping
+    if (_use_punch_card) {
+      // load configuration table
+      opossum::StorageManager::get().add_table("bloom_filter",
+                                               opossum::load_table("benchmark_user_bloom_filter_limiting.tbl"));
+
+      // currently all columns in all table use punch card for user "benchmark_user" with id 0
+      auto &user_mapping = opossum::StorageManager::get().user_mapping();
+      uint16_t user_id = 0;
+      user_mapping["benchmark_user"] = user_id;
+
+      // set bloom filter
+      for (const auto &table_name : opossum::StorageManager::get().table_names()) {
+        auto table = opossum::StorageManager::get().get_table(table_name);
+        for (opossum::ColumnID column_id{0}; column_id < table->column_count(); ++column_id) {
+          table->set_bloom_filter(user_id, column_id, 99);
+        }
+      }
+    }
+
+    if (_use_rate_limiting) {
+      // Load user rate limiting table.
+      opossum::StorageManager::get().add_table("user_rate_limiting",
+                                               opossum::load_table("benchmark_user_rate_limiting.tbl"));
+
+    }
+    if (_use_punch_card || _use_rate_limiting) {
+      // Create audit log table.
+      opossum::TableColumnDefinitions column_definitions;
+      column_definitions.emplace_back("user", opossum::DataType::String, false);
+      column_definitions.emplace_back("commit_id", opossum::DataType::Int, false);
+      column_definitions.emplace_back("epoch_ms", opossum::DataType::Long, false);
+      column_definitions.emplace_back("query", opossum::DataType::String, false);
+      column_definitions.emplace_back("row_count", opossum::DataType::Long, false);
+      column_definitions.emplace_back("execution_time_micros", opossum::DataType::Long, false);
+      column_definitions.emplace_back("query_allowed", opossum::DataType::Int, false);
+      column_definitions.emplace_back("id", opossum::DataType::Int, false);
+      column_definitions.emplace_back("snapshot_id", opossum::DataType::Int, false);
+      std::shared_ptr<opossum::Table> audit_log_table =
+              std::make_shared<opossum::Table>(column_definitions, opossum::TableType::Data);
+      opossum::StorageManager::get().add_table("audit_log", audit_log_table);
+    }
 
     /**
      * Run the TPCH queries in the selected mode
@@ -250,6 +260,8 @@ class TpchBenchmark final {
   const Duration _max_duration;
   const std::optional<std::string> _output_file_path;
   const UseMvcc _use_mvcc;
+  const bool _use_punch_card;
+  const bool _use_rate_limiting;
 
   BenchmarkResults _query_results_by_query_id;
 
@@ -385,6 +397,8 @@ int main(int argc, char* argv[]) {
   auto chunk_size = opossum::ChunkOffset(opossum::INVALID_CHUNK_OFFSET);
   auto benchmark_mode_str = std::string{"IndividualQueries"};
   auto enable_mvcc = false;
+  auto enable_puch_card = false;
+  auto enable_rate_limiting = false;
   auto enable_scheduler = false;
   auto enable_visualization = false;
 
@@ -401,6 +415,8 @@ int main(int argc, char* argv[]) {
     ("o,output", "File to output results to, don't specify for stdout", cxxopts::value<std::string>())
     ("m,mode", "IndividualQueries or PermutedQuerySets, default is IndividualQueries", cxxopts::value<std::string>(benchmark_mode_str)->default_value(benchmark_mode_str)) // NOLINT
     ("mvcc", "Enable or disable MVCC", cxxopts::value<bool>(enable_mvcc)->default_value("false")) // NOLINT
+    ("p,punch_card", "Enable or disable punch card restrictions", cxxopts::value<bool>(enable_puch_card)->default_value("false")) // NOLINT
+    ("l,rate_limiting", "Enable or disable rate limiting", cxxopts::value<bool>(enable_rate_limiting)->default_value("false")) // NOLINT
     ("scheduler", "Enable or disable the scheduler", cxxopts::value<bool>(enable_scheduler)->default_value("false")) // NOLINT
     ("visualize", "Create a visualization image of one LQP and PQP for each TPCH query", cxxopts::value<bool>(enable_visualization)->default_value("false")) // NOLINT
     ("queries", "Specify queries to run, default is all that are supported", cxxopts::value<std::vector<opossum::QueryID>>()); // NOLINT
@@ -408,6 +424,11 @@ int main(int argc, char* argv[]) {
 
   cli_options_description.parse_positional("queries");
   const auto cli_parse_result = cli_options_description.parse(argc, argv);
+
+  if (enable_puch_card || enable_rate_limiting) {
+    // punch card and rate limiting require mvcc
+    enable_mvcc = true;
+  }
 
   // Display usage and quit
   if (cli_parse_result.count("help")) {
@@ -432,6 +453,12 @@ int main(int argc, char* argv[]) {
 
   // Display info about MVCC being enabled or not
   opossum::out() << "- MVCC is " << (enable_mvcc ? "enabled" : "disabled") << std::endl;
+
+  // punch cards
+  opossum::out() << "- Punch card restrictions is " << (enable_puch_card ? "enabled" : "disabled") << std::endl;
+
+  // rate limiting
+  opossum::out() << "- Rate limiting is " << (enable_rate_limiting ? "enabled" : "disabled") << std::endl;
 
   /**
    * Initialise the Scheduler if the Benchmark was requested to run multithreaded
@@ -491,6 +518,8 @@ int main(int argc, char* argv[]) {
       std::chrono::duration_cast<opossum::Duration>(std::chrono::seconds{timeout_duration}),
       output_file_path,
       enable_mvcc ? opossum::UseMvcc::Yes : opossum::UseMvcc::No,
+      enable_puch_card,
+      enable_rate_limiting,
       enable_visualization
   };
   // clang-format on

@@ -1,0 +1,3 @@
+user|query_limit|row_count_limit|action
+string|int|int|string
+bechmark_user|1000|2000000000|none
