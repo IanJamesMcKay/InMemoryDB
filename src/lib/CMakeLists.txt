@@ -48,8 +48,6 @@ set(
     logical_query_plan/abstract_lqp_node.hpp
     logical_query_plan/aggregate_node.cpp
     logical_query_plan/aggregate_node.hpp
-    logical_query_plan/cardinality_estimation_instrumentation_node.cpp
-    logical_query_plan/cardinality_estimation_instrumentation_node.hpp
     logical_query_plan/create_view_node.cpp
     logical_query_plan/create_view_node.hpp
     logical_query_plan/delete_node.cpp
@@ -97,6 +95,7 @@ set(
     operators/abstract_join_operator.hpp
     operators/abstract_operator.cpp
     operators/abstract_operator.hpp
+    operators/abstract_operator_callback.hpp
     operators/abstract_read_only_operator.cpp
     operators/abstract_read_only_operator.hpp
     operators/abstract_read_write_operator.cpp
@@ -104,8 +103,8 @@ set(
     operators/base_operator_performance_data.hpp
     operators/aggregate.cpp
     operators/aggregate.hpp
-    operators/cardinality_estimation_instrumentation_operator.cpp
-    operators/cardinality_estimation_instrumentation_operator.hpp
+    operators/cardinality_caching_callback.cpp
+    operators/cardinality_caching_callback.hpp
     operators/delete.cpp
     operators/delete.hpp
     operators/difference.cpp
@@ -245,8 +244,6 @@ set(
     optimizer/optimizer.hpp
     optimizer/strategy/abstract_rule.cpp
     optimizer/strategy/abstract_rule.hpp
-    optimizer/strategy/cardinality_estimation_instrumentation_rule.cpp
-    optimizer/strategy/cardinality_estimation_instrumentation_rule.hpp
     optimizer/strategy/chunk_pruning_rule.cpp
     optimizer/strategy/chunk_pruning_rule.hpp
     optimizer/strategy/constant_calculation_rule.cpp

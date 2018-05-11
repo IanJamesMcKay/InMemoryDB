@@ -18,6 +18,9 @@ std::optional<Cardinality> CardinalityEstimationCache::get(const BaseJoinGraph& 
 }
 
 void CardinalityEstimationCache::put(const BaseJoinGraph& join_graph, const Cardinality cardinality) {
+  if (_cache.count(join_graph) == 0) {
+    std::cout << "CardinalityEstimationCache [PUT ]: " << join_graph.description() << ": " << cardinality << std::endl;
+  }
   _cache[join_graph] = cardinality;
 }
 

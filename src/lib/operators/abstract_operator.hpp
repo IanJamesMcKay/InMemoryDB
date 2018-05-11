@@ -12,13 +12,13 @@
 
 namespace opossum {
 
+class AbstractOperatorCallback;
 class OperatorTask;
 class Table;
 class TransactionContext;
 
 enum class OperatorType {
   Aggregate,
-  CardinalityEstimationInstrumentation,
   Delete,
   Difference,
   ExportBinary,
@@ -117,7 +117,7 @@ class AbstractOperator : public std::enable_shared_from_this<AbstractOperator>, 
 
   void print(std::ostream& stream = std::cout) const;
 
-  void set_post_callbacks(const std::vector<PostOperatorCallback>& post_operator_callbacks);
+  void set_post_callbacks(const std::vector<std::shared_ptr<AbstractOperatorCallback>>& post_operator_callbacks);
 
   std::shared_ptr<AbstractLQPNode> lqp_node() const;
   void set_lqp_node(const std::shared_ptr<AbstractLQPNode>& node);
@@ -161,7 +161,7 @@ class AbstractOperator : public std::enable_shared_from_this<AbstractOperator>, 
 
   std::weak_ptr<OperatorTask> _operator_task;
 
-  std::vector<PostOperatorCallback> _post_operator_callbacks;
+  std::vector<std::shared_ptr<AbstractOperatorCallback>> _post_operator_callbacks;
 
   std::shared_ptr<AbstractLQPNode> _lqp_node;
 

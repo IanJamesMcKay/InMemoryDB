@@ -11,6 +11,7 @@
 
 namespace opossum {
 
+class AbstractOperatorCallback;
 class AbstractOperator;
 class TransactionContext;
 class LQPExpression;
@@ -29,7 +30,7 @@ class LQPTranslator final : private Noncopyable {
 
   const SubPQPCache& sub_pqp_cache() const;
 
-  void add_post_operator_callback(const PostOperatorCallback& callback);
+  void add_post_operator_callback(const std::shared_ptr<AbstractOperatorCallback>& callback);
 
 //  static OperatorType operator_type(const AbstractLQPNode& lqp_node);
 
@@ -54,7 +55,6 @@ class LQPTranslator final : private Noncopyable {
   std::shared_ptr<AbstractOperator> _translate_update_node(const std::shared_ptr<AbstractLQPNode>& node) const;
   std::shared_ptr<AbstractOperator> _translate_union_node(const std::shared_ptr<AbstractLQPNode>& node) const;
   std::shared_ptr<AbstractOperator> _translate_validate_node(const std::shared_ptr<AbstractLQPNode>& node) const;
-  std::shared_ptr<AbstractOperator> _translate_cardinality_estimation_instrumentation_node(const std::shared_ptr<AbstractLQPNode>& node) const;
 
   // Maintenance operators
   std::shared_ptr<AbstractOperator> _translate_show_tables_node(const std::shared_ptr<AbstractLQPNode>& node) const;
@@ -71,7 +71,7 @@ class LQPTranslator final : private Noncopyable {
   // Cache operator subtrees by LQP node to avoid executing operators below a diamond shape multiple times
   mutable SubPQPCache _sub_pqp_cache;
 
-  std::vector<PostOperatorCallback> _post_operator_callbacks;
+  std::vector<std::shared_ptr<AbstractOperatorCallback>> _post_operator_callbacks;
 };
 
 }  // namespace opossum

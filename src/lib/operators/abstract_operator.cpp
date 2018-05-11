@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "abstract_operator_callback.hpp"
 #include "abstract_read_only_operator.hpp"
 #include "concurrency/transaction_context.hpp"
 #include "storage/table.hpp"
@@ -50,7 +51,7 @@ void AbstractOperator::execute() {
   const_cast<BaseOperatorPerformanceData&>(base_performance_data()).total = timer_total.lap();
 
   for (auto& callback : _post_operator_callbacks) {
-    callback(shared_from_this());
+    (*callback)(shared_from_this());
   }
 }
 
@@ -142,7 +143,7 @@ void AbstractOperator::print(std::ostream& stream) const {
   print_directed_acyclic_graph<const AbstractOperator>(shared_from_this(), get_children_fn, node_print_fn, stream);
 }
 
-void AbstractOperator::set_post_callbacks(const std::vector<PostOperatorCallback>& post_operator_callbacks) {
+void AbstractOperator::set_post_callbacks(const std::vector<std::shared_ptr<AbstractOperatorCallback>>& post_operator_callbacks) {
   _post_operator_callbacks = post_operator_callbacks;
 }
 

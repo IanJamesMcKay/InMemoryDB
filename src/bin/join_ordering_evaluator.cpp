@@ -12,6 +12,7 @@
 #include "constant_mappings.hpp"
 #include "logical_query_plan/logical_plan_root_node.hpp"
 #include "logical_query_plan/lqp_translator.hpp"
+#include "operators/cardinality_caching_callback.hpp"
 #include "operators/join_hash.hpp"
 #include "operators/join_sort_merge.hpp"
 #include "operators/product.hpp"
@@ -501,10 +502,11 @@ int main(int argc, char ** argv) {
   auto dotfile = boost::lexical_cast<std::string>((boost::uuids::random_generator())()) + ".dot";
 
   const auto cardinality_estimation_cache = std::make_shared<CardinalityEstimationCache>();
-  const auto fallback_cardinality_estimator = std::make_shared<CardinalityEstimatorExecution>();
+  //const auto fallback_cardinality_estimator = std::make_shared<CardinalityEstimatorExecution>();
+  const auto fallback_cardinality_estimator = std::make_shared<CardinalityEstimatorColumnStatistics>();
 
   const auto main_cardinality_estimator = std::make_shared<CardinalityEstimatorCached>(cardinality_estimation_cache,
-    CardinalityEstimationCacheMode::ReadAndUpdate, fallback_cardinality_estimator);
+    CardinalityEstimationCacheMode::ReadOnly, fallback_cardinality_estimator);
 
 //  const auto main_cardinality_estimator = std::make_shared<CardinalityEstimatorColumnStatistics>();
 
@@ -520,10 +522,10 @@ int main(int argc, char ** argv) {
       auto pipeline_statement = SQL{sql}.disable_mvcc().pipeline_statement();
 
       const auto lqp = pipeline_statement.get_optimized_logical_plan();
-      const auto lqp_root = LogicalPlanRootNode::make(lqp);
+      auto lqp_root = std::shared_ptr<AbstractLQPNode>(LogicalPlanRootNode::make(lqp));
       const auto join_graph = JoinGraph::from_lqp(lqp);
 
-      DpCcpTopK dp_ccp_top_k{15, cost_model, main_cardinality_estimator};
+      DpCcpTopK dp_ccp_top_k{DpSubplanCacheTopK::NO_ENTRY_LIMIT, cost_model, main_cardinality_estimator};
 
       dp_ccp_top_k(join_graph);
 
@@ -586,7 +588,10 @@ int main(int argc, char ** argv) {
           parent_relation.output->set_input(parent_relation.input_side, join_ordered_sub_lqp);
         }
 
-        const auto pqp = LQPTranslator{}.translate_node(lqp_root->left_input());
+        LQPTranslator lqp_translator;
+        lqp_translator.add_post_operator_callback(std::make_shared<CardinalityCachingCallback>(cardinality_estimation_cache));
+
+        const auto pqp = lqp_translator.translate_node(lqp_root->left_input());
 
         auto transaction_context = TransactionManager::get().new_transaction_context();
         pqp->set_transaction_context_recursively(transaction_context);

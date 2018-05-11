@@ -180,7 +180,8 @@ JoinGraphBuilder::PredicateParseResult JoinGraphBuilder::_parse_predicate(
   } else if (node->type() == LQPNodeType::Union) {
     return _parse_union(std::static_pointer_cast<UnionNode>(node));
   } else {
-    Fail("Unexpected node type");
+    Assert(node->left_input() && !node->right_input(), "");
+    return _parse_predicate(node->left_input());
   }
 }
 
