@@ -523,15 +523,9 @@ int main(int argc, char ** argv) {
       const auto lqp_root = LogicalPlanRootNode::make(lqp);
       const auto join_graph = JoinGraph::from_lqp(lqp);
 
-      std::cout << "Before DpCcp" << std::endl;
-      lqp->print();
-
-      DpCcpTopK dp_ccp_top_k{1, cost_model, main_cardinality_estimator};
+      DpCcpTopK dp_ccp_top_k{15, cost_model, main_cardinality_estimator};
 
       dp_ccp_top_k(join_graph);
-
-      std::cout << "After DpCcp" << std::endl;
-      lqp->print();
 
       JoinVertexSet all_vertices{join_graph->vertices.size()};
       all_vertices.flip();
