@@ -31,7 +31,9 @@ class CardinalityEstimatorCachedTest : public ::testing::Test {
     b0 = vertex_b->get_column("b0"s);
 
     a0_eq_b0 = std::make_shared<JoinPlanAtomicPredicate>(a0, PredicateCondition::Equals, b0);
+    b0_eq_a0 = std::make_shared<JoinPlanAtomicPredicate>(b0, PredicateCondition::Equals, a0);
     a0_gt_b0 = std::make_shared<JoinPlanAtomicPredicate>(a0, PredicateCondition::GreaterThan, b0);
+    b0_lt_a0 = std::make_shared<JoinPlanAtomicPredicate>(b0, PredicateCondition::LessThan, a0);
 
     cardinality_estimation_cache = std::make_shared<CardinalityEstimationCache>();
     const auto fallback_cardinality_estimator = std::make_shared<CardinalityEstimatorDummy>();
@@ -41,7 +43,7 @@ class CardinalityEstimatorCachedTest : public ::testing::Test {
 
   std::shared_ptr<MockNode> vertex_a, vertex_b;
   LQPColumnReference a0, a1, b0;
-  std::shared_ptr<AbstractJoinPlanPredicate> a0_eq_b0, a0_gt_b0;
+  std::shared_ptr<AbstractJoinPlanPredicate> b0_eq_a0, a0_eq_b0, b0_lt_a0, a0_gt_b0;
 
   std::shared_ptr<CardinalityEstimationCache> cardinality_estimation_cache;
   std::shared_ptr<CardinalityEstimatorCached> cardinality_estimator;
@@ -67,7 +69,7 @@ TEST_F(CardinalityEstimatorCachedTest, Cache) {
   EXPECT_EQ(cardinality_estimation_cache->size(), 5u);
 
   /**
-   * get() - with shuffled argument order
+   * get() - including shuffled argument order
    */
   EXPECT_EQ(cardinality_estimation_cache->get({{vertex_a, vertex_b}, {}}), 165u);
   EXPECT_EQ(cardinality_estimation_cache->get({{vertex_b, vertex_a}, {}}), 165u);
@@ -81,6 +83,12 @@ TEST_F(CardinalityEstimatorCachedTest, Cache) {
   EXPECT_EQ(cardinality_estimation_cache->get({{},{}}), std::nullopt);
   EXPECT_EQ(cardinality_estimation_cache->get({{vertex_a},{a0_gt_b0}}), std::nullopt);
   EXPECT_EQ(cardinality_estimation_cache->get({{vertex_a},{a0_gt_b0}}), std::nullopt);
+
+  /**
+   * get() - with shuffled predicates (e.g. a > 5 --> 5 < a)
+   */
+  EXPECT_EQ(cardinality_estimation_cache->get({{vertex_a, vertex_b}, {b0_lt_a0}}), 100u);
+  EXPECT_EQ(cardinality_estimation_cache->get({{vertex_a, vertex_b}, {b0_eq_a0}}), 22u);
 }
 
 TEST_F(CardinalityEstimatorCachedTest, EmptyCache) {

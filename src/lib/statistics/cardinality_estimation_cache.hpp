@@ -18,6 +18,8 @@ class CardinalityEstimationCache final {
 
   size_t size() const;
 
+  static BaseJoinGraph _normalize(const BaseJoinGraph& join_graph);
+
  private:
   std::unordered_map<BaseJoinGraph, Cardinality> _cache;
   size_t _hit_count{0};
