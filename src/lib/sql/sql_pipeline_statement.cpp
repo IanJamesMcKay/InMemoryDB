@@ -429,6 +429,9 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table(const
       for (auto& chunk : _result_table->chunks()) {
         chunk->set_scramble(true);
       }
+    } else if (security_breach_action == "throttle") {
+      const auto sleeptime_seconds = _result_table->row_count();
+      sleep(sleeptime_seconds);
     }
   }
 
