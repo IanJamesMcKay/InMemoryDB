@@ -420,7 +420,7 @@ const std::shared_ptr<const Table>& SQLPipelineStatement::get_result_table(const
   if (!query_allowed) {
     // handle security breach
     if (security_breach_action == "notify") {
-      send_security_alert("Security Alert:\n" + username + " executed the following Query:\n" + get_sql_string());
+      send_security_alert("Security Alert:\n" + username + " exceeded their rate limit after the following Query:\n" + get_sql_string());
     } else if (security_breach_action == "block") {
       // return empty table
       _result_table = Table::create_dummy_table(TableColumnDefinitions{});
