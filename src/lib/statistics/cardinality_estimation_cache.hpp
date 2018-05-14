@@ -18,7 +18,10 @@ class CardinalityEstimationCache final {
 
   size_t size() const;
 
+  void clear();
+
   static BaseJoinGraph _normalize(const BaseJoinGraph& join_graph);
+  static std::shared_ptr<const AbstractJoinPlanPredicate> _normalize(const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate);
 
  private:
   std::unordered_map<BaseJoinGraph, Cardinality> _cache;

@@ -1,0 +1,128 @@
+#include "join_ordering_evaluator_config.hpp"
+
+#include <cxxopts.hpp>
+#include "out.hpp"
+#include "utils/assert.hpp"
+
+namespace opossum {
+
+void JoinOrderingEvaluatorConfig::add_options(cxxopts::Options& cli_options_description) {
+  // clang-format off
+  cli_options_description.add_options()
+  ("help", "print this help message")
+  ("v,verbose", "Print log messages", cxxopts::value<bool>(verbose)->default_value("true"))
+  ("s,scale", "Database scale factor (1.0 ~ 1GB). TPCH only", cxxopts::value<float>(scale_factor)->default_value("0.001"))
+  ("m,cost_model", "CostModel to use (all, naive, linear)", cxxopts::value<std::string>(cost_model_str)->default_value(cost_model_str))  // NOLINT
+  ("timeout-plan", "Timeout per plan, in seconds. Default: 120", cxxopts::value<long>(*plan_timeout_seconds)->default_value("120"))  // NOLINT
+  ("dynamic-timeout-plan", "If active, lower timeout to current fastest plan.", cxxopts::value<bool>(dynamic_plan_timeout_enabled)->default_value("true"))  // NOLINT
+  ("timeout-query", "Timeout per plan, in seconds. Default: 1800", cxxopts::value<long>(*query_timeout_seconds)->default_value("1800"))  // NOLINT
+  ("max-plan-count", "Maximum number of plans per query to execute. Default: 100", cxxopts::value<size_t>(*max_plan_count)->default_value("100"))  // NOLINT
+  ("visualize", "Visualize every query plan", cxxopts::value<bool>(visualize)->default_value("false"))  // NOLINT
+  ("w,workload", "Workload to run (tpch, job). Default: tpch", cxxopts::value(workload_str)->default_value(workload_str))  // NOLINT
+  ("save-results", "Save head of result tables.", cxxopts::value(save_results)->default_value("true"))  // NOLINT
+  ("shuffle-idx", "Shuffle plan order from this index on, 0 to disable", cxxopts::value(*plan_order_shuffling)->default_value("0"))  // NOLINT
+  ("iterations-per-query", "Number of times to execute/optimize each query", cxxopts::value(iterations_per_query)->default_value("1"))  // NOLINT
+  ("isolate-queries", "Reset all cached data for each query", cxxopts::value(isolate_queries)->default_value("true"))  // NOLINT
+  ("queries", "Specify queries to run, default is all of the workload that are supported", cxxopts::value<std::vector<std::string>>()); // NOLINT
+  ;
+  // clang-format on
+}
+
+void JoinOrderingEvaluatorConfig::parse(const cxxopts::ParseResult& cli_parse_result) {
+  // Process "queries" parameter
+  if (cli_parse_result.count("queries")) {
+    query_name_strs = cli_parse_result["queries"].as<std::vector<std::string>>();
+  }
+  if (query_name_strs) {
+    out() << "-- Benchmarking queries ";
+    for (const auto& query_name : *query_name_strs) {
+      out() << query_name << " ";
+    }
+    out() << std::endl;
+  } else {
+    out() << "-- Benchmarking all supported queries of workload" << std::endl;
+  }
+
+  // Process "timeout-plan/query" parameters
+  if (*plan_timeout_seconds <= 0) {
+    plan_timeout_seconds.reset();
+    out() << "-- No plan timeout" << std::endl;
+  } else {
+    out() << "-- Plans will timeout after " << *plan_timeout_seconds << " seconds" << std::endl;
+  }
+  if (*query_timeout_seconds <= 0) {
+    query_timeout_seconds.reset();
+    out() << "-- No query timeout" << std::endl;
+  } else {
+    out() << "-- Queries will timeout after " << *query_timeout_seconds << " seconds" << std::endl;
+  }
+  if (dynamic_plan_timeout_enabled) {
+    out() << "-- Plan timeout is dynamic" << std::endl;
+  } else {
+    out() << "-- Dynamic plan timeout is disabled" << std::endl;
+  }
+
+  // Process "max-plan-count" parameter
+  if (*max_plan_count <= 0) {
+    max_plan_count.reset();
+    out() << "-- Executing all plans of a query" << std::endl;
+  } else {
+    out() << "-- Executing a maximum of " << *max_plan_count << " plans per query" << std::endl;
+  }
+
+  // Process "cost-model" parameter
+  if (cost_model_str == "naive" || cost_model_str == "all") {
+    out() << "-- Using CostModelNaive" << std::endl;
+    cost_models.emplace_back(std::make_shared<CostModelNaive>());
+  }
+  if (cost_model_str == "linear" || cost_model_str == "all") {
+    out() << "-- Using CostModelLinear" << std::endl;
+    cost_models.emplace_back(std::make_shared<CostModelLinear>());
+  }
+  Assert(!cost_models.empty(), "No CostModel specified");
+
+  // Process "save_results" parameter
+  if (save_results) {
+    out() << "-- Saving query results" << std::endl;
+  } else {
+    out() << "-- Not saving query results" << std::endl;
+  }
+
+  // Process "shuffle-idx" parameter
+  if (*plan_order_shuffling <= 0) {
+    plan_order_shuffling.reset();
+    out() << "-- Plan order shuffling disabled" << std::endl;
+  } else {
+    out() << "-- Plan order shuffling from index  " << (*plan_order_shuffling) << " on" << std::endl;
+  }
+
+  // Process "iterations-per-query" parameter
+  out() << "-- Running " << iterations_per_query << " iteration(s) per query" << std::endl;
+
+  // Process "isolate-queries" parameter
+  if (isolate_queries) {
+    out() << "-- Isolating query evaluations from each other" << std::endl;
+  } else {
+    out() << "-- Not isolating query evaluations from each other" << std::endl;
+  }
+
+  // Process "workload" parameter
+  if (workload_str == "tpch") {
+    out() << "-- Using TPCH workload" << std::endl;
+    std::optional<std::vector<QueryID>> query_ids;
+    if (query_name_strs) {
+      query_ids.emplace();
+      for (const auto& query_name : *query_name_strs) {
+        query_ids->emplace_back(std::stoi(query_name) - 1);  // Offset because TPC-H query 1 has index 0
+      }
+    }
+    workload = std::make_shared<TpchJoinOrderingWorkload>(scale_factor, query_ids);
+  } else if (workload_str == "job") {
+    out() << "-- Using Join Order Benchmark workload" << std::endl;
+    workload = std::make_shared<JobWorkload>(query_name_strs);
+  } else {
+    Fail("Unknown workload");
+  }
+}
+
+}  // namespace opossum
