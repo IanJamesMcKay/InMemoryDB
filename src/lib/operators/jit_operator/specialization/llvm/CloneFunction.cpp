@@ -411,17 +411,16 @@ void PruningFunctionCloner::CloneBlock(const BasicBlock *BB,
       Value *V = VMap.lookup(SI->getCondition());
       Cond = dyn_cast_or_null<ConstantInt>(V);
     }
-
-    if (!Cond) {
-      Cond = dyn_cast_or_null<ConstantInt>(opossum::ResolveCondition(SI->getCondition(), Context));
-    }
-
     if (Cond) {     // Constant fold to uncond branch!
       SwitchInst::ConstCaseHandle Case = *SI->findCaseValue(Cond);
       BasicBlock *Dest = const_cast<BasicBlock*>(Case.getCaseSuccessor());
       VMap[OldTI] = BranchInst::Create(Dest, NewBB);
       ToClone.push_back(Dest);
       TerminatorDone = true;
+    }
+
+    if (!Cond) {
+      Cond = dyn_cast_or_null<ConstantInt>(opossum::ResolveCondition(SI->getCondition(), Context));
     }
   }
   
@@ -510,13 +509,17 @@ void opossum::CloneAndPruneIntoFromInst(Function *NewFunc, const Function *OldFu
 
     // Handle PHI nodes specially, as we have to remove references to dead
     // blocks.
-    for (const PHINode &PN : BI.phis()) {
+    for (BasicBlock::const_iterator I = BI.begin(), E = BI.end(); I != E; ++I) {
       // PHI nodes may have been remapped to non-PHI nodes by the caller or
       // during the cloning process.
-      if (isa<PHINode>(VMap[&PN]))
-        PHIToResolve.push_back(&PN);
-      else
+      if (const PHINode *PN = dyn_cast<PHINode>(I)) {
+        if (isa<PHINode>(VMap[PN]))
+          PHIToResolve.push_back(PN);
+        else
+          break;
+      } else {
         break;
+      }
     }
 
     // Finally, remap the terminator instructions, as those can't be remapped
@@ -728,7 +731,7 @@ void opossum::CloneAndPruneFunctionInto(Function *NewFunc, const Function *OldFu
                                      ValueToValueMapTy &VMap,
                                      bool ModuleLevelChanges,
                                      SmallVectorImpl<ReturnInst*> &Returns,
-                                     const char *NameSuffix, 
+                                     const char *NameSuffix,
                                      ClonedCodeInfo *CodeInfo,
                                      Instruction *TheCall,
                                      opossum::SpecializationContext& Context) {
@@ -761,7 +764,7 @@ Loop *llvm::cloneLoopWithPreheader(BasicBlock *Before, BasicBlock *LoopDomBB,
   Function *F = OrigLoop->getHeader()->getParent();
   Loop *ParentLoop = OrigLoop->getParentLoop();
 
-  Loop *NewLoop = LI->AllocateLoop();
+  Loop *NewLoop = new Loop();
   if (ParentLoop)
     ParentLoop->addChildLoop(NewLoop);
   else

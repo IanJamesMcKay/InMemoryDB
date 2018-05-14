@@ -16,15 +16,11 @@
 
 #include "../llvm_extensions.hpp"
 
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/None.h"
-#include "llvm/ADT/Optional.h"
-#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/SmallPtrSet.h"
+#include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringExtras.h"
-#include "llvm/ADT/iterator_range.h"
 #include "llvm/Analysis/AliasAnalysis.h"
 #include "llvm/Analysis/AssumptionCache.h"
 #include "llvm/Analysis/BlockFrequencyInfo.h"
@@ -34,46 +30,25 @@
 #include "llvm/Analysis/InstructionSimplify.h"
 #include "llvm/Analysis/ProfileSummaryInfo.h"
 #include "llvm/Analysis/ValueTracking.h"
-#include "llvm/IR/Argument.h"
-#include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/Attributes.h"
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/CallSite.h"
-#include "llvm/IR/Constant.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DIBuilder.h"
 #include "llvm/IR/DataLayout.h"
-#include "llvm/IR/DebugInfoMetadata.h"
-#include "llvm/IR/DebugLoc.h"
+#include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Dominators.h"
-#include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/InstrTypes.h"
-#include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/Intrinsics.h"
-#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/MDBuilder.h"
-#include "llvm/IR/Metadata.h"
 #include "llvm/IR/Module.h"
-#include "llvm/IR/Type.h"
-#include "llvm/IR/User.h"
-#include "llvm/IR/Value.h"
-#include "llvm/Support/Casting.h"
 #include "llvm/Support/CommandLine.h"
-#include "llvm/Support/ErrorHandling.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/Transforms/Utils/Local.h"
-#include "llvm/Transforms/Utils/ValueMapper.h"
 #include <algorithm>
-#include <cassert>
-#include <cstdint>
-#include <iterator>
-#include <limits>
-#include <string>
-#include <utility>
-#include <vector>
 
 using namespace llvm;
 
@@ -91,37 +66,28 @@ bool llvm::InlineFunction(CallInst *CI, InlineFunctionInfo &IFI,
                           AAResults *CalleeAAR, bool InsertLifetime) {
   return InlineFunction(CallSite(CI), IFI, CalleeAAR, InsertLifetime);
 }
-
 bool llvm::InlineFunction(InvokeInst *II, InlineFunctionInfo &IFI,
                           AAResults *CalleeAAR, bool InsertLifetime) {
   return InlineFunction(CallSite(II), IFI, CalleeAAR, InsertLifetime);
 }
 
 namespace {
-
   /// A class for recording information about inlining a landing pad.
   class LandingPadInliningInfo {
-    /// Destination of the invoke's unwind.
-    BasicBlock *OuterResumeDest;
-
-    /// Destination for the callee's resume.
-    BasicBlock *InnerResumeDest = nullptr;
-
-    /// LandingPadInst associated with the invoke.
-    LandingPadInst *CallerLPad = nullptr;
-
-    /// PHI for EH values from landingpad insts.
-    PHINode *InnerEHValuesPHI = nullptr;
-
+    BasicBlock *OuterResumeDest; ///< Destination of the invoke's unwind.
+    BasicBlock *InnerResumeDest; ///< Destination for the callee's resume.
+    LandingPadInst *CallerLPad;  ///< LandingPadInst associated with the invoke.
+    PHINode *InnerEHValuesPHI;   ///< PHI for EH values from landingpad insts.
     SmallVector<Value*, 8> UnwindDestPHIValues;
 
   public:
     LandingPadInliningInfo(InvokeInst *II)
-        : OuterResumeDest(II->getUnwindDest()) {
+      : OuterResumeDest(II->getUnwindDest()), InnerResumeDest(nullptr),
+        CallerLPad(nullptr), InnerEHValuesPHI(nullptr) {
       // If there are PHI nodes in the unwind destination block, we need to keep
       // track of which values came into them from the invoke before removing
       // the edge from this block.
-      BasicBlock *InvokeBB = II->getParent();
+      llvm::BasicBlock *InvokeBB = II->getParent();
       BasicBlock::iterator I = OuterResumeDest->begin();
       for (; isa<PHINode>(I); ++I) {
         // Save the value to use for this edge.
@@ -164,8 +130,7 @@ namespace {
       }
     }
   };
-
-} // end anonymous namespace
+} // anonymous namespace
 
 /// Get or create a target for the branch from ResumeInsts.
 BasicBlock *LandingPadInliningInfo::getInnerResumeDest() {
@@ -228,7 +193,7 @@ static Value *getParentPad(Value *EHPad) {
   return cast<CatchSwitchInst>(EHPad)->getParentPad();
 }
 
-using UnwindDestMemoTy = DenseMap<Instruction *, Value *>;
+typedef DenseMap<Instruction *, Value *> UnwindDestMemoTy;
 
 /// Helper for getUnwindDestToken that does the descendant-ward part of
 /// the search.
@@ -656,7 +621,7 @@ static void HandleInlinedEHPad(InvokeInst *II, BasicBlock *FirstNewBlock,
   // track of which values came into them from the invoke before removing the
   // edge from this block.
   SmallVector<Value *, 8> UnwindDestPHIValues;
-  BasicBlock *InvokeBB = II->getParent();
+  llvm::BasicBlock *InvokeBB = II->getParent();
   for (Instruction &I : *UnwindDest) {
     // Save the value to use for this edge.
     PHINode *PHI = dyn_cast<PHINode>(&I);
@@ -1398,7 +1363,6 @@ static void fixupLineNumbers(Function *Fn, Function::iterator FI,
     }
   }
 }
-
 /// Update the block frequencies of the caller after a callee has been inlined.
 ///
 /// Each block cloned into the caller has its block frequency scaled by the
@@ -1495,7 +1459,6 @@ static void updateCalleeCount(BlockFrequencyInfo *CallerBFI, BasicBlock *CallBB,
 /// function by one level.
 bool opossum::InlineFunction(CallSite CS, InlineFunctionInfo &IFI,
                           AAResults *CalleeAAR, bool InsertLifetime,
-                          Function *ForwardVarArgsTo,
                           opossum::SpecializationContext& Context) {
   Instruction *TheCall = CS.getInstruction();
   assert(TheCall->getParent() && TheCall->getFunction()
@@ -1506,9 +1469,8 @@ bool opossum::InlineFunction(CallSite CS, InlineFunctionInfo &IFI,
 
   Function *CalledFunc = CS.getCalledFunction();
   if (!CalledFunc ||              // Can't inline external function or indirect
-      CalledFunc->isDeclaration() ||
-      (!ForwardVarArgsTo && CalledFunc->isVarArg())) // call, or call to a vararg function!
-      return false;
+      CalledFunc->isDeclaration() || // call, or call to a vararg function!
+      CalledFunc->getFunctionType()->isVarArg()) return false;
 
   // The inliner does not know how to inline through calls with operand bundles
   // in general ...
@@ -1629,16 +1591,14 @@ bool opossum::InlineFunction(CallSite CS, InlineFunctionInfo &IFI,
   Function::iterator FirstNewBlock;
 
   { // Scope to destroy VMap after cloning.
-    // TODO(Fabian) Check, if map is correctly copied
-    ValueToValueMapTy VMap;
-    VMap.insert(Context.llvm_value_map.begin(), Context.llvm_value_map.end());
+    ValueToValueMapTy& VMap = Context.llvm_value_map;
     // Keep a list of pair (dst, src) to emit byval initializations.
     SmallVector<std::pair<Value*, Value*>, 4> ByValInit;
 
     auto &DL = Caller->getParent()->getDataLayout();
 
-    assert((CalledFunc->arg_size() == CS.arg_size() || ForwardVarArgsTo) &&
-           "Varargs calls can only be inlined if the Varargs are forwarded!");
+    assert(CalledFunc->arg_size() == CS.arg_size() &&
+           "No varargs calls can be inlined!");
 
     // Calculate the vector of arguments to pass into the function cloner, which
     // matches up the formal to the actual argument values.
@@ -1817,14 +1777,8 @@ bool opossum::InlineFunction(CallSite CS, InlineFunctionInfo &IFI,
     // Move any dbg.declares describing the allocas into the entry basic block.
     DIBuilder DIB(*Caller->getParent());
     for (auto &AI : IFI.StaticAllocas)
-      replaceDbgDeclareForAlloca(AI, AI, DIB, DIExpression::NoDeref, 0,
-                                 DIExpression::NoDeref);
+      replaceDbgDeclareForAlloca(AI, AI, DIB, /*Deref=*/false);
   }
-
-  SmallVector<Value*,4> VarArgsToForward;
-  for (unsigned i = CalledFunc->getFunctionType()->getNumParams();
-       i < CS.getNumArgOperands(); i++)
-    VarArgsToForward.push_back(CS.getArgOperand(i));
 
   bool InlinedMustTailCalls = false, InlinedDeoptimizeCalls = false;
   if (InlinedFunctionInfo.ContainsCalls) {
@@ -1834,8 +1788,7 @@ bool opossum::InlineFunction(CallSite CS, InlineFunctionInfo &IFI,
 
     for (Function::iterator BB = FirstNewBlock, E = Caller->end(); BB != E;
          ++BB) {
-      for (auto II = BB->begin(); II != BB->end();) {
-        Instruction &I = *II++;
+      for (Instruction &I : *BB) {
         CallInst *CI = dyn_cast<CallInst>(&I);
         if (!CI)
           continue;
@@ -1858,8 +1811,7 @@ bool opossum::InlineFunction(CallSite CS, InlineFunctionInfo &IFI,
         //    f ->          g -> musttail f  ==>  f ->          f
         //    f ->          g ->     tail f  ==>  f ->          f
         CallInst::TailCallKind ChildTCK = CI->getTailCallKind();
-        if (ChildTCK != CallInst::TCK_NoTail)
-          ChildTCK = std::min(CallSiteTailKind, ChildTCK);
+        ChildTCK = std::min(CallSiteTailKind, ChildTCK);
         CI->setTailCallKind(ChildTCK);
         InlinedMustTailCalls |= CI->isMustTailCall();
 
@@ -1867,16 +1819,6 @@ bool opossum::InlineFunction(CallSite CS, InlineFunctionInfo &IFI,
         // 'nounwind'.
         if (MarkNoUnwind)
           CI->setDoesNotThrow();
-
-        if (ForwardVarArgsTo && !VarArgsToForward.empty() &&
-            CI->getCalledFunction() == ForwardVarArgsTo) {
-          SmallVector<Value*, 6> Params(CI->arg_operands());
-          Params.append(VarArgsToForward.begin(), VarArgsToForward.end());
-          CallInst *Call = CallInst::Create(CI->getCalledFunction(), Params, "", CI);
-          Call->setDebugLoc(CI->getDebugLoc());
-          CI->replaceAllUsesWith(Call);
-          CI->eraseFromParent();
-        }
       }
     }
   }
@@ -1911,9 +1853,8 @@ bool opossum::InlineFunction(CallSite CS, InlineFunctionInfo &IFI,
 
         // Check that array size doesn't saturate uint64_t and doesn't
         // overflow when it's multiplied by type size.
-        if (AllocaArraySize != std::numeric_limits<uint64_t>::max() &&
-            std::numeric_limits<uint64_t>::max() / AllocaArraySize >=
-                AllocaTypeSize) {
+        if (AllocaArraySize != ~0ULL &&
+            UINT64_MAX / AllocaArraySize >= AllocaTypeSize) {
           AllocaSize = ConstantInt::get(Type::getInt64Ty(AI->getContext()),
                                         AllocaArraySize * AllocaTypeSize);
         }
@@ -2044,7 +1985,7 @@ bool opossum::InlineFunction(CallSite CS, InlineFunctionInfo &IFI,
     // match the callee's return type, we also need to change the return type of
     // the intrinsic.
     if (Caller->getReturnType() == TheCall->getType()) {
-      auto NewEnd = llvm::remove_if(Returns, [](ReturnInst *RI) {
+      auto NewEnd = remove_if(Returns, [](ReturnInst *RI) {
         return RI->getParent()->getTerminatingDeoptimizeCall() != nullptr;
       });
       Returns.erase(NewEnd, Returns.end());

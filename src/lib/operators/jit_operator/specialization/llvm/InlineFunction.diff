@@ -1,38 +1,36 @@
 14a15,18
 > // clang-format off
 > 
-> #include "../llvm_extensions.hpp"
+> #include "llvm_extensions.hpp"
 > 
-77c81
+52c56
 < EnableNoAliasConversion("enable-noalias-to-md-conversion", cl::init(true),
 ---
 > EnableNoAliasConversion("opossum-enable-noalias-to-md-conversion", cl::init(true),
-82c86
+57c61
 < PreserveAlignmentAssumptions("preserve-alignment-assumptions-during-inlining",
 ---
 > PreserveAlignmentAssumptions("opossum-preserve-alignment-assumptions-during-inlining",
-1492c1496
+1456,1457c1460,1462
 < bool llvm::InlineFunction(CallSite CS, InlineFunctionInfo &IFI,
+<                           AAResults *CalleeAAR, bool InsertLifetime) {
 ---
 > bool opossum::InlineFunction(CallSite CS, InlineFunctionInfo &IFI,
-1494c1498,1499
-<                           Function *ForwardVarArgsTo) {
----
->                           Function *ForwardVarArgsTo,
+>                           AAResults *CalleeAAR, bool InsertLifetime,
 >                           opossum::SpecializationContext& Context) {
-1626a1632
->     // TODO(Fabian) Check, if map is correctly copied
-1627a1634
->     VMap.insert(Context.llvm_value_map.begin(), Context.llvm_value_map.end());
-1667c1674
+1589c1594
+<     ValueToValueMapTy VMap;
+---
+>     ValueToValueMapTy& VMap = Context.llvm_value_map;
+1629c1634
 <     CloneAndPruneFunctionInto(Caller, CalledFunc, VMap,
 ---
 >     opossum::CloneAndPruneFunctionInto(Caller, CalledFunc, VMap,
-1669c1676
+1631c1636
 <                               &InlinedFunctionInfo, TheCall);
 ---
 >                               &InlinedFunctionInfo, TheCall, Context);
-2339a2347,2350
+2282a2288,2291
 > 
 > template constexpr bool llvm::DominatorTreeBase<llvm::BasicBlock, false>::IsPostDominator;
 > 
