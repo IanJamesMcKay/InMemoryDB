@@ -20,7 +20,7 @@ class HistogramTest : public ::testing::Test {
   std::shared_ptr<Table> _expected_join_result_1;
 };
 
-TEST_F(HistogramTest, BasicEqualNumElementsHistogramTest) {
+TEST_F(HistogramTest, EqualNumElementsBasic) {
   auto hist = EqualNumElementsHistogram<int32_t>(_int_float4);
   hist.generate(ColumnID{0}, 2u);
   EXPECT_EQ(hist.num_buckets(), 2u);
@@ -31,7 +31,18 @@ TEST_F(HistogramTest, BasicEqualNumElementsHistogramTest) {
   EXPECT_EQ(hist.estimate_cardinality(1'000'000, PredicateCondition::Equals), 0.f);
 }
 
-TEST_F(HistogramTest, BasicEqualWidthHistogramTest) {
+TEST_F(HistogramTest, EqualNumElementsUnevenBuckets) {
+  auto hist = EqualNumElementsHistogram<int32_t>(_int_float4);
+  hist.generate(ColumnID{0}, 3u);
+  EXPECT_EQ(hist.num_buckets(), 3u);
+  EXPECT_EQ(hist.estimate_cardinality(0, PredicateCondition::Equals), 0.f);
+  EXPECT_EQ(hist.estimate_cardinality(12, PredicateCondition::Equals), 1.f);
+  EXPECT_EQ(hist.estimate_cardinality(1'234, PredicateCondition::Equals), 0.f);
+  EXPECT_EQ(hist.estimate_cardinality(123'456, PredicateCondition::Equals), 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(1'000'000, PredicateCondition::Equals), 0.f);
+}
+
+TEST_F(HistogramTest, EqualWidthHistogramBasic) {
   auto hist = EqualWidthHistogram<int32_t>(_int_int4);
   hist.generate(ColumnID{1}, 6u);
   EXPECT_EQ(hist.num_buckets(), 6u);
@@ -42,7 +53,7 @@ TEST_F(HistogramTest, BasicEqualWidthHistogramTest) {
   EXPECT_EQ(hist.estimate_cardinality(20, PredicateCondition::Equals), 0.f);
 }
 
-TEST_F(HistogramTest, BasicEqualHeightHistogramTest) {
+TEST_F(HistogramTest, EqualHeightHistogramBasic) {
   auto hist = EqualHeightHistogram<int32_t>(_expected_join_result_1);
   hist.generate(ColumnID{1}, 4u);
   EXPECT_EQ(hist.num_buckets(), 4u);

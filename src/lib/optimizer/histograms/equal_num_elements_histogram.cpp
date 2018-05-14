@@ -15,7 +15,7 @@ HistogramType EqualNumElementsHistogram<T>::histogram_type() const {
 
 template <typename T>
 uint64_t EqualNumElementsHistogram<T>::bucket_count_distinct(const BucketID index) {
-  return _values_per_bucket;
+  return _distinct_count_per_bucket + (index < _num_buckets_with_extra_value ? 1 : 0);
 }
 
 template <typename T>
@@ -34,11 +34,8 @@ void EqualNumElementsHistogram<T>::generate(const ColumnID column_id, const size
   const auto num_buckets = distinct_count < max_num_buckets ? static_cast<size_t>(distinct_count) : max_num_buckets;
 
   // Split values evenly among buckets.
-  _values_per_bucket = distinct_count / num_buckets;
-  const auto num_buckets_with_extra_value = distinct_count % num_buckets;
-
-  // TODO(tim): fix
-  DebugAssert(num_buckets_with_extra_value == 0, "Only evenly distributed buckets are supported right now.");
+  _distinct_count_per_bucket = distinct_count / num_buckets;
+  _num_buckets_with_extra_value = distinct_count % num_buckets;
 
   const auto distinct_column =
       std::static_pointer_cast<const ValueColumn<T>>(result->get_chunk(ChunkID{0})->get_column(ColumnID{0}))->values();
@@ -46,14 +43,19 @@ void EqualNumElementsHistogram<T>::generate(const ColumnID column_id, const size
       std::static_pointer_cast<const ValueColumn<int64_t>>(result->get_chunk(ChunkID{0})->get_column(ColumnID{1}))
           ->values();
 
-  for (size_t bucket_index = 0; bucket_index < num_buckets; bucket_index++) {
-    const auto begin_index = bucket_index * _values_per_bucket;
-    const auto end_index = (bucket_index + 1) * _values_per_bucket - 1;
+  auto begin_index = 0ul;
+  for (BucketID bucket_index = 0; bucket_index < num_buckets; bucket_index++) {
+    auto end_index = begin_index + _distinct_count_per_bucket - 1;
+    if (bucket_index < _num_buckets_with_extra_value) {
+      end_index++;
+    }
 
     this->_mins.emplace_back(*(distinct_column.begin() + begin_index));
     this->_maxs.emplace_back(*(distinct_column.begin() + end_index));
     this->_counts.emplace_back(
         std::accumulate(count_column.begin() + begin_index, count_column.begin() + end_index + 1, uint64_t{0}));
+
+    begin_index = end_index + 1;
   }
 }
 
