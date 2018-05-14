@@ -278,12 +278,14 @@ void evaluate_join_plan(QueryState& query_state,
   /**
    * CSV
    */
-  auto csv = std::ofstream{evaluation_name + "/" + query_iteration_state.name + ".csv"};
-  csv << "Idx,Duration,EstCost,ReEstCost,AimCost,AbsEstCostError,AbsReEstCostError" << "\n";
-  for (auto plan_idx = size_t{0}; plan_idx < query_iteration_state.measurements.size(); ++plan_idx) {
-    csv << plan_idx << "," << query_iteration_state.measurements[plan_idx] << "\n";
+  if (config.save_query_iterations_results) {
+    auto csv = std::ofstream{evaluation_name + "/" + query_iteration_state.name + ".csv"};
+    csv << "Idx,Duration,EstCost,ReEstCost,AimCost,AbsEstCostError,AbsReEstCostError" << "\n";
+    for (auto plan_idx = size_t{0}; plan_idx < query_iteration_state.measurements.size(); ++plan_idx) {
+      csv << plan_idx << "," << query_iteration_state.measurements[plan_idx] << "\n";
+    }
+    csv.close();
   }
-  csv.close();
 }
 
 void evaluate_query_iteration(QueryState &query_state, QueryIterationState &query_iteration_state,
@@ -362,15 +364,13 @@ void evaluate_query_iteration(QueryState &query_state, QueryIterationState &quer
   /**
    * CSV
    */
-  if (config.save_query_iterations_results) {
-    auto csv = std::ofstream{evaluation_name + "/" + query_state.name + ".csv"};
-    csv << "Idx,Duration,CacheHitCount,CacheMissCount" << "\n";
-    for (auto query_iteration_idx = size_t{0};
-         query_iteration_idx < query_state.measurements.size(); ++query_iteration_idx) {
-      csv << query_iteration_idx << "," << query_state.measurements[query_iteration_idx] << "\n";
-    }
-    csv.close();
+  auto csv = std::ofstream{evaluation_name + "/" + query_state.name + ".csv"};
+  csv << "Idx,Duration,CacheHitCount,CacheMissCount" << "\n";
+  for (auto query_iteration_idx = size_t{0};
+       query_iteration_idx < query_state.measurements.size(); ++query_iteration_idx) {
+    csv << query_iteration_idx << "," << query_state.measurements[query_iteration_idx] << "\n";
   }
+  csv.close();
 }
 
 int main(int argc, char ** argv) {
