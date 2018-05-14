@@ -43,25 +43,25 @@ size_t CardinalityEstimationCache::size() const {
 }
 
 BaseJoinGraph CardinalityEstimationCache::_normalize(const BaseJoinGraph& join_graph) {
-  auto normalized_join_graph = join_graph;
-
-  for (auto& predicate : normalized_join_graph.predicates) {
-    if (predicate->type() == JoinPlanPredicateType::Atomic) {
-      const auto& atomic_predicate = std::static_pointer_cast<JoinPlanAtomicPredicate>(predicate);
-      if (is_lqp_column_reference(atomic_predicate->right_operand)) {
-        const auto right_operand_column_reference = boost::get<LQPColumnReference>(atomic_predicate->right_operand);
-
-        if (std::hash<LQPColumnReference>{}(right_operand_column_reference) < std::hash<LQPColumnReference>{}(atomic_predicate->left_operand)) {
-          flip_predicate_condition(atomic_predicate->)
-
-          predicate = std::make_shared<JoinPlanAtomicPredicate>()
-        }
-      }
-    } else {
-
-    }
-
-  }
+//  auto normalized_join_graph = join_graph;
+//
+//  for (auto& predicate : normalized_join_graph.predicates) {
+//    if (predicate->type() == JoinPlanPredicateType::Atomic) {
+//      const auto& atomic_predicate = std::static_pointer_cast<JoinPlanAtomicPredicate>(predicate);
+//      if (is_lqp_column_reference(atomic_predicate->right_operand)) {
+//        const auto right_operand_column_reference = boost::get<LQPColumnReference>(atomic_predicate->right_operand);
+//
+//        if (std::hash<LQPColumnReference>{}(right_operand_column_reference) < std::hash<LQPColumnReference>{}(atomic_predicate->left_operand)) {
+//          flip_predicate_condition(atomic_predicate->)
+//
+//          predicate = std::make_shared<JoinPlanAtomicPredicate>()
+//        }
+//      }
+//    } else {
+//
+//    }
+//
+//  }
 
   return join_graph;
 }

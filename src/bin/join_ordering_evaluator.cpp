@@ -51,7 +51,6 @@
 #include "utils/table_generator2.hpp"
 #include "utils/format_duration.hpp"
 
-
 #include <boost/lexical_cast.hpp>
 using boost::lexical_cast;
 
@@ -65,35 +64,13 @@ using boost::uuids::random_generator;
 #include <cost_model/cost_feature_lqp_node_proxy.hpp>
 #include <cost_model/cost_feature_operator_proxy.hpp>
 
+#include "join_ordering_evaluator/job_join_ordering_workload.hpp"
+#include "join_ordering_evaluator/tpch_join_ordering_workload.hpp"
+
 namespace {
+
 using namespace std::string_literals;  // NOLINT
 using namespace opossum;  // NOLINT
-
-using QueryID = size_t;
-
-// Used to config out()
-auto verbose = true;
-
-/**
- * @return std::cout if `verbose` is true, otherwise returns a discarding stream
- */
-std::ostream &out() {
-  if (verbose) {
-    return std::cout;
-  }
-
-  // Create no-op stream that just swallows everything streamed into it
-  // See https://stackoverflow.com/a/11826666
-  class NullBuffer : public std::streambuf {
-   public:
-    int overflow(int c) { return c; }
-  };
-
-  static NullBuffer null_buffer;
-  static std::ostream null_stream(&null_buffer);
-
-  return null_stream;
-}
 
 struct PlanCostSample final {
   Cost est_cost{0.0f};
@@ -132,231 +109,6 @@ std::ostream &operator<<(std::ostream &stream, const PlanCostSample &sample) {
          << sample.abs_est_cost_error << "," << sample.abs_re_est_cost_error;
   return stream;
 }
-
-class AbstractJoinOrderingWorkload {
- public:
-  virtual ~AbstractJoinOrderingWorkload() = default;
-
-  virtual void setup() = 0;
-  virtual size_t query_count() const = 0;
-  virtual std::string get_query(const size_t query_idx) const = 0;
-  virtual std::string get_query_name(const size_t query_idx) const = 0;
-};
-
-class TpchJoinOrderingWorkload : public AbstractJoinOrderingWorkload {
- public:
-  TpchJoinOrderingWorkload(float scale_factor, const std::optional<std::vector<QueryID>>& query_ids):
-    _scale_factor(scale_factor)
-  {
-    if (!query_ids) {
-      std::copy(std::begin(tpch_supported_queries), std::end(tpch_supported_queries),
-                std::back_inserter(_query_ids));
-    } else {
-      _query_ids = *query_ids;
-    }
-  }
-
-  void setup() override {
-    out() << "-- Generating TPCH tables with scale factor " << _scale_factor << std::endl;
-    TpchDbGenerator{_scale_factor}.generate_and_store();
-    out() << "-- Done." << std::endl;
-  }
-
-  size_t query_count() const override {
-    return _query_ids.size();
-  }
-
-  std::string get_query(const size_t query_idx) const override {
-    return tpch_queries[_query_ids[query_idx]];
-  }
-
-  std::string get_query_name(const size_t query_idx) const override {
-    return "TPCH"s + "-" + std::to_string(_query_ids[query_idx] + 1);
-  }
-
- private:
-  float _scale_factor;
-  std::vector<QueryID> _query_ids;
-};
-
-class JobWorkload : public AbstractJoinOrderingWorkload {
- public:
-  JobWorkload(const std::optional<std::vector<std::string>>& query_names)
-  {
-    if (query_names) {
-      _query_names = *query_names;
-    } else {
-      _query_names = {
-      "1a", "1b", "1c", "1d", "2a", "2b", "2c", "2d",
-      // "3a", "3b", "3c"
-      "4a", "4b", "4c",
-      // "5a", "5b", "5c",
-      "6a",
-      // "6b",
-      "6c",
-      //"6d",
-      "6e",
-      //"6f",
-      "7a", "7b",
-      //"7c",
-      "8a", "8b", "8c", "8d",
-      //"9a",
-      "9b",
-      // "9c", "9d",
-      "10a", "10b", "10c", "11a", "11b",
-      //"11c", "11d", "12a", "12b", "12c",
-      "13a", "13b", "13c", "13d",
-      //"14a", "14b", "14c",
-      "15a", "15b", "15c", "15d", "16a", "16b", "16c", "16d", "17a", "17b",
-      "17c", "17d", "17e", "17f",
-      //"18a","18b", "18c", "19a",
-      "19b",
-      //"19c","19d", "20a", "20b", "20c", "21a", "21b", "21c", "22a", "22b",
-      //"22c","22d", "23a", "23b", "23c", "24a",
-//     "24b",
-//     "25a",
-//     "25b",
-//     "25c",
-//     "26a",
-//     "26b",
-//     "26c",
-//     "27a",
-//     "27b",
-//     "27c",
-//     "28a",
-//     "28b",
-//     "28c",
-//     "29a",
-//     "29b",
-//     "29c",
-//     "30a",
-//     "30b",
-//     "30c",
-//     "31a",
-//     "31b",
-//     "31c",
-      "32a",
-      "32b",
-      //"33a",
-      "33b",
-      // "33c"
-      };
-    }
-  }
-
-  void setup() override {
-    const auto table_names = std::vector<std::string>{
-    "aka_name",
-    "aka_title",
-    "cast_info",
-    "char_name",
-    "comp_cast_type",
-    "company_name",
-    "company_type",
-    "complete_cast",
-    "info_type",
-    "keyword",
-    "kind_type",
-    "link_type",
-    "movie_companies",
-    "movie_info",
-    "movie_info_idx",
-    "movie_keyword",
-    "movie_link",
-    "name",
-    "person_info",
-    "role_type",
-    "title"
-    };
-
-    const auto csvs_path = "/home/Moritz.Eyssen/imdb/csv/";
-
-    for (const auto& table_name : table_names) {
-      const auto table_csv_path = csvs_path + table_name + ".csv";
-      const auto table_binary_path = csvs_path + table_name + ".bin";
-      const auto table_statistics_path = csvs_path + table_name + ".statistics.json";
-
-      out() << "Processing '" << table_name << "'" << std::endl;
-
-      Timer timer;
-      auto table = std::shared_ptr<Table>();
-      if (std::experimental::filesystem::exists(table_binary_path.c_str())) {
-        out() << "  Loading Binary" << std::endl;
-        auto import_binary = std::make_shared<ImportBinary>(table_binary_path);
-        import_binary->execute();
-        table = std::const_pointer_cast<Table>(import_binary->get_output());
-      } else {
-        out() << "  Loading CSV" << std::endl;
-        table = CsvParser{}.parse(table_csv_path);
-      }
-      out() << "   Done: " << table->row_count() << " rows" << std::endl;
-      out() << "   Duration: " << format_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(timer.lap()))
-                << std::endl;
-
-      try {
-        if (std::experimental::filesystem::exists(table_statistics_path.c_str())) {
-          out() << "  Loading Statistics" << std::endl;
-          const auto table_statistics = import_table_statistics(table_statistics_path);
-          table->set_table_statistics(std::make_shared<TableStatistics>(table_statistics));
-          out() << "   Done" << std::endl;
-        }
-      } catch (const std::exception& e) {
-        out() << "ERROR while importing statistics: " << e.what() << std::endl;
-      }
-
-      out() << "  Adding to StorageManager" << std::endl;
-      StorageManager::get().add_table(table_name, std::const_pointer_cast<Table>(table));
-      out() << "   Done" << std::endl;
-      out() << "   Duration: " << format_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(timer.lap()))
-                << std::endl;
-
-      if (!std::experimental::filesystem::exists(table_statistics_path.c_str())) {
-        out() << "  Exporting Statistics" << std::endl;
-        export_table_statistics(*table->table_statistics(), table_statistics_path);
-        out() << "   Done" << std::endl;
-      }
-
-      if (!std::experimental::filesystem::exists(table_binary_path.c_str())) {
-        out() << "  Saving binary" << std::endl;
-        auto table_wrapper = std::make_shared<TableWrapper>(table);
-        table_wrapper->execute();
-        auto export_binary = std::make_shared<ExportBinary>(table_wrapper, table_binary_path);
-        export_binary->execute();
-        out() << "   Done" << std::endl;
-        out() << "   Duration: " << format_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(timer.lap()))
-                  << std::endl;
-      }
-    }
-  }
-
-  size_t query_count() const override {
-    return _query_names.size();
-  }
-
-  std::string get_query(const size_t query_idx) const override {
-    auto query_file_directory = std::string{"/home/Moritz.Eyssen/hyrise/third_party/join-order-benchmark/"};
-
-    const auto query_file_path = query_file_directory + _query_names[query_idx] + ".sql";
-
-    std::ifstream query_file(query_file_path);
-    Assert(query_file.good(), std::string("Failed to open '") + query_file_path + "'");
-
-    query_file.seekg(0, std::ios::end);
-    const auto size = query_file.tellg();
-    auto query_string = std::string(static_cast<size_t>(size), ' ');
-    query_file.seekg(0, std::ios::beg);
-    query_file.read(&query_string[0], size);
-
-    return query_string;
-  }
-
-  std::string get_query_name(const size_t query_idx) const override {
-    return "JOB"s + "-" + _query_names[query_idx];
-  }
-
- private:
-  std::vector<std::string> _query_names;
-};
 
 }
 

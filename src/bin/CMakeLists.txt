@@ -37,6 +37,13 @@ add_executable(
     hyriseJoinOrderingEvaluator
 
     join_ordering_evaluator.cpp
+    join_ordering_evaluator/abstract_join_ordering_workload.hpp
+    join_ordering_evaluator/out.cpp
+    join_ordering_evaluator/out.hpp
+    join_ordering_evaluator/tpch_join_ordering_workload.cpp
+    join_ordering_evaluator/tpch_join_ordering_workload.hpp
+    join_ordering_evaluator/job_join_ordering_workload.cpp
+    join_ordering_evaluator/job_join_ordering_workload.hpp
 )
 target_link_libraries(
     hyriseJoinOrderingEvaluator
