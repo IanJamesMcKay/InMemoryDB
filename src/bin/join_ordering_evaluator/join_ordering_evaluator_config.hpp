@@ -12,10 +12,12 @@
 
 namespace opossum {
 
-struct JoinOrderingEvaluatorConfig final {
+enum class CardinalityEstimationMode { Cached, Executed };
 
+struct JoinOrderingEvaluatorConfig final {
   std::string cost_model_str = "linear";
   std::string workload_str = "tpch";
+  std::string cardinality_estimation_str = "cached";
 
   float scale_factor = 0.1f;
   bool visualize = false;
@@ -29,6 +31,8 @@ struct JoinOrderingEvaluatorConfig final {
   std::optional<std::vector<std::string>> query_name_strs;
   size_t iterations_per_query{1};
   bool isolate_queries{true};
+  bool save_query_iterations_results{true};
+  CardinalityEstimationMode cardinality_estimation_mode{CardinalityEstimationMode::Cached};
 
   std::vector<std::shared_ptr<AbstractCostModel>> cost_models;
   std::shared_ptr<AbstractJoinOrderingWorkload> workload;

@@ -135,8 +135,8 @@ auto dotfile = boost::lexical_cast<std::string>((boost::uuids::random_generator(
 static JoinOrderingEvaluatorConfig config;
 static std::string evaluation_name;
 static std::shared_ptr<CardinalityEstimationCache> cardinality_estimation_cache;
-static std::shared_ptr<CardinalityEstimatorColumnStatistics> fallback_cardinality_estimator;
-static std::shared_ptr<CardinalityEstimatorCached> main_cardinality_estimator;
+static std::shared_ptr<AbstractCardinalityEstimator> fallback_cardinality_estimator;
+static std::shared_ptr<AbstractCardinalityEstimator> main_cardinality_estimator;
 
 struct QueryState final {
   std::string name;
@@ -362,12 +362,15 @@ void evaluate_query_iteration(QueryState &query_state, QueryIterationState &quer
   /**
    * CSV
    */
-  auto csv = std::ofstream{evaluation_name + "/" + query_state.name + ".csv"};
-  csv << "Idx,Duration,CacheHitCount,CacheMissCount" << "\n";
-  for (auto query_iteration_idx = size_t{0}; query_iteration_idx < query_state.measurements.size(); ++query_iteration_idx) {
-    csv << query_iteration_idx << "," << query_state.measurements[query_iteration_idx] << "\n";
+  if (config.save_query_iterations_results) {
+    auto csv = std::ofstream{evaluation_name + "/" + query_state.name + ".csv"};
+    csv << "Idx,Duration,CacheHitCount,CacheMissCount" << "\n";
+    for (auto query_iteration_idx = size_t{0};
+         query_iteration_idx < query_state.measurements.size(); ++query_iteration_idx) {
+      csv << query_iteration_idx << "," << query_state.measurements[query_iteration_idx] << "\n";
+    }
+    csv.close();
   }
-  csv.close();
 }
 
 int main(int argc, char ** argv) {
@@ -406,12 +409,15 @@ int main(int argc, char ** argv) {
    * Setup CardinalityEstimator
    */
   cardinality_estimation_cache = std::make_shared<CardinalityEstimationCache>();
-  //fallback_cardinality_estimator = std::make_shared<CardinalityEstimatorExecution>();
-  fallback_cardinality_estimator = std::make_shared<CardinalityEstimatorColumnStatistics>();
-
-  main_cardinality_estimator = std::make_shared<CardinalityEstimatorCached>(cardinality_estimation_cache,
-    CardinalityEstimationCacheMode::ReadOnly, fallback_cardinality_estimator);
-//  const auto main_cardinality_estimator = std::make_shared<CardinalityEstimatorColumnStatistics>();
+  if (config.cardinality_estimation_mode == CardinalityEstimationMode::Cached) {
+    fallback_cardinality_estimator = std::make_shared<CardinalityEstimatorColumnStatistics>();
+    main_cardinality_estimator = std::make_shared<CardinalityEstimatorCached>(cardinality_estimation_cache,
+                                                                              CardinalityEstimationCacheMode::ReadOnly, fallback_cardinality_estimator);
+  } else {
+    fallback_cardinality_estimator = std::make_shared<CardinalityEstimatorExecution>();
+    main_cardinality_estimator = std::make_shared<CardinalityEstimatorCached>(cardinality_estimation_cache,
+                                                                              CardinalityEstimationCacheMode::ReadAndUpdate, fallback_cardinality_estimator);
+  }
 
   /**
    * The actual evaluation

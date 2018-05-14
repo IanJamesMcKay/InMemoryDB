@@ -43,7 +43,6 @@ Cardinality CardinalityEstimatorExecution::estimate(const std::vector<std::share
     lqp = build_lqp_for_predicate(*predicate, lqp);
   }
 
-  lqp->print();
   lqp = _optimizer->optimize(lqp);
 
   std::cout << "CardinalityEstimatorExecution: " << std::endl;

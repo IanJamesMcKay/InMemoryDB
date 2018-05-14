@@ -23,6 +23,8 @@ void JoinOrderingEvaluatorConfig::add_options(cxxopts::Options& cli_options_desc
   ("shuffle-idx", "Shuffle plan order from this index on, 0 to disable", cxxopts::value(*plan_order_shuffling)->default_value("0"))  // NOLINT
   ("iterations-per-query", "Number of times to execute/optimize each query", cxxopts::value(iterations_per_query)->default_value("1"))  // NOLINT
   ("isolate-queries", "Reset all cached data for each query", cxxopts::value(isolate_queries)->default_value("true"))  // NOLINT
+  ("cardinality-estimation", "Mode for cardinality estimation. Values: cached, executed", cxxopts::value(cardinality_estimation_str)->default_value("cached"))  // NOLINT
+  ("save-query-iterations-results", "Save measurements per query iterations", cxxopts::value(save_query_iterations_results)->default_value("true"))  // NOLINT
   ("queries", "Specify queries to run, default is all of the workload that are supported", cxxopts::value<std::vector<std::string>>()); // NOLINT
   ;
   // clang-format on
@@ -104,6 +106,24 @@ void JoinOrderingEvaluatorConfig::parse(const cxxopts::ParseResult& cli_parse_re
     out() << "-- Isolating query evaluations from each other" << std::endl;
   } else {
     out() << "-- Not isolating query evaluations from each other" << std::endl;
+  }
+
+  // Process "save_query_iterations_results" parameter
+  if (save_query_iterations_results) {
+    out() << "-- Saving measurements per Query Iteration" << std::endl;
+  } else {
+    out() << "-- Saving measurements per Query" << std::endl;
+  }
+
+  // Process "cardinality_estimation_str" parameter
+  if (cardinality_estimation_str == "cached") {
+    cardinality_estimation_mode = CardinalityEstimationMode::Cached;
+    out() << "-- Using CardinalityEstimationMode::Cached" << std::endl;
+  } else if (cardinality_estimation_str == "executed") {
+    cardinality_estimation_mode = CardinalityEstimationMode::Executed;
+    out() << "-- Using CardinalityEstimationMode::Executed" << std::endl;
+  } else {
+    Fail("Unsupported CardinalityEstimationMode");
   }
 
   // Process "workload" parameter
