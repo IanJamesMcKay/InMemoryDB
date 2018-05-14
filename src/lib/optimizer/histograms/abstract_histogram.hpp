@@ -21,7 +21,7 @@ class AbstractHistogram {
 
   float estimate_cardinality(const T value, const PredicateCondition predicate_condition);
 
-  size_t num_buckets() const;
+  virtual size_t num_buckets() const;
   virtual BucketID bucket_for_value(const T value);
 
   virtual T bucket_min(const BucketID index);

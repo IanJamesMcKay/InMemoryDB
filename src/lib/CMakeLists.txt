@@ -164,6 +164,8 @@ set(
     statistics/chunk_statistics/range_filter.hpp
     optimizer/histograms/abstract_histogram.cpp
     optimizer/histograms/abstract_histogram.hpp
+    optimizer/histograms/equal_height_histogram.cpp
+    optimizer/histograms/equal_height_histogram.hpp
     optimizer/histograms/equal_num_elements_histogram.cpp
     optimizer/histograms/equal_num_elements_histogram.hpp
     optimizer/histograms/equal_width_histogram.cpp
