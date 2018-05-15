@@ -92,6 +92,11 @@ struct QueryIterationMeasurement final {
   size_t cache_miss_count{0};
 };
 
+struct QueryMeasurement final {
+  std::string name;
+  long best_plan_duration{0};
+};
+
 PlanMeasurement create_plan_measurement(const AbstractCostModel &cost_model,
                                          const std::vector<std::shared_ptr<AbstractOperator>> &operators) {
   PlanMeasurement sample;
@@ -128,6 +133,11 @@ std::ostream &operator<<(std::ostream &stream, const QueryIterationMeasurement &
   return stream;
 }
 
+std::ostream &operator<<(std::ostream &stream, const QueryMeasurement &sample) {
+  stream << sample.name << "," << sample.best_plan_duration;
+  return stream;
+}
+
 }
 
 auto dotfile = boost::lexical_cast<std::string>((boost::uuids::random_generator())()) + ".dot";
@@ -137,6 +147,7 @@ static std::string evaluation_name;
 static std::shared_ptr<CardinalityEstimationCache> cardinality_estimation_cache;
 static std::shared_ptr<AbstractCardinalityEstimator> fallback_cardinality_estimator;
 static std::shared_ptr<AbstractCardinalityEstimator> main_cardinality_estimator;
+static std::vector<QueryMeasurement> query_measurements;
 
 struct QueryState final {
   std::string name;
@@ -147,6 +158,7 @@ struct QueryState final {
   std::shared_ptr<JoinGraph> join_graph;
   bool save_plan_results{false};
   std::vector<QueryIterationMeasurement> measurements;
+  long best_plan_microseconds{std::numeric_limits<long>::max()};
 };
 
 struct QueryIterationState final {
@@ -154,7 +166,7 @@ struct QueryIterationState final {
   std::string name;
   std::optional<long> current_plan_timeout;
   std::vector<PlanMeasurement> measurements;
-  long best_plan_milliseconds{std::numeric_limits<long>::max()};
+  long best_plan_microseconds{std::numeric_limits<long>::max()};
 };
 
 struct JoinPlanState final {
@@ -264,12 +276,12 @@ void evaluate_join_plan(QueryState& query_state,
   /**
    * Adjust dynamic timeout
    */
-  const auto plan_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(plan_duration).count();
-  if (plan_milliseconds < query_iteration_state.best_plan_milliseconds) {
-    query_iteration_state.best_plan_milliseconds = plan_milliseconds;
+  const auto plan_microseconds = std::chrono::duration_cast<std::chrono::microseconds>(plan_duration).count();
+  if (plan_microseconds < query_iteration_state.best_plan_microseconds) {
+    query_iteration_state.best_plan_microseconds = plan_microseconds;
 
     if (config.dynamic_plan_timeout_enabled) {
-      query_iteration_state.current_plan_timeout = (query_iteration_state.best_plan_milliseconds / 1000) * 1.2f + 2;
+      query_iteration_state.current_plan_timeout = (query_iteration_state.best_plan_microseconds / 1000000) * 1.2f + 2;
       out() << "----- New dynamic timeout is " << *query_iteration_state.current_plan_timeout << " seconds"
             << std::endl;
     }
@@ -425,6 +437,8 @@ int main(int argc, char ** argv) {
   for (const auto& cost_model : config.cost_models) {
     out() << "- Evaluating Cost Model " << cost_model->name() << std::endl;
 
+    query_measurements.resize(config.workload->query_count());
+
     for (auto query_idx = size_t{0}; query_idx < config.workload->query_count(); ++query_idx) {
       QueryState query_state;
 
@@ -443,7 +457,21 @@ int main(int argc, char ** argv) {
         query_iteration_state.idx = query_iteration_idx;
 
         evaluate_query_iteration(query_state, query_iteration_state, cost_model);
+
+        query_state.best_plan_microseconds = std::min(query_iteration_state.best_plan_microseconds, query_state.best_plan_microseconds);
       }
+
+      QueryMeasurement query_measurement;
+      query_measurement.name = query_state.name;
+      query_measurement.best_plan_duration = query_state.best_plan_microseconds;
+      query_measurements[query_idx] = query_measurement;
+      auto csv = std::ofstream{evaluation_name + "/" + cost_model->name() + ".csv"};
+      csv << "Idx,Name,BestPlanDuration" << "\n";
+      for (auto query_idx = size_t{0};
+           query_idx < query_measurements.size(); ++query_idx) {
+        csv << query_idx << "," << query_measurements[query_idx] << "\n";
+      }
+      csv.close();
 
       if (config.isolate_queries) {
         cardinality_estimation_cache->clear();

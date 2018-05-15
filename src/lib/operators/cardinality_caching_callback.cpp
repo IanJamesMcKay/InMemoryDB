@@ -12,6 +12,7 @@ CardinalityCachingCallback::CardinalityCachingCallback(const std::shared_ptr<Car
 
 void CardinalityCachingCallback::operator()(const std::shared_ptr<AbstractOperator>& op) {
   if (!op->lqp_node()) return;
+  if (!op->get_output()) return;
 
   const auto lqp = op->lqp_node();
 
