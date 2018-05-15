@@ -551,6 +551,10 @@ size_t AbstractLQPNode::hash() const {
     boost::hash_combine(hash, std::hash<decltype(_table_alias)>{}(_table_alias));
 
     boost::hash_combine(hash, _on_hash());
+
+    if (left_input()) boost::hash_combine(hash, left_input()->hash());
+    if (right_input()) boost::hash_combine(hash, right_input()->hash());
+
     _hash = hash;
   }
 

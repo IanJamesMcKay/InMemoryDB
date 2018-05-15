@@ -12,11 +12,12 @@ void JoinOrderingEvaluatorConfig::add_options(cxxopts::Options& cli_options_desc
   ("help", "print this help message")
   ("v,verbose", "Print log messages", cxxopts::value<bool>(verbose)->default_value("true"))
   ("s,scale", "Database scale factor (1.0 ~ 1GB). TPCH only", cxxopts::value<float>(scale_factor)->default_value("0.001"))
-  ("m,cost_model", "CostModel to use (all, naive, linear)", cxxopts::value<std::string>(cost_model_str)->default_value(cost_model_str))  // NOLINT
+  ("m,cost-model", "CostModel to use (all, naive, linear)", cxxopts::value<std::string>(cost_model_str)->default_value(cost_model_str))  // NOLINT
   ("timeout-plan", "Timeout per plan, in seconds. Default: 120", cxxopts::value<long>(*plan_timeout_seconds)->default_value("120"))  // NOLINT
   ("dynamic-timeout-plan", "If active, lower timeout to current fastest plan.", cxxopts::value<bool>(dynamic_plan_timeout_enabled)->default_value("true"))  // NOLINT
   ("timeout-query", "Timeout per plan, in seconds. Default: 1800", cxxopts::value<long>(*query_timeout_seconds)->default_value("1800"))  // NOLINT
-  ("max-plan-count", "Maximum number of plans per query to execute. Default: 100", cxxopts::value<size_t>(*max_plan_count)->default_value("100"))  // NOLINT
+  ("max-plan-execution-count", "Maximum number of plans per query to execute. Default: 100", cxxopts::value<size_t>(*max_plan_execution_count)->default_value("100"))  // NOLINT
+  ("max-plan-generation-count", "Maximum number of plans to generate. Default: 100", cxxopts::value<size_t>(*max_plan_generation_count)->default_value("100"))  // NOLINT
   ("visualize", "Visualize every query plan", cxxopts::value<bool>(visualize)->default_value("false"))  // NOLINT
   ("w,workload", "Workload to run (tpch, job). Default: tpch", cxxopts::value(workload_str)->default_value(workload_str))  // NOLINT
   ("save-results", "Save head of result tables.", cxxopts::value(save_results)->default_value("true"))  // NOLINT
@@ -25,6 +26,9 @@ void JoinOrderingEvaluatorConfig::add_options(cxxopts::Options& cli_options_desc
   ("isolate-queries", "Reset all cached data for each query", cxxopts::value(isolate_queries)->default_value("true"))  // NOLINT
   ("cardinality-estimation", "Mode for cardinality estimation. Values: cached, executed", cxxopts::value(cardinality_estimation_str)->default_value("cached"))  // NOLINT
   ("save-query-iterations-results", "Save measurements per query iterations", cxxopts::value(save_query_iterations_results)->default_value("true"))  // NOLINT
+  ("cardinality-estimation-cache-log", "Create logfiles for accesses to the CardinalityEstimationCache", cxxopts::value(cardinality_estimation_cache_log)->default_value("true"))  // NOLINT
+  ("unique-plans", "For each query, execute only plans that were not executed before", cxxopts::value(unique_plans)->default_value("false"))  // NOLINT
+  ("force-plan-zero", "Independently of shuffling, always executed the plan the optimizer labeled as best", cxxopts::value(force_plan_zero)->default_value("false"))  // NOLINT
   ("queries", "Specify queries to run, default is all of the workload that are supported", cxxopts::value<std::vector<std::string>>()); // NOLINT
   ;
   // clang-format on
@@ -65,11 +69,21 @@ void JoinOrderingEvaluatorConfig::parse(const cxxopts::ParseResult& cli_parse_re
   }
 
   // Process "max-plan-count" parameter
-  if (*max_plan_count <= 0) {
-    max_plan_count.reset();
+  if (*max_plan_execution_count <= 0) {
+    max_plan_execution_count.reset();
     out() << "-- Executing all plans of a query" << std::endl;
   } else {
-    out() << "-- Executing a maximum of " << *max_plan_count << " plans per query" << std::endl;
+    out() << "-- Executing a maximum of " << *max_plan_execution_count << " plans per query" << std::endl;
+  }
+
+  if (*max_plan_generation_count <= 0) {
+    max_plan_generation_count.reset();
+    out() << "-- Generating all plans" << std::endl;
+  } else {
+    if (max_plan_execution_count) {
+      max_plan_generation_count = std::max(*max_plan_generation_count, *max_plan_generation_count);
+    }
+    out() << "-- Generating at max " << *max_plan_generation_count << " plans" << std::endl;
   }
 
   // Process "cost-model" parameter
@@ -124,6 +138,25 @@ void JoinOrderingEvaluatorConfig::parse(const cxxopts::ParseResult& cli_parse_re
     out() << "-- Using CardinalityEstimationMode::Executed" << std::endl;
   } else {
     Fail("Unsupported CardinalityEstimationMode");
+  }
+
+  // Process "cardinality_estimation_cache_log" parameter
+  if (cardinality_estimation_cache_log) {
+    out() << "-- CardinalityEstimationCache logging enabled" << std::endl;
+  } else {
+    out() << "-- CardinalityEstimationCache logging disabled" << std::endl;
+  }
+
+  // Process "unique_plans" parameter
+  if (unique_plans) {
+    out() << "-- Executing only unique plans is enabled" << std::endl;
+  } else {
+    out() << "-- Executing only unique plans is disabled" << std::endl;
+  }
+
+  // Process "force_plan_zero" parameter
+  if (force_plan_zero) {
+    out() << "-- Always executing plan at rank #0" <<std::endl;
   }
 
   // Process "workload" parameter

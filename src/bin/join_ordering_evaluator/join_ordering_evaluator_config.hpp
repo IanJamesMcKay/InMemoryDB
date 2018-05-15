@@ -25,7 +25,8 @@ struct JoinOrderingEvaluatorConfig final {
   std::optional<long> query_timeout_seconds = std::optional<long>{0};
   std::optional<long> dynamic_plan_timeout = std::optional<long>{0};
   bool dynamic_plan_timeout_enabled = true;
-  std::optional<size_t> max_plan_count = std::optional<size_t>{0};
+  std::optional<size_t> max_plan_execution_count = std::optional<size_t>{0};
+  std::optional<size_t> max_plan_generation_count = std::optional<size_t>{0};
   bool save_results = true;
   std::optional<long> plan_order_shuffling = std::optional<long>{0};
   std::optional<std::vector<std::string>> query_name_strs;
@@ -33,6 +34,9 @@ struct JoinOrderingEvaluatorConfig final {
   bool isolate_queries{true};
   bool save_query_iterations_results{true};
   CardinalityEstimationMode cardinality_estimation_mode{CardinalityEstimationMode::Cached};
+  bool cardinality_estimation_cache_log{true};
+  bool unique_plans{false};
+  bool force_plan_zero{false};
 
   std::vector<std::shared_ptr<AbstractCostModel>> cost_models;
   std::shared_ptr<AbstractJoinOrderingWorkload> workload;

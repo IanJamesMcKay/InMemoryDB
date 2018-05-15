@@ -20,6 +20,8 @@ class CardinalityEstimationCache final {
 
   void clear();
 
+  void set_log(const std::shared_ptr<std::ostream>& log);
+
   static BaseJoinGraph _normalize(const BaseJoinGraph& join_graph);
   static std::shared_ptr<const AbstractJoinPlanPredicate> _normalize(const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate);
 
@@ -27,6 +29,7 @@ class CardinalityEstimationCache final {
   std::unordered_map<BaseJoinGraph, Cardinality> _cache;
   size_t _hit_count{0};
   size_t _miss_count{0};
+  std::shared_ptr<std::ostream> _log;
 };
 
 }  // namespace opossum

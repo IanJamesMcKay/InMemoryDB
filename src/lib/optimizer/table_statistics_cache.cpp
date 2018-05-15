@@ -30,11 +30,11 @@ size_t TableStatisticsCache::miss_count() const {
   return _miss_count;
 }
 
-size_t TableStatisticsCache::LQPHash::operator()(const std::shared_ptr<AbstractLQPNode>& lqp) const {
+size_t LQPHash::operator()(const std::shared_ptr<AbstractLQPNode>& lqp) const {
   return lqp->hash();
 }
 
-size_t TableStatisticsCache::LQPEqual::operator()(const std::shared_ptr<AbstractLQPNode>& lhs, const std::shared_ptr<AbstractLQPNode>& rhs) const {
+size_t LQPEqual::operator()(const std::shared_ptr<AbstractLQPNode>& lhs, const std::shared_ptr<AbstractLQPNode>& rhs) const {
   return !lhs->find_first_subplan_mismatch(rhs);
 }
 

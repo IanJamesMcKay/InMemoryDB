@@ -54,6 +54,7 @@
 #include "utils/timer.hpp"
 #include "utils/table_generator2.hpp"
 #include "utils/format_duration.hpp"
+#include "optimizer/table_statistics_cache.hpp"
 
 #include <boost/lexical_cast.hpp>
 using boost::lexical_cast;
@@ -90,6 +91,7 @@ struct QueryIterationMeasurement final {
   long duration{0};
   size_t cache_hit_count{0};
   size_t cache_miss_count{0};
+  size_t cache_size{0};
 };
 
 struct QueryMeasurement final {
@@ -129,7 +131,7 @@ std::ostream &operator<<(std::ostream &stream, const PlanMeasurement &sample) {
 
 
 std::ostream &operator<<(std::ostream &stream, const QueryIterationMeasurement &sample) {
-  stream << sample.duration << "," << sample.cache_hit_count << "," << sample.cache_miss_count;
+  stream << sample.duration << "," << sample.cache_hit_count << "," << sample.cache_miss_count << "," << sample.cache_size;
   return stream;
 }
 
@@ -159,6 +161,8 @@ struct QueryState final {
   bool save_plan_results{false};
   std::vector<QueryIterationMeasurement> measurements;
   long best_plan_microseconds{std::numeric_limits<long>::max()};
+
+  std::unordered_set<std::shared_ptr<AbstractLQPNode>, LQPHash, LQPEqual> executed_plans;
 };
 
 struct QueryIterationState final {
@@ -167,6 +171,7 @@ struct QueryIterationState final {
   std::optional<long> current_plan_timeout;
   std::vector<PlanMeasurement> measurements;
   long best_plan_microseconds{std::numeric_limits<long>::max()};
+  size_t executed_plans_count{0};
 };
 
 struct JoinPlanState final {
@@ -199,6 +204,15 @@ void evaluate_join_plan(QueryState& query_state,
   lqp_translator.add_post_operator_callback(
   std::make_shared<CardinalityCachingCallback>(cardinality_estimation_cache));
 
+  if (config.unique_plans && !query_state.executed_plans.emplace(query_state.lqp_root->left_input()).second) {
+    if (config.force_plan_zero && join_plan_state.idx == 0) {
+      out() << "----- Plan was already executed, but is rank#0 and --force-plan-zero is set, so it is executed again" << std::endl;
+    } else {
+      out() << "----- Plan was already executed, skipping" << std::endl;
+      return;
+    }
+  }
+
   const auto pqp = lqp_translator.translate_node(query_state.lqp_root->left_input());
 
   auto transaction_context = TransactionManager::get().new_transaction_context();
@@ -222,6 +236,8 @@ void evaluate_join_plan(QueryState& query_state,
 
   Timer timer;
   CurrentScheduler::schedule_and_wait_for_tasks(plan.create_tasks());
+
+  ++query_iteration_state.executed_plans_count;
 
   if (!transaction_context->commit(TransactionPhaseSwitch::Lenient)) {
     out() << "----- Query timeout accepted" << std::endl;
@@ -308,7 +324,7 @@ void evaluate_query_iteration(QueryState &query_state, QueryIterationState &quer
   query_state.lqp_root = std::shared_ptr<AbstractLQPNode>(LogicalPlanRootNode::make(lqp));
   query_state.join_graph = JoinGraph::from_lqp(lqp);
 
-  DpCcpTopK dp_ccp_top_k{config.max_plan_count ? *config.max_plan_count : DpSubplanCacheTopK::NO_ENTRY_LIMIT,
+  DpCcpTopK dp_ccp_top_k{config.max_plan_generation_count ? *config.max_plan_generation_count : DpSubplanCacheTopK::NO_ENTRY_LIMIT,
                          cost_model, main_cardinality_estimator};
   dp_ccp_top_k(query_state.join_graph);
 
@@ -335,11 +351,12 @@ void evaluate_query_iteration(QueryState &query_state, QueryIterationState &quer
     }
   }
 
-  if (config.max_plan_count) {
-    plan_indices.resize(std::min(plan_indices.size(), *config.max_plan_count));
-  }
-
   for (auto plan_idx_idx = size_t{0}; plan_idx_idx < plan_indices.size(); ++plan_idx_idx) {
+    if (config.max_plan_execution_count && query_iteration_state.executed_plans_count >= *config.max_plan_execution_count) {
+      out() << "---- Requested number of plans (" << *config.max_plan_execution_count << ") executed, stopping" << std::endl;
+      break;
+    }
+
     const auto plan_idx = plan_indices[plan_idx_idx];
     auto join_plan_iter = join_plans.begin();
     std::advance(join_plan_iter, plan_idx);
@@ -371,13 +388,14 @@ void evaluate_query_iteration(QueryState &query_state, QueryIterationState &quer
   measurement.duration = query_iteration_state.measurements[0].duration;
   measurement.cache_hit_count = cardinality_estimation_cache->cache_hit_count();
   measurement.cache_miss_count = cardinality_estimation_cache->cache_miss_count();
+  measurement.cache_size = cardinality_estimation_cache->size();
   query_state.measurements[query_iteration_state.idx] = measurement;
 
   /**
    * CSV
    */
   auto csv = std::ofstream{evaluation_name + "/" + query_state.name + ".csv"};
-  csv << "Idx,Duration,CacheHitCount,CacheMissCount" << "\n";
+  csv << "Idx,Duration,CacheHitCount,CacheMissCount,CacheSize" << "\n";
   for (auto query_iteration_idx = size_t{0};
        query_iteration_idx < query_state.measurements.size(); ++query_iteration_idx) {
     csv << query_iteration_idx << "," << query_state.measurements[query_iteration_idx] << "\n";
@@ -391,6 +409,8 @@ int main(int argc, char ** argv) {
   evaluation_name = create_evaluation_name();
   std::experimental::filesystem::create_directory(evaluation_name);
   std::experimental::filesystem::create_directory(evaluation_name + "/viz");
+
+  std::cout << "Evaluation: " << evaluation_name << std::endl;
 
   /**
    * Parse CLI options
@@ -449,6 +469,10 @@ int main(int argc, char ** argv) {
       query_state.measurements.resize(config.iterations_per_query);
 
       out() << "-- Evaluating Query: " << query_state.name << std::endl;
+
+      if (config.cardinality_estimation_cache_log) {
+        cardinality_estimation_cache->set_log(std::make_shared<std::ofstream>(evaluation_name + "/CardinalityEstimationCache-" + query_state.name + ".log"));
+      }
 
       for (auto query_iteration_idx = size_t{0}; query_iteration_idx < config.iterations_per_query; ++query_iteration_idx) {
         QueryIterationState query_iteration_state;

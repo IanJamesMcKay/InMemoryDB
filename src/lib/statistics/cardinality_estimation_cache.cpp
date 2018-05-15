@@ -11,11 +11,11 @@ std::optional<Cardinality> CardinalityEstimationCache::get(const BaseJoinGraph& 
   
   const auto cache_iter = _cache.find(normalized_join_graph);
   if (cache_iter != _cache.end()) {
-//    std::cout << "CardinalityEstimationCache [HIT ]: " << normalized_join_graph.description() << ": " << cache_iter->second << std::endl;
+    if (_log) (*_log) << "CardinalityEstimationCache [HIT ]: " << normalized_join_graph.description() << ": " << cache_iter->second << std::endl;
     ++_hit_count;
     return cache_iter->second;
   } else {
-//    std::cout << "CardinalityEstimationCache [MISS]: " << normalized_join_graph.description() << std::endl;
+    if (_log) (*_log) << "CardinalityEstimationCache [MISS]: " << normalized_join_graph.description() << std::endl;
     ++_miss_count;
     return std::nullopt;
   }
@@ -24,9 +24,10 @@ std::optional<Cardinality> CardinalityEstimationCache::get(const BaseJoinGraph& 
 void CardinalityEstimationCache::put(const BaseJoinGraph& join_graph, const Cardinality cardinality) {
   auto normalized_join_graph = _normalize(join_graph);
   
-//  if (_cache.count(normalized_join_graph) == 0) {
-//    std::cout << "CardinalityEstimationCache [PUT ]: " << normalized_join_graph.description() << ": " << cardinality << std::endl;
-//  }
+  if (_log && _cache.count(normalized_join_graph) == 0) {
+    (*_log) << "CardinalityEstimationCache [PUT ]: " << normalized_join_graph.description() << ": " << cardinality << std::endl;
+  }
+
   _cache[normalized_join_graph] = cardinality;
 }
 
@@ -46,6 +47,11 @@ void CardinalityEstimationCache::clear() {
   _cache.clear();
   _hit_count = 0;
   _miss_count = 0;
+  _log.reset();
+}
+
+void CardinalityEstimationCache::set_log(const std::shared_ptr<std::ostream>& log) {
+  _log = log;
 }
 
 BaseJoinGraph CardinalityEstimationCache::_normalize(const BaseJoinGraph& join_graph) {
