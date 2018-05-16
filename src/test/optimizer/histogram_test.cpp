@@ -10,14 +10,18 @@ namespace opossum {
 class HistogramTest : public ::testing::Test {
   void SetUp() override {
     _int_float4 = load_table("src/test/tables/int_float4.tbl");
+    _float2 = load_table("src/test/tables/float2.tbl");
     _int_int4 = load_table("src/test/tables/int_int4.tbl");
     _expected_join_result_1 = load_table("src/test/tables/joinoperators/expected_join_result_1.tbl");
+    _string2 = load_table("src/test/tables/string2.tbl");
   }
 
  protected:
   std::shared_ptr<Table> _int_float4;
+  std::shared_ptr<Table> _float2;
   std::shared_ptr<Table> _int_int4;
   std::shared_ptr<Table> _expected_join_result_1;
+  std::shared_ptr<Table> _string2;
 };
 
 TEST_F(HistogramTest, EqualNumElementsBasic) {
@@ -40,6 +44,50 @@ TEST_F(HistogramTest, EqualNumElementsUnevenBuckets) {
   EXPECT_EQ(hist.estimate_cardinality(1'234, PredicateCondition::Equals), 0.f);
   EXPECT_EQ(hist.estimate_cardinality(123'456, PredicateCondition::Equals), 3.f);
   EXPECT_EQ(hist.estimate_cardinality(1'000'000, PredicateCondition::Equals), 0.f);
+}
+
+TEST_F(HistogramTest, EqualNumElementsFloat) {
+  auto hist = EqualNumElementsHistogram<float>(_float2);
+  hist.generate(ColumnID{0}, 3u);
+  EXPECT_EQ(hist.num_buckets(), 3u);
+  EXPECT_EQ(hist.estimate_cardinality(0.4, PredicateCondition::Equals), 0.f);
+  EXPECT_EQ(hist.estimate_cardinality(0.5, PredicateCondition::Equals), 4 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(1.1, PredicateCondition::Equals), 4 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(1.3, PredicateCondition::Equals), 4 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(2.2, PredicateCondition::Equals), 4 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(2.3, PredicateCondition::Equals), 0.f);
+  EXPECT_EQ(hist.estimate_cardinality(2.5, PredicateCondition::Equals), 6 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(2.9, PredicateCondition::Equals), 6 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(3.3, PredicateCondition::Equals), 6 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(3.5, PredicateCondition::Equals), 0.f);
+  EXPECT_EQ(hist.estimate_cardinality(3.6, PredicateCondition::Equals), 4 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(3.9, PredicateCondition::Equals), 4 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(6.1, PredicateCondition::Equals), 4 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(6.2, PredicateCondition::Equals), 0.f);
+}
+
+TEST_F(HistogramTest, EqualNumElementsString) {
+  auto hist = EqualNumElementsHistogram<std::string>(_string2);
+  hist.generate(ColumnID{0}, 4u);
+  EXPECT_EQ(hist.num_buckets(), 4u);
+  EXPECT_EQ(hist.estimate_cardinality("1", PredicateCondition::Equals), 0.f);
+  EXPECT_EQ(hist.estimate_cardinality("12v", PredicateCondition::Equals), 3 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality("13", PredicateCondition::Equals), 3 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality("b", PredicateCondition::Equals), 3 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality("birne", PredicateCondition::Equals), 3 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality("biscuit", PredicateCondition::Equals), 0.f);
+  EXPECT_EQ(hist.estimate_cardinality("bla", PredicateCondition::Equals), 4 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality("blubb", PredicateCondition::Equals), 4 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality("bums", PredicateCondition::Equals), 4 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality("ttt", PredicateCondition::Equals), 4 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality("turkey", PredicateCondition::Equals), 0.f);
+  EXPECT_EQ(hist.estimate_cardinality("uuu", PredicateCondition::Equals), 4 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality("vvv", PredicateCondition::Equals), 4 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality("www", PredicateCondition::Equals), 4 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality("xxx", PredicateCondition::Equals), 4 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality("yyy", PredicateCondition::Equals), 4 / 2.f);
+  EXPECT_EQ(hist.estimate_cardinality("zzz", PredicateCondition::Equals), 4 / 2.f);
+  EXPECT_EQ(hist.estimate_cardinality("zzzzzz", PredicateCondition::Equals), 0.f);
 }
 
 TEST_F(HistogramTest, EqualWidthHistogramBasic) {
