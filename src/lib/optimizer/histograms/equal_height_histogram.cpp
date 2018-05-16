@@ -81,10 +81,6 @@ void EqualHeightHistogram<T>::generate(const ColumnID column_id, const size_t ma
   DebugAssert(table != nullptr, "Corresponding table of histogram is deleted.");
   // TODO(tim): row_count() is approximate due to MVCC - fix!
   _count_per_bucket = table->row_count() / num_buckets;
-  const auto num_buckets_with_higher_count = table->row_count() % num_buckets;
-
-  // TODO(tim): fix
-  DebugAssert(num_buckets_with_higher_count == 0, "Only evenly distributed buckets are supported right now.");
 
   auto current_height = 0u;
   auto current_begin_index = 0u;
@@ -93,15 +89,15 @@ void EqualHeightHistogram<T>::generate(const ColumnID column_id, const size_t ma
 
     if (current_height >= _count_per_bucket) {
       this->_mins.emplace_back(distinct_column->get(current_begin_index));
-      //      this->_count_distincts.emplace_back(index - current_begin_index + 1);
+//      this->_count_distincts.emplace_back(index - current_begin_index + 1);
       current_height = 0u;
       current_begin_index = index + 1;
     }
   }
 
-  if (current_height > 0) {
+  if (current_height > 0u) {
     this->_mins.emplace_back(distinct_column->get(current_begin_index));
-    //    this->_count_distincts.emplace_back(distinct_column->size() - current_begin_index);
+//    this->_count_distincts.emplace_back(distinct_column->size() - current_begin_index);
   }
 }
 

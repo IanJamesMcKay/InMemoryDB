@@ -81,4 +81,20 @@ TEST_F(HistogramTest, EqualHeightHistogramBasic) {
   EXPECT_EQ(hist.estimate_cardinality(21, PredicateCondition::Equals), 0.f);
 }
 
+TEST_F(HistogramTest, EqualHeightHistogramUnevenBuckets) {
+  auto hist = EqualHeightHistogram<int32_t>(_expected_join_result_1);
+  hist.generate(ColumnID{1}, 5u);
+  EXPECT_EQ(hist.num_buckets(), 5u);
+  EXPECT_EQ(hist.estimate_cardinality(0, PredicateCondition::Equals), 0.f);
+  EXPECT_EQ(hist.estimate_cardinality(1, PredicateCondition::Equals), 4 / 1.f);
+  EXPECT_EQ(hist.estimate_cardinality(2, PredicateCondition::Equals), 4 / 5.f);
+  EXPECT_EQ(hist.estimate_cardinality(5, PredicateCondition::Equals), 4 / 5.f);
+  EXPECT_EQ(hist.estimate_cardinality(7, PredicateCondition::Equals), 4 / 1.f);
+  EXPECT_EQ(hist.estimate_cardinality(9, PredicateCondition::Equals), 4 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(10, PredicateCondition::Equals), 4 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(12, PredicateCondition::Equals), 4 / 9.f);
+  EXPECT_EQ(hist.estimate_cardinality(20, PredicateCondition::Equals), 4 / 9.f);
+  EXPECT_EQ(hist.estimate_cardinality(21, PredicateCondition::Equals), 0.f);
+}
+
 }  // namespace opossum
