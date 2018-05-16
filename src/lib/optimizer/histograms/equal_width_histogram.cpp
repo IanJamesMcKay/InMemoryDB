@@ -19,14 +19,24 @@ BucketID EqualWidthHistogram<T>::bucket_for_value(const T value) {
     return INVALID_BUCKET_ID;
   }
 
-  // All buckets have the same number of distinct values, so we can use index 0.
-  return (value - _min) / bucket_count_distinct(0);
+  if (_num_buckets_with_larger_range == 0u || value <= bucket_max(_num_buckets_with_larger_range - 1u)) {
+    // All buckets up to that point have the exact same width (i.e., number of distinct values), so we can use index 0.
+    return (value - _min) / bucket_count_distinct(0u);
+  }
+
+  // All buckets after that point have the exact same width as well, so we use that as the new base and add it up.
+  return _num_buckets_with_larger_range +
+         (value - bucket_min(_num_buckets_with_larger_range)) / bucket_count_distinct(_num_buckets_with_larger_range);
 }
 
 template <typename T>
 T EqualWidthHistogram<T>::bucket_min(const BucketID index) {
   DebugAssert(index < this->num_buckets(), "Index is not a valid bucket.");
-  return _min + index * bucket_count_distinct(index);
+  const auto base_index = _min + index * bucket_count_distinct(index);
+  if (index < _num_buckets_with_larger_range) {
+    return base_index;
+  }
+  return base_index + _num_buckets_with_larger_range;
 }
 
 template <typename T>
@@ -45,7 +55,8 @@ T EqualWidthHistogram<T>::bucket_max(const BucketID index) {
 template <typename T>
 uint64_t EqualWidthHistogram<T>::bucket_count_distinct(const BucketID index) {
   DebugAssert(index < this->num_buckets(), "Index is not a valid bucket.");
-  return (_max - _min + 1) / this->num_buckets();
+  const auto count_distinct = (_max - _min + 1) / this->num_buckets();
+  return count_distinct + (index < _num_buckets_with_larger_range ? 1 : 0);
 }
 
 template <typename T>
@@ -72,16 +83,17 @@ void EqualWidthHistogram<T>::generate(const ColumnID column_id, const size_t max
   _min = distinct_column->get(0);
   _max = distinct_column->get(result->row_count() - 1);
   const T bucket_width = (_max - _min + 1) / num_buckets;
-  const auto num_buckets_with_larger_range = (_max - _min + 1) % num_buckets;
-
-  // TODO(tim): fix
-  DebugAssert(num_buckets_with_larger_range == 0, "Only evenly distributed buckets are supported right now.");
+  _num_buckets_with_larger_range = (_max - _min + 1) % num_buckets;
 
   auto current_begin = distinct_column->values().begin();
   auto current_end = distinct_column->values().begin();
+  T begin_value = _min;
   for (size_t bucket_index = 0; bucket_index < num_buckets; bucket_index++) {
-    const T begin_value = _min + bucket_index * bucket_width;
-    const T end_value = begin_value + bucket_width - 1;
+    T end_value = begin_value + bucket_width - 1;
+
+    if (bucket_index < _num_buckets_with_larger_range) {
+      end_value++;
+    }
 
     while (current_end + 1 != distinct_column->values().end() && *(current_end + 1) <= end_value) {
       current_end++;
@@ -94,6 +106,7 @@ void EqualWidthHistogram<T>::generate(const ColumnID column_id, const size_t max
                                                count_column->values().begin() + end_index + 1, uint64_t{0}));
 
     current_begin = current_end + 1;
+    begin_value = end_value + 1;
   }
 }
 

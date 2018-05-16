@@ -53,6 +53,21 @@ TEST_F(HistogramTest, EqualWidthHistogramBasic) {
   EXPECT_EQ(hist.estimate_cardinality(20, PredicateCondition::Equals), 0.f);
 }
 
+TEST_F(HistogramTest, EqualWidthHistogramUnevenBuckets) {
+  auto hist = EqualWidthHistogram<int32_t>(_int_int4);
+  hist.generate(ColumnID{1}, 4u);
+  EXPECT_EQ(hist.num_buckets(), 4u);
+  EXPECT_EQ(hist.estimate_cardinality(0, PredicateCondition::Equals), 6 / 5.f);
+  EXPECT_EQ(hist.estimate_cardinality(1, PredicateCondition::Equals), 6 / 5.f);
+  EXPECT_EQ(hist.estimate_cardinality(5, PredicateCondition::Equals), 1 / 5.f);
+  EXPECT_EQ(hist.estimate_cardinality(7, PredicateCondition::Equals), 1 / 5.f);
+  EXPECT_EQ(hist.estimate_cardinality(10, PredicateCondition::Equals), 2 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(13, PredicateCondition::Equals), 2 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(14, PredicateCondition::Equals), 2 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(17, PredicateCondition::Equals), 2 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(20, PredicateCondition::Equals), 0.f);
+}
+
 TEST_F(HistogramTest, EqualHeightHistogramBasic) {
   auto hist = EqualHeightHistogram<int32_t>(_expected_join_result_1);
   hist.generate(ColumnID{1}, 4u);

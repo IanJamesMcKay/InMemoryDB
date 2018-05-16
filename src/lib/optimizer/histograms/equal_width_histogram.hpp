@@ -25,6 +25,7 @@ class EqualWidthHistogram : public AbstractHistogram<T> {
  private:
   T _min;
   T _max;
+  uint64_t _num_buckets_with_larger_range;
 };
 
 }  // namespace opossum
