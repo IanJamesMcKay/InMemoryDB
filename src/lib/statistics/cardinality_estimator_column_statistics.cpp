@@ -17,9 +17,9 @@
 
 namespace opossum {
 
-Cardinality CardinalityEstimatorColumnStatistics::estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices,
+Cardinality CardinalityEstimatorColumnStatistics::estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& relations,
                                                 const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates) const {
-  Assert(!vertices.empty(), "Can't perform estimation on empty set of statistics");
+  Assert(!relations.empty(), "Can't perform estimation on empty set of statistics");
 
   /**
    * Initialise EstimationState
@@ -28,11 +28,11 @@ Cardinality CardinalityEstimatorColumnStatistics::estimate(const std::vector<std
   EstimationState estimation_state;
 
   for (const auto& predicate : predicates) {
-    _init_estimation_state(*predicate, vertices, estimation_state);
+    _init_estimation_state(*predicate, relations, estimation_state);
   }
 
-  estimation_state.vertices_not_joined.insert(vertices.begin() + 1, vertices.end());
-  estimation_state.current_cardinality = vertices.front()->get_statistics()->row_count();
+  estimation_state.vertices_not_joined.insert(relations.begin() + 1, relations.end());
+  estimation_state.current_cardinality = relations.front()->get_statistics()->row_count();
 
   /**
    * We could do a Cross Product of all Vertices here and then just apply all Predicates. But doing a Cross would
