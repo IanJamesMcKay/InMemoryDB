@@ -18,6 +18,11 @@ class CardinalityEstimationCache final {
 
   size_t size() const;
 
+  size_t distinct_request_count() const;
+  size_t distinct_hit_count() const;
+  size_t distinct_miss_count() const;
+  void reset_distinct_hit_miss_counts();
+
   void clear();
 
   void set_log(const std::shared_ptr<std::ostream>& log);
@@ -26,10 +31,16 @@ class CardinalityEstimationCache final {
   static std::shared_ptr<const AbstractJoinPlanPredicate> _normalize(const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate);
 
  private:
-  std::unordered_map<BaseJoinGraph, Cardinality> _cache;
+  struct Entry {
+    std::optional<Cardinality> cardinality;
+    size_t request_count{0};
+  };
+
+  std::unordered_map<BaseJoinGraph, Entry> _cache;
+
+  std::shared_ptr<std::ostream> _log;
   size_t _hit_count{0};
   size_t _miss_count{0};
-  std::shared_ptr<std::ostream> _log;
 };
 
 }  // namespace opossum

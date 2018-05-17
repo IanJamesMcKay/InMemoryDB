@@ -1,5 +1,6 @@
 #include "cardinality_estimation_cache.hpp"
 
+#include <algorithm>
 #include <iostream>
 
 #include "optimizer/join_ordering/join_plan_predicate.hpp"
@@ -8,12 +9,14 @@ namespace opossum {
 
 std::optional<Cardinality> CardinalityEstimationCache::get(const BaseJoinGraph& join_graph) {
   auto normalized_join_graph = _normalize(join_graph);
-  
-  const auto cache_iter = _cache.find(normalized_join_graph);
-  if (cache_iter != _cache.end()) {
-    if (_log) (*_log) << "CardinalityEstimationCache [HIT ]: " << normalized_join_graph.description() << ": " << cache_iter->second << std::endl;
+
+  auto& entry = _cache[join_graph];
+  ++entry.request_count;
+
+  if (entry.cardinality) {
+    if (_log) (*_log) << "CardinalityEstimationCache [HIT ]: " << normalized_join_graph.description() << ": " << *entry.cardinality << std::endl;
     ++_hit_count;
-    return cache_iter->second;
+    return *entry.cardinality;
   } else {
     if (_log) (*_log) << "CardinalityEstimationCache [MISS]: " << normalized_join_graph.description() << std::endl;
     ++_miss_count;
@@ -23,12 +26,12 @@ std::optional<Cardinality> CardinalityEstimationCache::get(const BaseJoinGraph& 
 
 void CardinalityEstimationCache::put(const BaseJoinGraph& join_graph, const Cardinality cardinality) {
   auto normalized_join_graph = _normalize(join_graph);
-  
+
   if (_log && _cache.count(normalized_join_graph) == 0) {
     (*_log) << "CardinalityEstimationCache [PUT ]: " << normalized_join_graph.description() << ": " << cardinality << std::endl;
   }
 
-  _cache[normalized_join_graph] = cardinality;
+  _cache[normalized_join_graph].cardinality = cardinality;
 }
 
 size_t CardinalityEstimationCache::cache_hit_count() const {
@@ -41,6 +44,22 @@ size_t CardinalityEstimationCache::cache_miss_count() const {
 
 size_t CardinalityEstimationCache::size() const {
   return _cache.size();
+}
+
+size_t CardinalityEstimationCache::distinct_request_count() const {
+  return _cache.size();
+}
+
+size_t CardinalityEstimationCache::distinct_hit_count() const {
+  return std::count_if(_cache.begin(), _cache.end(), [](const auto& entry) -> bool { return entry.second.cardinality && entry.second.request_count > 0; });
+}
+
+size_t CardinalityEstimationCache::distinct_miss_count() const {
+  return std::count_if(_cache.begin(), _cache.end(), [](const auto& entry) -> bool { return !entry.second.cardinality && entry.second.request_count > 0; });
+}
+
+void CardinalityEstimationCache::reset_distinct_hit_miss_counts() {
+  for (auto &entry : _cache) entry.second.request_count = 0;
 }
 
 void CardinalityEstimationCache::clear() {

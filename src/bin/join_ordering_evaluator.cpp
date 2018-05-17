@@ -92,6 +92,8 @@ struct QueryIterationMeasurement final {
   size_t cache_hit_count{0};
   size_t cache_miss_count{0};
   size_t cache_size{0};
+  size_t cache_distinct_hit_count{0};
+  size_t cache_distinct_miss_count{0};
 };
 
 struct QueryMeasurement final {
@@ -131,7 +133,8 @@ std::ostream &operator<<(std::ostream &stream, const PlanMeasurement &sample) {
 
 
 std::ostream &operator<<(std::ostream &stream, const QueryIterationMeasurement &sample) {
-  stream << sample.duration << "," << sample.cache_hit_count << "," << sample.cache_miss_count << "," << sample.cache_size;
+  stream << sample.duration << "," << sample.cache_hit_count << "," << sample.cache_miss_count << "," <<
+         sample.cache_size << "," << sample.cache_distinct_hit_count << "," << sample.cache_distinct_miss_count;
   return stream;
 }
 
@@ -142,10 +145,10 @@ std::ostream &operator<<(std::ostream &stream, const QueryMeasurement &sample) {
 
 }
 
-auto dotfile = boost::lexical_cast<std::string>((boost::uuids::random_generator())()) + ".dot";
-
 static JoinOrderingEvaluatorConfig config;
 static std::string evaluation_name;
+static std::string evaluation_dir;
+static std::string tmp_dot_file_path;
 static std::shared_ptr<CardinalityEstimationCache> cardinality_estimation_cache;
 static std::shared_ptr<AbstractCardinalityEstimator> fallback_cardinality_estimator;
 static std::shared_ptr<AbstractCardinalityEstimator> main_cardinality_estimator;
@@ -265,8 +268,8 @@ void evaluate_join_plan(QueryState& query_state,
     try {
       SQLQueryPlanVisualizer visualizer{graphviz_config, viz_graph_info, {}, {}};
       visualizer.set_cost_model(cost_model);
-      visualizer.visualize(plan, dotfile,
-                           std::string(evaluation_name + "/viz/") + query_iteration_state.name + "_" + std::to_string(join_plan_state.idx) +
+      visualizer.visualize(plan, tmp_dot_file_path,
+                           std::string(evaluation_dir + "/viz/") + query_iteration_state.name + "_" + std::to_string(join_plan_state.idx) +
                            "_" +
                            std::to_string(plan_duration.count()) + ".svg");
     } catch (const std::exception &e) {
@@ -307,7 +310,7 @@ void evaluate_join_plan(QueryState& query_state,
    * CSV
    */
   if (config.save_query_iterations_results) {
-    auto csv = std::ofstream{evaluation_name + "/" + query_iteration_state.name + ".csv"};
+    auto csv = std::ofstream{evaluation_dir + "/" + query_iteration_state.name + ".csv"};
     csv << "Idx,Duration,EstCost,ReEstCost,AimCost,AbsEstCostError,AbsReEstCostError" << "\n";
     for (auto plan_idx = size_t{0}; plan_idx < query_iteration_state.measurements.size(); ++plan_idx) {
       csv << plan_idx << "," << query_iteration_state.measurements[plan_idx] << "\n";
@@ -318,6 +321,8 @@ void evaluate_join_plan(QueryState& query_state,
 
 void evaluate_query_iteration(QueryState &query_state, QueryIterationState &query_iteration_state,
                               const std::shared_ptr<AbstractCostModel> &cost_model) {
+  QueryIterationMeasurement measurement;
+
   auto pipeline_statement = SQL{query_state.sql}.disable_mvcc().pipeline_statement();
 
   const auto lqp = pipeline_statement.get_optimized_logical_plan();
@@ -328,6 +333,12 @@ void evaluate_query_iteration(QueryState &query_state, QueryIterationState &quer
                          cost_model, main_cardinality_estimator};
   dp_ccp_top_k(query_state.join_graph);
 
+  measurement.cache_hit_count = cardinality_estimation_cache->cache_hit_count();
+  measurement.cache_miss_count = cardinality_estimation_cache->cache_miss_count();
+  measurement.cache_size = cardinality_estimation_cache->size();
+  measurement.cache_distinct_hit_count = cardinality_estimation_cache->distinct_hit_count();
+  measurement.cache_distinct_miss_count = cardinality_estimation_cache->distinct_miss_count();
+
   JoinVertexSet all_vertices{query_state.join_graph->vertices.size()};
   all_vertices.flip();
   const auto join_plans = dp_ccp_top_k.subplan_cache()->get_best_plans(all_vertices);
@@ -335,8 +346,7 @@ void evaluate_query_iteration(QueryState &query_state, QueryIterationState &quer
   query_iteration_state.measurements.resize(join_plans.size());
 
   out() << "--- Query Iteration " << query_iteration_state.idx
-        << " - Generated plans: " << join_plans.size()
-        << "; Cardinality Estimation Cache State: " << cardinality_estimation_cache->cache_hit_count() << "|" << cardinality_estimation_cache->cache_miss_count() << std::endl;
+        << " - Generated plans: " << join_plans.size() << std::endl;
 
 
   // Shuffle plans
@@ -384,31 +394,33 @@ void evaluate_query_iteration(QueryState &query_state, QueryIterationState &quer
   /**
    * Measurement
    */
-  QueryIterationMeasurement measurement;
   measurement.duration = query_iteration_state.measurements[0].duration;
-  measurement.cache_hit_count = cardinality_estimation_cache->cache_hit_count();
-  measurement.cache_miss_count = cardinality_estimation_cache->cache_miss_count();
-  measurement.cache_size = cardinality_estimation_cache->size();
   query_state.measurements[query_iteration_state.idx] = measurement;
+
+  cardinality_estimation_cache->reset_distinct_hit_miss_counts();
 
   /**
    * CSV
    */
-  auto csv = std::ofstream{evaluation_name + "/" + query_state.name + ".csv"};
-  csv << "Idx,Duration,CacheHitCount,CacheMissCount,CacheSize" << "\n";
+  auto csv = std::ofstream{evaluation_dir + "/" + query_state.name + ".csv"};
+  csv << "Idx,Duration,CECacheHitCount,CECacheMissCount,CECacheSize,CECacheDistinctHitCount,CECacheDistinctMissCount" << "\n";
   for (auto query_iteration_idx = size_t{0};
        query_iteration_idx < query_state.measurements.size(); ++query_iteration_idx) {
     csv << query_iteration_idx << "," << query_state.measurements[query_iteration_idx] << "\n";
   }
   csv.close();
+
+
 }
 
 int main(int argc, char ** argv) {
   std::cout << "Hyrise Join Ordering Evaluator" << std::endl;
 
   evaluation_name = create_evaluation_name();
-  std::experimental::filesystem::create_directory(evaluation_name);
-  std::experimental::filesystem::create_directory(evaluation_name + "/viz");
+  evaluation_dir = "join_order_evaluations/" + evaluation_name;
+  tmp_dot_file_path = evaluation_dir + "/" + boost::lexical_cast<std::string>((boost::uuids::random_generator())()) + ".dot";
+  std::experimental::filesystem::create_directories(evaluation_dir);
+  std::experimental::filesystem::create_directory(evaluation_dir + "/viz");
 
   std::cout << "Evaluation: " << evaluation_name << std::endl;
 
@@ -471,7 +483,7 @@ int main(int argc, char ** argv) {
       out() << "-- Evaluating Query: " << query_state.name << std::endl;
 
       if (config.cardinality_estimation_cache_log) {
-        cardinality_estimation_cache->set_log(std::make_shared<std::ofstream>(evaluation_name + "/CardinalityEstimationCache-" + query_state.name + ".log"));
+        cardinality_estimation_cache->set_log(std::make_shared<std::ofstream>(evaluation_dir + "/CardinalityEstimationCache-" + query_state.name + ".log"));
       }
 
       for (auto query_iteration_idx = size_t{0}; query_iteration_idx < config.iterations_per_query; ++query_iteration_idx) {
@@ -489,13 +501,17 @@ int main(int argc, char ** argv) {
       query_measurement.name = query_state.name;
       query_measurement.best_plan_duration = query_state.best_plan_microseconds;
       query_measurements[query_idx] = query_measurement;
-      auto csv = std::ofstream{evaluation_name + "/" + cost_model->name() + ".csv"};
+      auto csv = std::ofstream{evaluation_dir + "/Queries-" + cost_model->name() + ".csv"};
       csv << "Idx,Name,BestPlanDuration" << "\n";
       for (auto query_idx = size_t{0};
            query_idx < query_measurements.size(); ++query_idx) {
         csv << query_idx << "," << query_measurements[query_idx] << "\n";
       }
       csv.close();
+
+//      if (cardinality_estimation_cache->log()) {
+//        cardinality_estimation_cache->print(*cardinality_estimation_cache->log());
+//      }
 
       if (config.isolate_queries) {
         cardinality_estimation_cache->clear();
