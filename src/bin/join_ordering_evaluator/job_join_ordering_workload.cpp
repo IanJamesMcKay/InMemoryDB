@@ -66,8 +66,6 @@ JobWorkload::JobWorkload(const std::optional<std::vector<std::string>>& query_na
     "33b",
     // "33c"
     };
-
-    for (auto q : _query_names) std::cout << q << std::endl;
   }
 }
 
