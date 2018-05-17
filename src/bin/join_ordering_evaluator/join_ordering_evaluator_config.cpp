@@ -10,6 +10,7 @@ void JoinOrderingEvaluatorConfig::add_options(cxxopts::Options& cli_options_desc
   // clang-format off
   cli_options_description.add_options()
   ("help", "print this help message")
+  ("e,evaluation-name", "Specify a name for the evaluation. Leave empty and one will be generated based on the current time and date", cxxopts::value<std::string>(evaluation_name)->default_value(""))
   ("v,verbose", "Print log messages", cxxopts::value<bool>(verbose)->default_value("true"))
   ("s,scale", "Database scale factor (1.0 ~ 1GB). TPCH only", cxxopts::value<float>(scale_factor)->default_value("0.001"))
   ("m,cost-model", "CostModel to use (all, naive, linear)", cxxopts::value<std::string>(cost_model_str)->default_value(cost_model_str))  // NOLINT
@@ -35,6 +36,18 @@ void JoinOrderingEvaluatorConfig::add_options(cxxopts::Options& cli_options_desc
 }
 
 void JoinOrderingEvaluatorConfig::parse(const cxxopts::ParseResult& cli_parse_result) {
+  // Process "evaluation_name" parameter
+  if (!evaluation_name.empty()) {
+    out() << "-- Using specified evaluation name '" << evaluation_name << "'" << std::endl;
+  } else {
+    auto t = std::time(nullptr);
+    auto tm = *std::localtime(&t);
+    std::stringstream stream;
+    stream << std::put_time(&tm, "%Y-%m-%d-%H:%M:%S");
+    evaluation_name = stream.str();
+    out() << "-- Using generated evaluation name '" << evaluation_name << "'" << std::endl;
+  }
+
   // Process "queries" parameter
   if (cli_parse_result.count("queries")) {
     query_name_strs = cli_parse_result["queries"].as<std::vector<std::string>>();

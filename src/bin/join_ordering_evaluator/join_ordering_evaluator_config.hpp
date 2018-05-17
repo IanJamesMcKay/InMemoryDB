@@ -37,6 +37,7 @@ struct JoinOrderingEvaluatorConfig final {
   bool cardinality_estimation_cache_log{true};
   bool unique_plans{false};
   bool force_plan_zero{false};
+  std::string evaluation_name;
 
   std::vector<std::shared_ptr<AbstractCostModel>> cost_models;
   std::shared_ptr<AbstractJoinOrderingWorkload> workload;

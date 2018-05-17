@@ -146,7 +146,6 @@ std::ostream &operator<<(std::ostream &stream, const QueryMeasurement &sample) {
 }
 
 static JoinOrderingEvaluatorConfig config;
-static std::string evaluation_name;
 static std::string evaluation_dir;
 static std::string tmp_dot_file_path;
 static std::shared_ptr<CardinalityEstimationCache> cardinality_estimation_cache;
@@ -181,14 +180,6 @@ struct JoinPlanState final {
   size_t idx{0};
   JoinPlanNode join_plan;
 };
-
-std::string create_evaluation_name() {
-  auto t = std::time(nullptr);
-  auto tm = *std::localtime(&t);
-  std::stringstream stream;
-  stream << std::put_time(&tm, "%Y-%m-%d-%H:%M:%S");
-  return stream.str();
-}
 
 void evaluate_join_plan(QueryState& query_state,
                         QueryIterationState& query_iteration_state,
@@ -416,13 +407,6 @@ void evaluate_query_iteration(QueryState &query_state, QueryIterationState &quer
 int main(int argc, char ** argv) {
   std::cout << "Hyrise Join Ordering Evaluator" << std::endl;
 
-  evaluation_name = create_evaluation_name();
-  evaluation_dir = "join_order_evaluations/" + evaluation_name;
-  tmp_dot_file_path = evaluation_dir + "/" + boost::lexical_cast<std::string>((boost::uuids::random_generator())()) + ".dot";
-  std::experimental::filesystem::create_directories(evaluation_dir);
-  std::experimental::filesystem::create_directory(evaluation_dir + "/viz");
-
-  std::cout << "Evaluation: " << evaluation_name << std::endl;
 
   /**
    * Parse CLI options
@@ -441,6 +425,14 @@ int main(int argc, char ** argv) {
   }
 
   config.parse(cli_parse_result);
+
+  /**
+   * Create evaluation dir
+   */
+  evaluation_dir = "join_order_evaluations/" + config.evaluation_name;
+  tmp_dot_file_path = evaluation_dir + "/" + boost::lexical_cast<std::string>((boost::uuids::random_generator())()) + ".dot";
+  std::experimental::filesystem::create_directories(evaluation_dir);
+  std::experimental::filesystem::create_directory(evaluation_dir + "/viz");
 
   /**
    * Load workload
