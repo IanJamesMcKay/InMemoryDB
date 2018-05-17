@@ -34,13 +34,25 @@ const std::shared_ptr<const Table> AbstractHistogram<T>::_get_value_counts(const
 
 template <typename T>
 void AbstractHistogram<T>::generate(const ColumnID column_id, const size_t max_num_buckets) {
-  DebugAssert(max_num_buckets > 0, "Cannot generate histogram with less than one bucket.");
+  DebugAssert(max_num_buckets > 0u, "Cannot generate histogram with less than one bucket.");
   _generate(column_id, max_num_buckets);
 }
 
 template <typename T>
+T AbstractHistogram<T>::lower_bound() const {
+  DebugAssert(num_buckets() > 0u, "Called method on histogram before initialization.");
+  return bucket_min(0u);
+}
+
+template <typename T>
+T AbstractHistogram<T>::upper_bound() const {
+  DebugAssert(num_buckets() > 0u, "Called method on histogram before initialization.");
+  return bucket_max(num_buckets() - 1u);
+}
+
+template <typename T>
 float AbstractHistogram<T>::estimate_cardinality(const T value, const PredicateCondition predicate_condition) const {
-  DebugAssert(num_buckets() > 0, "Called method on histogram before initialization.");
+  DebugAssert(num_buckets() > 0u, "Called method on histogram before initialization.");
 
   switch (predicate_condition) {
     case PredicateCondition::Equals: {
@@ -54,6 +66,33 @@ float AbstractHistogram<T>::estimate_cardinality(const T value, const PredicateC
     }
     default:
       Fail("Predicate condition not yet supported.");
+  }
+}
+
+template <typename T>
+bool AbstractHistogram<T>::can_prune(const T value, const PredicateCondition predicate_condition) const {
+  DebugAssert(num_buckets() > 0, "Called method on histogram before initialization.");
+
+  switch (predicate_condition) {
+    case PredicateCondition::Equals:
+      return bucket_for_value(value) == INVALID_BUCKET_ID;
+    case PredicateCondition::NotEquals:
+      return num_buckets() == 1 && bucket_min(0) == value && bucket_max(0) == value;
+    case PredicateCondition::LessThan:
+      return value <= lower_bound();
+    case PredicateCondition::LessThanEquals:
+      return value < lower_bound();
+    case PredicateCondition::GreaterThanEquals:
+      return value > upper_bound();
+    case PredicateCondition::GreaterThan:
+      return value >= upper_bound();
+      // TODO(tim): change signature to support two values
+      // talk to Moritz about new expression interface first
+      //    case PredicateCondition::Between:
+      //      return can_prune(value, PredicateCondition::GreaterThanEquals) && can_prune(value2, PredicateCondition::LessThanEquals);
+    default:
+      // Rather than failing we simply do not prune for things we cannot yet handle.
+      return false;
   }
 }
 

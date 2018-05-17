@@ -17,6 +17,10 @@ class AbstractHistogram {
 
   void generate(const ColumnID column_id, const size_t max_num_buckets);
   float estimate_cardinality(const T value, const PredicateCondition predicate_condition) const;
+  bool can_prune(const T value, const PredicateCondition predicate_condition) const;
+
+  T lower_bound() const;
+  T upper_bound() const;
 
   virtual HistogramType histogram_type() const = 0;
 
