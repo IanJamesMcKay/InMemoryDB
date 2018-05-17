@@ -12,6 +12,7 @@ class AbstractLQPNode;
 
 class AbstractRule {
  public:
+  virtual ~AbstractRule() = default;
   virtual std::string name() const = 0;
 
   /**

@@ -49,6 +49,7 @@ class AbstractExpression : public std::enable_shared_from_this<DerivedExpression
    * Find more information in our blog: https://medium.com/hyrise/a-matter-of-self-expression-5fea2dd0a72
    */
   explicit AbstractExpression(ExpressionType type);
+  virtual ~AbstractExpression() = default;
 
   // creates a DEEP copy of the other expression. Used for reusing LQPs, e.g., in views.
   std::shared_ptr<DerivedExpression> deep_copy() const;
