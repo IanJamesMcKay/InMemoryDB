@@ -15,11 +15,10 @@ class AbstractHistogram {
   explicit AbstractHistogram(const std::shared_ptr<Table> table);
   virtual ~AbstractHistogram() = default;
 
-  float estimate_cardinality(const T value, const PredicateCondition predicate_condition);
+  void generate(const ColumnID column_id, const size_t max_num_buckets);
+  float estimate_cardinality(const T value, const PredicateCondition predicate_condition) const;
 
   virtual HistogramType histogram_type() const = 0;
-
-  virtual void generate(const ColumnID column_id, const size_t max_num_buckets) = 0;
 
   virtual size_t num_buckets() const = 0;
   virtual BucketID bucket_for_value(const T value) const = 0;
@@ -31,6 +30,7 @@ class AbstractHistogram {
 
  protected:
   const std::shared_ptr<const Table> _get_value_counts(const ColumnID column_id) const;
+  virtual void _generate(const ColumnID column_id, const size_t max_num_buckets) = 0;
 
   const std::weak_ptr<Table> _table;
 };

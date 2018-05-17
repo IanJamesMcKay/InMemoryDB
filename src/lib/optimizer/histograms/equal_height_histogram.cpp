@@ -61,7 +61,7 @@ uint64_t EqualHeightHistogram<T>::bucket_count_distinct(const BucketID index) co
 }
 
 template <typename T>
-void EqualHeightHistogram<T>::generate(const ColumnID column_id, const size_t max_num_buckets) {
+void EqualHeightHistogram<T>::_generate(const ColumnID column_id, const size_t max_num_buckets) {
   const auto result = this->_get_value_counts(column_id);
 
   if (result->row_count() == 0u) {

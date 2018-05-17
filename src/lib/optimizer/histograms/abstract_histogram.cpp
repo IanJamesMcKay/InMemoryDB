@@ -33,7 +33,15 @@ const std::shared_ptr<const Table> AbstractHistogram<T>::_get_value_counts(const
 }
 
 template <typename T>
-float AbstractHistogram<T>::estimate_cardinality(const T value, const PredicateCondition predicate_condition) {
+void AbstractHistogram<T>::generate(const ColumnID column_id, const size_t max_num_buckets) {
+  DebugAssert(max_num_buckets > 0, "Cannot generate histogram with less than one bucket.");
+  _generate(column_id, max_num_buckets);
+}
+
+template <typename T>
+float AbstractHistogram<T>::estimate_cardinality(const T value, const PredicateCondition predicate_condition) const {
+  DebugAssert(num_buckets() > 0, "Called method on histogram before initialization.");
+
   switch (predicate_condition) {
     case PredicateCondition::Equals: {
       const auto index = bucket_for_value(value);

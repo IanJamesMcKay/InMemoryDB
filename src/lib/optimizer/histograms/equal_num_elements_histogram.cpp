@@ -54,7 +54,7 @@ uint64_t EqualNumElementsHistogram<T>::bucket_count_distinct(const BucketID inde
 }
 
 template <typename T>
-void EqualNumElementsHistogram<T>::generate(const ColumnID column_id, const size_t max_num_buckets) {
+void EqualNumElementsHistogram<T>::_generate(const ColumnID column_id, const size_t max_num_buckets) {
   const auto result = this->_get_value_counts(column_id);
 
   if (result->row_count() == 0u) {

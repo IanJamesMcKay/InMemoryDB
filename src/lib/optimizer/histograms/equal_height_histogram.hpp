@@ -16,8 +16,6 @@ class EqualHeightHistogram : public AbstractHistogram<T> {
 
   HistogramType histogram_type() const override;
 
-  void generate(const ColumnID column_id, const size_t max_num_buckets) override;
-
   size_t num_buckets() const override;
   BucketID bucket_for_value(const T value) const override;
 
@@ -25,6 +23,9 @@ class EqualHeightHistogram : public AbstractHistogram<T> {
   T bucket_max(const BucketID index) const override;
   uint64_t bucket_count(const BucketID index) const override;
   uint64_t bucket_count_distinct(const BucketID index) const override;
+
+ protected:
+  void _generate(const ColumnID column_id, const size_t max_num_buckets) override;
 
  private:
   std::vector<T> _mins;

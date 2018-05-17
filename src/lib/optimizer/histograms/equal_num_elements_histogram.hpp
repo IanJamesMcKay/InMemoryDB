@@ -16,8 +16,6 @@ class EqualNumElementsHistogram : public AbstractHistogram<T> {
 
   HistogramType histogram_type() const override;
 
-  void generate(const ColumnID column_id, const size_t max_num_buckets) override;
-
   size_t num_buckets() const override;
   BucketID bucket_for_value(const T value) const override;
 
@@ -30,6 +28,9 @@ class EqualNumElementsHistogram : public AbstractHistogram<T> {
    * This number is precise for the state of the table at time of generation.
    */
   uint64_t bucket_count_distinct(const BucketID index) const override;
+
+ protected:
+  void _generate(const ColumnID column_id, const size_t max_num_buckets) override;
 
  private:
   std::vector<T> _mins;
