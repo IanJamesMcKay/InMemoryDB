@@ -198,7 +198,7 @@ void JitAggregate::_consume(JitRuntimeContext& context) const {
   for (uint32_t i = 0; i < num_aggregate_columns; ++i) {
     switch (_aggregate_columns[i].function) {
       case AggregateFunction::Count:
-        jit_aggregate_compute(jit_maximum, _aggregate_columns[i].tuple_value, _aggregate_columns[i].hashmap_value,
+        jit_aggregate_compute(jit_increment, _aggregate_columns[i].tuple_value, _aggregate_columns[i].hashmap_value,
                               match_index, context);
         break;
       case AggregateFunction::Sum:
@@ -216,7 +216,7 @@ void JitAggregate::_consume(JitRuntimeContext& context) const {
       case AggregateFunction::Avg:
         jit_aggregate_compute(jit_addition, _aggregate_columns[i].tuple_value, _aggregate_columns[i].hashmap_value,
                               match_index, context);
-        jit_aggregate_compute(jit_maximum, _aggregate_columns[i].tuple_value, _aggregate_columns[i].hashmap_value_2,
+        jit_aggregate_compute(jit_increment, _aggregate_columns[i].tuple_value, _aggregate_columns[i].hashmap_value_2,
                               match_index, context);
         break;
       case AggregateFunction::CountDistinct:
