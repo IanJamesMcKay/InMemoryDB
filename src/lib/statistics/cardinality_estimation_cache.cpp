@@ -10,28 +10,44 @@ namespace opossum {
 std::optional<Cardinality> CardinalityEstimationCache::get(const BaseJoinGraph& join_graph) {
   auto normalized_join_graph = _normalize(join_graph);
 
-  auto& entry = _cache[join_graph];
+  auto& entry = _cache[normalized_join_graph];
+
+  if (_log) (*_log) << "CardinalityEstimationCache [" << (entry.request_count == 0 ? "I" : "S") << "]";
+
   ++entry.request_count;
 
+  std::optional<Cardinality> result;
+
   if (entry.cardinality) {
-    if (_log) (*_log) << "CardinalityEstimationCache [HIT ]: " << normalized_join_graph.description() << ": " << *entry.cardinality << std::endl;
+    if (_log) (*_log) << "[HIT ]";
     ++_hit_count;
-    return *entry.cardinality;
+    result = *entry.cardinality;
   } else {
-    if (_log) (*_log) << "CardinalityEstimationCache [MISS]: " << normalized_join_graph.description() << std::endl;
+    if (_log) (*_log) << "[MISS]";
     ++_miss_count;
-    return std::nullopt;
   }
+
+  if (_log) (*_log) << normalized_join_graph.description();
+
+  if (entry.cardinality) {
+    if (_log) (*_log) << ": " << *entry.cardinality;
+  }
+
+  if (_log) (*_log) << std::endl;
+
+  return result;
 }
 
 void CardinalityEstimationCache::put(const BaseJoinGraph& join_graph, const Cardinality cardinality) {
   auto normalized_join_graph = _normalize(join_graph);
 
-  if (_log && !_cache[normalized_join_graph].cardinality) {
-    (*_log) << "CardinalityEstimationCache [PUT ]: " << normalized_join_graph.description() << ": " << cardinality << std::endl;
-  }
+  auto& entry = _cache[normalized_join_graph];
 
-  _cache[normalized_join_graph].cardinality = cardinality;
+  if (_log && !entry.cardinality) {
+    (*_log) << "CardinalityEstimationCache [" << (entry.request_count == 0 ? "I" : "S") << "][PUT ]: " << normalized_join_graph.description() << ": " << cardinality << std::endl;
+  } 
+
+  entry.cardinality = cardinality;
 }
 
 size_t CardinalityEstimationCache::cache_hit_count() const {
