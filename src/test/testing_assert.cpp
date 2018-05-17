@@ -165,7 +165,7 @@ bool check_table_equal(const std::shared_ptr<const Table>& opossum_table,
       }
     }
 
-/*    if (opossum_table->column_name(column_id) != expected_table->column_name(column_id)) {
+    /*    if (opossum_table->column_name(column_id) != expected_table->column_name(column_id)) {
       const std::string error_type = "Column name mismatch (column " + std::to_string(column_id) + ")";
       const std::string error_msg = "Actual column name: " + opossum_table->column_name(column_id) + "\n" +
                                     "Expected column name: " + expected_table->column_name(column_id);
