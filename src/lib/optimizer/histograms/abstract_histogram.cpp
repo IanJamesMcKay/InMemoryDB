@@ -86,10 +86,11 @@ bool AbstractHistogram<T>::can_prune(const T value, const PredicateCondition pre
       return value > upper_bound();
     case PredicateCondition::GreaterThan:
       return value >= upper_bound();
-      // TODO(tim): change signature to support two values
-      // talk to Moritz about new expression interface first
-      //    case PredicateCondition::Between:
-      //      return can_prune(value, PredicateCondition::GreaterThanEquals) && can_prune(value2, PredicateCondition::LessThanEquals);
+    // TODO(tim): change signature to support two values
+    // talk to Moritz about new expression interface first
+    // case PredicateCondition::Between:
+    //   return can_prune(value, PredicateCondition::GreaterThanEquals) &&
+    //           can_prune(value2, PredicateCondition::LessThanEquals);
     default:
       // Rather than failing we simply do not prune for things we cannot yet handle.
       return false;
