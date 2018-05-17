@@ -15,22 +15,28 @@ HistogramType EqualHeightHistogram<T>::histogram_type() const {
 
 template <typename T>
 size_t EqualHeightHistogram<T>::num_buckets() const {
-  return this->_mins.size();
+  return _mins.size();
 }
 
 template <typename T>
-BucketID EqualHeightHistogram<T>::bucket_for_value(const T value) {
-  const auto it = std::upper_bound(this->_mins.begin(), this->_mins.end(), value);
+BucketID EqualHeightHistogram<T>::bucket_for_value(const T value) const {
+  const auto it = std::upper_bound(_mins.begin(), _mins.end(), value);
 
-  if (it == this->_mins.begin() || value > _max) {
+  if (it == _mins.begin() || value > _max) {
     return INVALID_BUCKET_ID;
   }
 
-  return static_cast<BucketID>(std::distance(this->_mins.begin(), it) - 1);
+  return static_cast<BucketID>(std::distance(_mins.begin(), it) - 1);
 }
 
 template <typename T>
-T EqualHeightHistogram<T>::bucket_max(const BucketID index) {
+T EqualHeightHistogram<T>::bucket_min(const BucketID index) const {
+  DebugAssert(index < _mins.size(), "Index is not a valid bucket.");
+  return _mins[index];
+}
+
+template <typename T>
+T EqualHeightHistogram<T>::bucket_max(const BucketID index) const {
   DebugAssert(index < this->num_buckets(), "Index is not a valid bucket.");
 
   // If it's the last bucket, return max.
@@ -43,13 +49,13 @@ T EqualHeightHistogram<T>::bucket_max(const BucketID index) {
 }
 
 template <typename T>
-uint64_t EqualHeightHistogram<T>::bucket_count(const BucketID index) {
+uint64_t EqualHeightHistogram<T>::bucket_count(const BucketID index) const {
   DebugAssert(index < this->num_buckets(), "Index is not a valid bucket.");
   return _count_per_bucket;
 }
 
 template <typename T>
-uint64_t EqualHeightHistogram<T>::bucket_count_distinct(const BucketID index) {
+uint64_t EqualHeightHistogram<T>::bucket_count_distinct(const BucketID index) const {
   DebugAssert(index < this->num_buckets(), "Index is not a valid bucket.");
   return bucket_max(index) - this->bucket_min(index) + 1;
 }
@@ -88,16 +94,16 @@ void EqualHeightHistogram<T>::generate(const ColumnID column_id, const size_t ma
     current_height += count_column->get(index);
 
     if (current_height >= _count_per_bucket) {
-      this->_mins.emplace_back(distinct_column->get(current_begin_index));
-//      this->_count_distincts.emplace_back(index - current_begin_index + 1);
+      _mins.emplace_back(distinct_column->get(current_begin_index));
+      //      _count_distincts.emplace_back(index - current_begin_index + 1);
       current_height = 0u;
       current_begin_index = index + 1;
     }
   }
 
   if (current_height > 0u) {
-    this->_mins.emplace_back(distinct_column->get(current_begin_index));
-//    this->_count_distincts.emplace_back(distinct_column->size() - current_begin_index);
+    _mins.emplace_back(distinct_column->get(current_begin_index));
+    //    _count_distincts.emplace_back(distinct_column->size() - current_begin_index);
   }
 }
 

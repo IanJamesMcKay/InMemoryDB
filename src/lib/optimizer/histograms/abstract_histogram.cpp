@@ -15,47 +15,6 @@ template <typename T>
 AbstractHistogram<T>::AbstractHistogram(const std::shared_ptr<Table> table) : _table(table) {}
 
 template <typename T>
-size_t AbstractHistogram<T>::num_buckets() const {
-  return _counts.size();
-}
-
-template <typename T>
-T AbstractHistogram<T>::bucket_min(const BucketID index) {
-  DebugAssert(index < _mins.size(), "Index is not a valid bucket.");
-  return _mins[index];
-}
-
-template <typename T>
-T AbstractHistogram<T>::bucket_max(const BucketID index) {
-  DebugAssert(index < _maxs.size(), "Index is not a valid bucket.");
-  return _maxs[index];
-}
-
-template <typename T>
-uint64_t AbstractHistogram<T>::bucket_count(const BucketID index) {
-  DebugAssert(index < _counts.size(), "Index is not a valid bucket.");
-  return _counts[index];
-}
-
-template <typename T>
-uint64_t AbstractHistogram<T>::bucket_count_distinct(const BucketID index) {
-  DebugAssert(index < _count_distincts.size(), "Index is not a valid bucket.");
-  return _count_distincts[index];
-}
-
-template <typename T>
-BucketID AbstractHistogram<T>::bucket_for_value(const T value) {
-  const auto it = std::lower_bound(_maxs.begin(), _maxs.end(), value);
-  const auto index = static_cast<BucketID>(std::distance(_maxs.begin(), it));
-
-  if (it == _maxs.end() || value < bucket_min(index) || value > bucket_max(index)) {
-    return INVALID_BUCKET_ID;
-  }
-
-  return index;
-}
-
-template <typename T>
 const std::shared_ptr<const Table> AbstractHistogram<T>::_get_value_counts(const ColumnID column_id) const {
   auto table = _table.lock();
   DebugAssert(table != nullptr, "Corresponding table of histogram is deleted.");

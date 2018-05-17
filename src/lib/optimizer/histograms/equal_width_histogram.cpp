@@ -14,7 +14,12 @@ HistogramType EqualWidthHistogram<T>::histogram_type() const {
 }
 
 template <typename T>
-BucketID EqualWidthHistogram<T>::bucket_for_value(const T value) {
+size_t EqualWidthHistogram<T>::num_buckets() const {
+  return _counts.size();
+}
+
+template <typename T>
+BucketID EqualWidthHistogram<T>::bucket_for_value(const T value) const {
   if (value < _min || value > _max) {
     return INVALID_BUCKET_ID;
   }
@@ -30,7 +35,7 @@ BucketID EqualWidthHistogram<T>::bucket_for_value(const T value) {
 }
 
 template <typename T>
-T EqualWidthHistogram<T>::bucket_min(const BucketID index) {
+T EqualWidthHistogram<T>::bucket_min(const BucketID index) const {
   DebugAssert(index < this->num_buckets(), "Index is not a valid bucket.");
   const auto base_index = _min + index * bucket_count_distinct(index);
   if (index < _num_buckets_with_larger_range) {
@@ -40,7 +45,7 @@ T EqualWidthHistogram<T>::bucket_min(const BucketID index) {
 }
 
 template <typename T>
-T EqualWidthHistogram<T>::bucket_max(const BucketID index) {
+T EqualWidthHistogram<T>::bucket_max(const BucketID index) const {
   DebugAssert(index < this->num_buckets(), "Index is not a valid bucket.");
 
   // If it's the last bucket, return max.
@@ -53,7 +58,13 @@ T EqualWidthHistogram<T>::bucket_max(const BucketID index) {
 }
 
 template <typename T>
-uint64_t EqualWidthHistogram<T>::bucket_count_distinct(const BucketID index) {
+uint64_t EqualWidthHistogram<T>::bucket_count(const BucketID index) const {
+  DebugAssert(index < _counts.size(), "Index is not a valid bucket.");
+  return _counts[index];
+}
+
+template <typename T>
+uint64_t EqualWidthHistogram<T>::bucket_count_distinct(const BucketID index) const {
   DebugAssert(index < this->num_buckets(), "Index is not a valid bucket.");
   const auto count_distinct = (_max - _min + 1) / this->num_buckets();
   return count_distinct + (index < _num_buckets_with_larger_range ? 1 : 0);
@@ -102,8 +113,8 @@ void EqualWidthHistogram<T>::generate(const ColumnID column_id, const size_t max
     const auto begin_index = std::distance(distinct_column->values().begin(), current_begin);
     const auto end_index = std::distance(distinct_column->values().begin(), current_end);
 
-    this->_counts.emplace_back(std::accumulate(count_column->values().begin() + begin_index,
-                                               count_column->values().begin() + end_index + 1, uint64_t{0}));
+    _counts.emplace_back(std::accumulate(count_column->values().begin() + begin_index,
+                                         count_column->values().begin() + end_index + 1, uint64_t{0}));
 
     current_begin = current_end + 1;
     begin_value = end_value + 1;

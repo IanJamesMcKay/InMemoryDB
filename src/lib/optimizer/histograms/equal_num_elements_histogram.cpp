@@ -14,7 +14,42 @@ HistogramType EqualNumElementsHistogram<T>::histogram_type() const {
 }
 
 template <typename T>
-uint64_t EqualNumElementsHistogram<T>::bucket_count_distinct(const BucketID index) {
+size_t EqualNumElementsHistogram<T>::num_buckets() const {
+  return _counts.size();
+}
+
+template <typename T>
+BucketID EqualNumElementsHistogram<T>::bucket_for_value(const T value) const {
+  const auto it = std::lower_bound(_maxs.begin(), _maxs.end(), value);
+  const auto index = static_cast<BucketID>(std::distance(_maxs.begin(), it));
+
+  if (it == _maxs.end() || value < bucket_min(index) || value > bucket_max(index)) {
+    return INVALID_BUCKET_ID;
+  }
+
+  return index;
+}
+
+template <typename T>
+T EqualNumElementsHistogram<T>::bucket_min(const BucketID index) const {
+  DebugAssert(index < _mins.size(), "Index is not a valid bucket.");
+  return _mins[index];
+}
+
+template <typename T>
+T EqualNumElementsHistogram<T>::bucket_max(const BucketID index) const {
+  DebugAssert(index < _maxs.size(), "Index is not a valid bucket.");
+  return _maxs[index];
+}
+
+template <typename T>
+uint64_t EqualNumElementsHistogram<T>::bucket_count(const BucketID index) const {
+  DebugAssert(index < _counts.size(), "Index is not a valid bucket.");
+  return _counts[index];
+}
+
+template <typename T>
+uint64_t EqualNumElementsHistogram<T>::bucket_count_distinct(const BucketID index) const {
   return _distinct_count_per_bucket + (index < _num_buckets_with_extra_value ? 1 : 0);
 }
 
@@ -50,9 +85,9 @@ void EqualNumElementsHistogram<T>::generate(const ColumnID column_id, const size
       end_index++;
     }
 
-    this->_mins.emplace_back(*(distinct_column.begin() + begin_index));
-    this->_maxs.emplace_back(*(distinct_column.begin() + end_index));
-    this->_counts.emplace_back(
+    _mins.emplace_back(*(distinct_column.begin() + begin_index));
+    _maxs.emplace_back(*(distinct_column.begin() + end_index));
+    _counts.emplace_back(
         std::accumulate(count_column.begin() + begin_index, count_column.begin() + end_index + 1, uint64_t{0}));
 
     begin_index = end_index + 1;
