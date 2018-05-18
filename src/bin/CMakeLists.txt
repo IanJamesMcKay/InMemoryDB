@@ -36,16 +36,25 @@ target_link_libraries(
 add_executable(
     hyriseJoinOrderingEvaluator
 
-    join_ordering_evaluator.cpp
-    join_ordering_evaluator/abstract_join_ordering_workload.hpp
-    join_ordering_evaluator/out.cpp
-    join_ordering_evaluator/out.hpp
-    join_ordering_evaluator/join_ordering_evaluator_config.cpp
-    join_ordering_evaluator/join_ordering_evaluator_config.hpp
-    join_ordering_evaluator/tpch_join_ordering_workload.cpp
-    join_ordering_evaluator/tpch_join_ordering_workload.hpp
-    join_ordering_evaluator/job_join_ordering_workload.cpp
-    join_ordering_evaluator/job_join_ordering_workload.hpp
+    joe_main.cpp
+    joe/abstract_join_ordering_workload.hpp
+    joe/out.cpp
+    joe/out.hpp
+    joe/joe_config.cpp
+    joe/joe_config.hpp
+    joe/tpch_join_ordering_workload.cpp
+    joe/tpch_join_ordering_workload.hpp
+    joe/job_join_ordering_workload.cpp
+    joe/job_join_ordering_workload.hpp
+    joe/joe.cpp
+    joe/joe.hpp
+    joe/joe_query.cpp
+    joe/joe_query.hpp
+    joe/joe_query_iteration.cpp
+    joe/joe_query_iteration.hpp
+    joe/joe_plan.cpp
+    joe/joe_plan.hpp
+    joe/write_csv.hpp
 )
 target_link_libraries(
     hyriseJoinOrderingEvaluator

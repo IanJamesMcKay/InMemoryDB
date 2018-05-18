@@ -475,6 +475,8 @@ set(
     utils/copyable_atomic.hpp
     utils/cuckoo_hashtable.hpp
     utils/enum_constant.hpp
+    utils/execute_with_timeout.cpp
+    utils/execute_with_timeout.hpp
     utils/format_bytes.cpp
     utils/format_bytes.hpp
     utils/format_duration.cpp
