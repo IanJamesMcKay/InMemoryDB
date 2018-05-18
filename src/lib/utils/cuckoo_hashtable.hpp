@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
@@ -23,13 +25,8 @@ class HashTable : private Noncopyable {
  public:
   explicit HashTable(size_t input_table_size) : _input_table_size(input_table_size) {
     // prepare internal hash tables and fill with empty elements
-    _hashtables.resize(NUMBER_OF_HASH_FUNCTIONS, std::vector<std::shared_ptr<HashElement>>(input_table_size));
+    std::for_each(_hashtables.begin(), _hashtables.end(), [&](auto & vec){ vec.resize(input_table_size); });
   }
-
-  // we need to explicitly set the move constructor to default when
-  // we overwrite the copy constructor
-  HashTable(HashTable&&) = default;
-  HashTable& operator=(HashTable&&) = default;
 
   /*
   Insert a new element into hashtable
@@ -39,13 +36,12 @@ class HashTable : private Noncopyable {
     for (size_t i = 0; i < NUMBER_OF_HASH_FUNCTIONS; i++) {
       auto position = hash<T>(i, value);
       auto element = _hashtables[i][position];
-      if (element != nullptr && value_equal(element->value, value)) {
-        element->row_ids->push_back(row_id);
+      if (element.isValid() && value_equal(element.value, value)) {
+        element.row_ids->push_back(row_id);
         return;
       }
     }
-    auto element =
-        std::make_shared<HashElement>(HashElement{value, std::make_shared<PosList>(pmr_vector<RowID>{row_id})});
+    auto element = HashElement{value, std::make_shared<PosList>(pmr_vector<RowID>{row_id})};
     place(element, 0, 0);
   }
 
@@ -58,8 +54,8 @@ class HashTable : private Noncopyable {
     for (size_t i = 0; i < NUMBER_OF_HASH_FUNCTIONS; i++) {
       auto position = hash<S>(i, value);
       auto element = _hashtables[i][position];
-      if (element != nullptr && value_equal(element->value, value)) {
-        return element->row_ids;
+      if (element.isValid() && value_equal(element.value, value)) {
+        return element.row_ids;
       }
     }
     return nullptr;
@@ -72,6 +68,7 @@ class HashTable : private Noncopyable {
   struct HashElement {
     T value;
     std::shared_ptr<PosList> row_ids;
+    bool isValid() const { return row_ids != nullptr; }
   };
 
   /*
@@ -83,7 +80,7 @@ class HashTable : private Noncopyable {
   n: maximum number of times function can be recursively
   called before stopping and declaring presence of cycle
   */
-  void place(std::shared_ptr<HashElement> element, int hash_function, size_t iterations) {
+  void place(const HashElement & element, int hash_function, size_t iterations) {
     /*
     We were not able to reproduce this case with the current setting (3 hash functions). With 3 hash functions the
     hash table will have a maximum load of 33%, which should be less enough to avoid cycles at all. In theory there
@@ -97,11 +94,11 @@ class HashTable : private Noncopyable {
     If yes, we need to insert the older one in another hash table.
     If no, we can simply add the new element.
     */
-    auto position = hash(hash_function, element->value);
+    auto position = hash(hash_function, element.value);
     auto& hashtable = _hashtables[hash_function];
 
     auto old_element = hashtable[position];
-    if (old_element != nullptr) {
+    if (old_element.isValid()) {
       hashtable[position] = element;
       place(old_element, (hash_function + 1) % NUMBER_OF_HASH_FUNCTIONS, iterations + 1);
     } else {
@@ -119,6 +116,6 @@ class HashTable : private Noncopyable {
   }
 
   size_t _input_table_size;
-  std::vector<std::vector<std::shared_ptr<HashElement>>> _hashtables;
+  std::array<std::vector<HashElement>, NUMBER_OF_HASH_FUNCTIONS> _hashtables;
 };
 }  // namespace opossum
