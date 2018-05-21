@@ -19,11 +19,11 @@ std::optional<Cardinality> CardinalityEstimationCache::get(const BaseJoinGraph& 
   std::optional<Cardinality> result;
 
   if (entry.cardinality) {
-    if (_log) (*_log) << "[HIT ]";
+    if (_log) (*_log) << "[HIT ]: ";
     ++_hit_count;
     result = *entry.cardinality;
   } else {
-    if (_log) (*_log) << "[MISS]";
+    if (_log) (*_log) << "[MISS]: ";
     ++_miss_count;
   }
 
@@ -44,7 +44,7 @@ void CardinalityEstimationCache::put(const BaseJoinGraph& join_graph, const Card
   auto& entry = _cache[normalized_join_graph];
 
   if (_log && !entry.cardinality) {
-    (*_log) << "CardinalityEstimationCache [" << (entry.request_count == 0 ? "I" : "S") << "][PUT ]:" << normalized_join_graph.description() << ": " << cardinality << std::endl;
+    (*_log) << "CardinalityEstimationCache [" << (entry.request_count == 0 ? "I" : "S") << "][PUT ]: " << normalized_join_graph.description() << ": " << cardinality << std::endl;
   }
 
   entry.cardinality = cardinality;

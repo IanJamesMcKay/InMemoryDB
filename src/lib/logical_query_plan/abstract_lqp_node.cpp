@@ -548,7 +548,7 @@ AbstractLQPNode::find_first_subplan_mismatch(const std::shared_ptr<const Abstrac
 size_t AbstractLQPNode::hash() const {
   if (!_hash) {
     auto hash = boost::hash_value(static_cast<size_t>(_type));
-    boost::hash_combine(hash, std::hash<decltype(_table_alias)>{}(_table_alias));
+    //boost::hash_combine(hash, std::hash<decltype(_table_alias)>{}(_table_alias)); // Disabled because it makes caching harder
 
     boost::hash_combine(hash, _on_hash());
 

@@ -11,11 +11,8 @@
 namespace opossum {
 
 std::ostream &operator<<(std::ostream &stream, const JoeQueryIterationSample &sample) {
-  if (sample.best_plan) {
-    stream << sample.best_plan->sample.execution_duration.count() << ",";
-  } else {
-    stream << 0 << ",";
-  }
+  stream << (sample.rank_zero_plan ? sample.rank_zero_plan->sample.execution_duration.count() : 0) << ",";
+  stream << (sample.best_plan ? sample.best_plan->sample.execution_duration.count() : 0);
 
   stream << sample.planning_duration.count() << ",";
   stream << sample.ce_cache_hit_count << ",";
@@ -24,11 +21,8 @@ std::ostream &operator<<(std::ostream &stream, const JoeQueryIterationSample &sa
   stream << sample.ce_cache_distinct_hit_count << ",";;
   stream << sample.ce_cache_distinct_miss_count << ",";
 
-  if (sample.best_plan) {
-    stream << sample.best_plan->sample.hash;
-  } else {
-    stream << 0;
-  }
+  stream << (sample.rank_zero_plan ? sample.rank_zero_plan->sample.hash : 0) << ",";
+  stream << (sample.best_plan ? sample.best_plan->sample.hash : 0);
 
   return stream;
 }
@@ -89,6 +83,10 @@ void JoeQueryIteration::run() {
     }
 
     plans.emplace_back(std::make_shared<JoePlan>(*this, lqp_root->left_input()->deep_copy(), join_plan_idx));
+  }
+
+  if (!plans.empty()) {
+    sample.rank_zero_plan = plans.front();
   }
 
   /**
