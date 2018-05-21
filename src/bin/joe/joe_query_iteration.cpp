@@ -12,7 +12,7 @@ namespace opossum {
 
 std::ostream &operator<<(std::ostream &stream, const JoeQueryIterationSample &sample) {
   stream << (sample.rank_zero_plan ? sample.rank_zero_plan->sample.execution_duration.count() : 0) << ",";
-  stream << (sample.best_plan ? sample.best_plan->sample.execution_duration.count() : 0);
+  stream << (sample.best_plan ? sample.best_plan->sample.execution_duration.count() : 0) << ",";
 
   stream << sample.planning_duration.count() << ",";
   stream << sample.ce_cache_hit_count << ",";
