@@ -44,7 +44,7 @@ std::shared_ptr<AbstractLQPNode> JoinNode::_deep_copy_impl(
 
     const auto join_column_references = LQPColumnReferencePair{
         adapt_column_reference_to_different_lqp(_join_column_references->first, left_input(), copied_left_input),
-        adapt_column_reference_to_different_lqp(_join_column_references->first, right_input(), copied_right_input),
+        adapt_column_reference_to_different_lqp(_join_column_references->second, right_input(), copied_right_input),
     };
     return JoinNode::make(_join_mode, join_column_references, *_predicate_condition);
   }

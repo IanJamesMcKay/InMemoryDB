@@ -1,12 +1,21 @@
-#include "join_ordering_evaluator_config.hpp"
+#include "joe_config.hpp"
 
 #include <cxxopts.hpp>
 #include "out.hpp"
 #include "utils/assert.hpp"
 
+#include <boost/lexical_cast.hpp>
+#include <boost/uuid/uuid_io.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+
+using boost::lexical_cast;
+using boost::uuids::uuid;
+using boost::uuids::random_generator;
+
 namespace opossum {
 
-void JoinOrderingEvaluatorConfig::add_options(cxxopts::Options& cli_options_description) {
+void JoeConfig::add_options(cxxopts::Options& cli_options_description) {
   // clang-format off
   cli_options_description.add_options()
   ("help", "print this help message")
@@ -26,6 +35,8 @@ void JoinOrderingEvaluatorConfig::add_options(cxxopts::Options& cli_options_desc
   ("iterations-per-query", "Number of times to execute/optimize each query", cxxopts::value(iterations_per_query)->default_value("1"))  // NOLINT
   ("isolate-queries", "Reset all cached data for each query", cxxopts::value(isolate_queries)->default_value("true"))  // NOLINT
   ("cardinality-estimation", "Mode for cardinality estimation. Values: cached, executed", cxxopts::value(cardinality_estimation_str)->default_value("cached"))  // NOLINT
+  ("cardinality-estimator-execution-timeout", "If the CardinalityEstimatorExecution is used, this specifies its timeout. 0 to disable", cxxopts::value(*cardinality_estimator_execution_timeout)->default_value("120"))  // NOLINT
+  ("save-plan-results", "Save measurements per plan", cxxopts::value(save_plan_results)->default_value("true"))  // NOLINT
   ("save-query-iterations-results", "Save measurements per query iterations", cxxopts::value(save_query_iterations_results)->default_value("true"))  // NOLINT
   ("cardinality-estimation-cache-log", "Create logfiles for accesses to the CardinalityEstimationCache", cxxopts::value(cardinality_estimation_cache_log)->default_value("true"))  // NOLINT
   ("unique-plans", "For each query, execute only plans that were not executed before", cxxopts::value(unique_plans)->default_value("false"))  // NOLINT
@@ -35,7 +46,7 @@ void JoinOrderingEvaluatorConfig::add_options(cxxopts::Options& cli_options_desc
   // clang-format on
 }
 
-void JoinOrderingEvaluatorConfig::parse(const cxxopts::ParseResult& cli_parse_result) {
+void JoeConfig::parse(const cxxopts::ParseResult& cli_parse_result) {
   // Process "evaluation_name" parameter
   if (!evaluation_name.empty()) {
     out() << "-- Using specified evaluation name '" << evaluation_name << "'" << std::endl;
@@ -100,15 +111,15 @@ void JoinOrderingEvaluatorConfig::parse(const cxxopts::ParseResult& cli_parse_re
   }
 
   // Process "cost-model" parameter
-  if (cost_model_str == "naive" || cost_model_str == "all") {
+  if (cost_model_str == "naive") {
     out() << "-- Using CostModelNaive" << std::endl;
-    cost_models.emplace_back(std::make_shared<CostModelNaive>());
-  }
-  if (cost_model_str == "linear" || cost_model_str == "all") {
+    cost_model = std::make_shared<CostModelNaive>();
+  } else if (cost_model_str == "linear") {
     out() << "-- Using CostModelLinear" << std::endl;
-    cost_models.emplace_back(std::make_shared<CostModelLinear>());
+    cost_model = std::make_shared<CostModelLinear>();
+  } else {
+    Fail("No valid cost model specified");
   }
-  Assert(!cost_models.empty(), "No CostModel specified");
 
   // Process "save_results" parameter
   if (save_results) {
@@ -135,20 +146,34 @@ void JoinOrderingEvaluatorConfig::parse(const cxxopts::ParseResult& cli_parse_re
     out() << "-- Not isolating query evaluations from each other" << std::endl;
   }
 
+  // Process "save_plan_results" parameter
+  if (save_plan_results) {
+    out() << "-- Saving measurements per Plan" << std::endl;
+  } else {
+    out() << "-- Not saving measurements per Plan" << std::endl;
+  }
+
   // Process "save_query_iterations_results" parameter
   if (save_query_iterations_results) {
     out() << "-- Saving measurements per Query Iteration" << std::endl;
   } else {
-    out() << "-- Saving measurements per Query" << std::endl;
+    out() << "-- Not saving measurements per Query Iteration" << std::endl;
   }
 
   // Process "cardinality_estimation_str" parameter
-  if (cardinality_estimation_str == "cached") {
-    cardinality_estimation_mode = CardinalityEstimationMode::Cached;
-    out() << "-- Using CardinalityEstimationMode::Cached" << std::endl;
+  if (cardinality_estimation_str == "statistics") {
+    cardinality_estimation_mode = CardinalityEstimationMode::ColumnStatistics;
+    out() << "-- Using CardinalityEstimationMode::ColumnStatistics" << std::endl;
   } else if (cardinality_estimation_str == "executed") {
     cardinality_estimation_mode = CardinalityEstimationMode::Executed;
     out() << "-- Using CardinalityEstimationMode::Executed" << std::endl;
+
+    if (*cardinality_estimator_execution_timeout > 0) {
+      out() << "-- CardinaltiyEstimatorExecution timeout: " << (*cardinality_estimator_execution_timeout) << "s" << std::endl;
+    } else {
+      cardinality_estimator_execution_timeout.reset();
+      out() << "-- No CardinaltiyEstimatorExecution timeout" << std::endl;
+    }
   } else {
     Fail("Unsupported CardinalityEstimationMode");
   }
@@ -188,6 +213,43 @@ void JoinOrderingEvaluatorConfig::parse(const cxxopts::ParseResult& cli_parse_re
     workload = std::make_shared<JobWorkload>(query_name_strs);
   } else {
     Fail("Unknown workload");
+  }
+}
+
+void JoeConfig::setup() {
+  /**
+  * Create evaluation dir
+  */
+  evaluation_dir = "joe/" + evaluation_name;
+  out() << "-- Writing results to '" << evaluation_dir << "'" << std::endl;
+  tmp_dot_file_path = evaluation_dir + "/viz/" + boost::lexical_cast<std::string>(boost::uuids::random_generator{}()) + ".dot";
+  std::experimental::filesystem::create_directories(evaluation_dir);
+  std::experimental::filesystem::create_directory(evaluation_dir + "/viz");
+  evaluation_prefix = evaluation_dir + "/" + cost_model->name() + "-" + std::string(IS_DEBUG ? "d" : "r") + "-";
+
+  /**
+   * Load workload
+   */
+  out() << "-- Setting up workload" << std::endl;
+  workload->setup();
+  out() << std::endl;
+
+  /**
+   * Setup CardinalityEstimator
+   */
+  cardinality_estimation_cache = std::make_shared<CardinalityEstimationCache>();
+  if (cardinality_estimation_mode == CardinalityEstimationMode::ColumnStatistics) {
+    fallback_cardinality_estimator = std::make_shared<CardinalityEstimatorColumnStatistics>();
+    main_cardinality_estimator = std::make_shared<CardinalityEstimatorCached>(cardinality_estimation_cache,
+                                                                              CardinalityEstimationCacheMode::ReadOnly, fallback_cardinality_estimator);
+  } else {
+    const auto cardinaltiy_estimator_execution = std::make_shared<CardinalityEstimatorExecution>();
+    if (cardinality_estimator_execution_timeout) {
+      cardinaltiy_estimator_execution->timeout = std::chrono::seconds{*cardinality_estimator_execution_timeout};
+    }
+    fallback_cardinality_estimator = cardinaltiy_estimator_execution;
+    main_cardinality_estimator = std::make_shared<CardinalityEstimatorCached>(cardinality_estimation_cache,
+                                                                              CardinalityEstimationCacheMode::ReadAndUpdate, fallback_cardinality_estimator);
   }
 }
 

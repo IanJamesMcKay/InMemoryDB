@@ -12,6 +12,7 @@
 #include "storage/table.hpp"
 #include "scheduler/current_scheduler.hpp"
 #include "sql/sql_query_plan.hpp"
+#include "utils/execute_with_timeout.hpp"
 
 namespace opossum {
 
@@ -50,15 +51,17 @@ Cardinality CardinalityEstimatorExecution::estimate(const std::vector<std::share
 
   const auto pqp = LQPTranslator{}.translate_node(lqp);
 
-  SQLQueryPlan sql_query_plan;
-  sql_query_plan.add_tree_by_root(pqp);
-
-  const auto tasks = sql_query_plan.create_tasks();
   std::cout << " Executing..." << std::endl;
-  CurrentScheduler::schedule_and_wait_for_tasks(tasks);
-  std::cout << " Returned " << pqp->get_output()->row_count() << " rows" << std::endl;
 
-  return pqp->get_output()->row_count();
+  const auto timed_out = execute_with_timeout(pqp, timeout);
+
+  if (timed_out) {
+    std::cout << " Timed out" << std::endl;
+    return 1000.f * 1000.f * 1000.f * 1000.f;
+  } else {
+    std::cout << " Returned " << pqp->get_output()->row_count() << " rows" << std::endl;
+    return pqp->get_output()->row_count();
+  }
 }
 
 }  // namespace opossum
