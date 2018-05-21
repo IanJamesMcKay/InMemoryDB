@@ -6,6 +6,7 @@
 
 #include "out.hpp"
 #include "joe_query.hpp"
+#include "write_csv.hpp"
 
 namespace opossum {
 
@@ -16,19 +17,25 @@ std::ostream &operator<<(std::ostream &stream, const JoeQueryIterationSample &sa
     stream << 0 << ",";
   }
 
-  stream <<
-         sample.planning_duration.count() << "," <<
-         sample.ce_cache_hit_count << "," <<
-         sample.ce_cache_miss_count << "," <<
-         sample.ce_cache_size << "," <<
-         sample.ce_cache_distinct_hit_count << "," <<
-         sample.ce_cache_distinct_miss_count;
+  stream << sample.planning_duration.count() << ",";
+  stream << sample.ce_cache_hit_count << ",";
+  stream << sample.ce_cache_miss_count << ",";
+  stream << sample.ce_cache_size << ",";
+  stream << sample.ce_cache_distinct_hit_count << ",";;
+  stream << sample.ce_cache_distinct_miss_count << ",";
+
+  if (sample.best_plan) {
+    stream << sample.best_plan->sample.hash;
+  } else {
+    stream << 0;
+  }
+
   return stream;
 }
 
 JoeQueryIteration::JoeQueryIteration(JoeQuery& query, const size_t idx):
   query(query), idx(idx) {
-  name = query.sample.name + "-" + std::to_string(idx);
+  name = query.sample.name + "-Iteration-" + std::to_string(idx);
 }
 
 void JoeQueryIteration::run() {
@@ -81,7 +88,6 @@ void JoeQueryIteration::run() {
       parent_relation.output->set_input(parent_relation.input_side, join_ordered_sub_lqp);
     }
 
-    lqp_root->print();
     plans.emplace_back(std::make_shared<JoePlan>(*this, lqp_root->left_input()->deep_copy(), join_plan_idx));
   }
 
@@ -109,7 +115,7 @@ void JoeQueryIteration::run() {
     /**
      * Check for break conditions
      */
-    if (query.config->max_plan_execution_count && query.plans_execution_count >= *query.config->max_plan_execution_count) {
+    if (query.config->max_plan_execution_count && plans_execution_count >= *query.config->max_plan_execution_count) {
       out() << "---- Requested number of plans (" << *query.config->max_plan_execution_count << ") executed, stopping" << std::endl;
       break;
     }
@@ -119,7 +125,7 @@ void JoeQueryIteration::run() {
         out() << "----- Plan was already executed, but is rank#0 and --force-plan-zero is set, so it is executed again" << std::endl;
       } else {
         out() << "----- Plan was already executed, skipping" << std::endl;
-        return;
+        continue;
       }
     }
 
@@ -134,6 +140,16 @@ void JoeQueryIteration::run() {
     if (!sample.best_plan || plan->sample.execution_duration < sample.best_plan->sample.execution_duration) {
       sample.best_plan = plan;
     }
+
+    /**
+     * Write samples
+     */
+    if (config->save_plan_results) {
+      write_csv(plans,
+                "ExecutionDuration,EstCost,ReEstCost,AimCost,AbsEstCostError,AbsReEstCostError,Hash",
+                config->evaluation_prefix + name + ".Plans.csv");
+    }
+
 
     /**
      * Timeout query

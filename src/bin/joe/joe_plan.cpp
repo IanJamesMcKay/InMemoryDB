@@ -13,13 +13,13 @@ namespace opossum {
 
 std::ostream &operator<<(std::ostream &stream, const JoePlanSample &sample) {
   stream <<
-    sample.hash << "," <<
     sample.execution_duration.count() << "," <<
     sample.est_cost << "," <<
     sample.re_est_cost << "," <<
     sample.aim_cost << "," <<
     sample.abs_est_cost_error << "," <<
-    sample.abs_re_est_cost_error;
+    sample.abs_re_est_cost_error << "," <<
+         sample.hash;
   return stream;
 }
 
@@ -27,10 +27,11 @@ JoePlan::JoePlan(JoeQueryIteration& query_iteration, const std::shared_ptr<Abstr
   query_iteration(query_iteration), lqp(lqp), idx(idx)
 {
   name = query_iteration.name + "-" + std::to_string(idx);
+  sample.hash = lqp->hash();
 }
 
 void JoePlan::run() {
-  out() << "----- Evaluating plan" << std::endl;
+  out() << "----- Evaluating " << query_iteration.name << " plan " << idx << "/" << (query_iteration.plans.size() - 1) << std::endl;
 
   auto& config = query_iteration.query.config;
 
@@ -57,6 +58,8 @@ void JoePlan::run() {
     out() << "---- Query timed out" << std::endl;
     return;
   }
+
+  ++query_iteration.plans_execution_count;
 
   /**
    * Evaluate plan execution
@@ -132,7 +135,7 @@ void JoePlan::save_plan_result_table(const SQLQueryPlan& plan) {
   auto limit = std::make_shared<Limit>(output_wrapper, 500);
   limit->execute();
 
-  std::ofstream output_file(query_iteration.query.sample.name + ".result.txt");
+  std::ofstream output_file(query_iteration.query.config->evaluation_prefix + query_iteration.query.sample.name + ".ResultTable.txt");
   output_file << "Total Row Count: " << plan.tree_roots().at(0)->get_output()->row_count() << std::endl;
   output_file << std::endl;
   Print::print(limit->get_output(), 0, output_file);

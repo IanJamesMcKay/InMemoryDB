@@ -34,6 +34,7 @@ struct JoeConfig final {
   std::optional<std::vector<std::string>> query_name_strs;
   size_t iterations_per_query{1};
   bool isolate_queries{true};
+  bool save_plan_results{true};
   bool save_query_iterations_results{true};
   CardinalityEstimationMode cardinality_estimation_mode{CardinalityEstimationMode::ColumnStatistics};
   std::optional<long> cardinality_estimator_execution_timeout{0};

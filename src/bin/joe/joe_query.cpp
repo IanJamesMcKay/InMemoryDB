@@ -41,16 +41,18 @@ void JoeQuery::run() {
   }
 
   // Run Query Iterations
-  for (auto query_iteration : query_iterations) {
+  for (auto& query_iteration : query_iterations) {
     query_iteration.run();
 
     if (!sample.best_plan || sample.best_plan->sample.execution_duration > query_iteration.sample.best_plan->sample.execution_duration) {
       sample.best_plan = query_iteration.sample.best_plan;
     }
 
-    write_csv(query_iterations,
-              "ExecutionDuration,",
-              config->evaluation_prefix + "Queries.csv");
+    if (config->save_query_iterations_results) {
+      write_csv(query_iterations,
+                "BestPlanExecutionDuration,PlanningDuration,CECacheHitCount,CECacheMissCount,CECacheSize,CECacheDistinctHitCount,CECacheDistinctMissCount,BestPlanHash",
+                config->evaluation_prefix + sample.name + ".Iterations.csv");
+    }
   }
 }
 

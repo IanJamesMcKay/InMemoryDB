@@ -23,7 +23,6 @@ class JoeQuery final {
 
   std::chrono::steady_clock::time_point execution_begin;
   bool save_plan_results{false};
-  size_t plans_execution_count{0};
   std::unordered_set<std::shared_ptr<AbstractLQPNode>, LQPHash, LQPEqual> executed_plans;
 
   std::vector<JoeQueryIteration> query_iterations;

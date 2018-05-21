@@ -9,7 +9,7 @@ class JoeQuery;
 
 struct JoeQueryIterationSample {
   std::shared_ptr<JoePlan> best_plan;
-  std::chrono::microseconds planning_duration;
+  std::chrono::microseconds planning_duration{0};
   size_t ce_cache_hit_count{0};
   size_t ce_cache_miss_count{0};
   size_t ce_cache_size{0};
@@ -32,6 +32,7 @@ class JoeQueryIteration final {
   size_t idx;
   std::string name;
   std::vector<std::shared_ptr<JoePlan>> plans;
+  size_t plans_execution_count{0};
   std::optional<std::chrono::seconds> current_plan_timeout;
 };
 

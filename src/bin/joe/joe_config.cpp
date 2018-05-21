@@ -36,6 +36,7 @@ void JoeConfig::add_options(cxxopts::Options& cli_options_description) {
   ("isolate-queries", "Reset all cached data for each query", cxxopts::value(isolate_queries)->default_value("true"))  // NOLINT
   ("cardinality-estimation", "Mode for cardinality estimation. Values: cached, executed", cxxopts::value(cardinality_estimation_str)->default_value("cached"))  // NOLINT
   ("cardinality-estimator-execution-timeout", "If the CardinalityEstimatorExecution is used, this specifies its timeout. 0 to disable", cxxopts::value(*cardinality_estimator_execution_timeout)->default_value("120"))  // NOLINT
+  ("save-plan-results", "Save measurements per plan", cxxopts::value(save_plan_results)->default_value("true"))  // NOLINT
   ("save-query-iterations-results", "Save measurements per query iterations", cxxopts::value(save_query_iterations_results)->default_value("true"))  // NOLINT
   ("cardinality-estimation-cache-log", "Create logfiles for accesses to the CardinalityEstimationCache", cxxopts::value(cardinality_estimation_cache_log)->default_value("true"))  // NOLINT
   ("unique-plans", "For each query, execute only plans that were not executed before", cxxopts::value(unique_plans)->default_value("false"))  // NOLINT
@@ -145,11 +146,18 @@ void JoeConfig::parse(const cxxopts::ParseResult& cli_parse_result) {
     out() << "-- Not isolating query evaluations from each other" << std::endl;
   }
 
+  // Process "save_plan_results" parameter
+  if (save_plan_results) {
+    out() << "-- Saving measurements per Plan" << std::endl;
+  } else {
+    out() << "-- Not saving measurements per Plan" << std::endl;
+  }
+
   // Process "save_query_iterations_results" parameter
   if (save_query_iterations_results) {
     out() << "-- Saving measurements per Query Iteration" << std::endl;
   } else {
-    out() << "-- Saving measurements per Query" << std::endl;
+    out() << "-- Not saving measurements per Query Iteration" << std::endl;
   }
 
   // Process "cardinality_estimation_str" parameter
@@ -214,10 +222,10 @@ void JoeConfig::setup() {
   */
   evaluation_dir = "joe/" + evaluation_name;
   out() << "-- Writing results to '" << evaluation_dir << "'" << std::endl;
-  tmp_dot_file_path = evaluation_dir + "/" + boost::lexical_cast<std::string>(boost::uuids::random_generator{}()) + ".dot";
+  tmp_dot_file_path = evaluation_dir + "/viz/" + boost::lexical_cast<std::string>(boost::uuids::random_generator{}()) + ".dot";
   std::experimental::filesystem::create_directories(evaluation_dir);
   std::experimental::filesystem::create_directory(evaluation_dir + "/viz");
-  evaluation_prefix = evaluation_dir + "/" + cost_model->name() + std::string(IS_DEBUG ? "d" : "r") + "-";
+  evaluation_prefix = evaluation_dir + "/" + cost_model->name() + "-" + std::string(IS_DEBUG ? "d" : "r") + "-";
 
   /**
    * Load workload
