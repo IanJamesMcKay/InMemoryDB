@@ -8,7 +8,7 @@ namespace opossum {
 class JoeQuery;
 
 struct JoeQueryIterationSample {
-  std::chrono::microseconds execution_duration;
+  std::shared_ptr<JoePlan> best_plan;
   std::chrono::microseconds planning_duration;
   size_t ce_cache_hit_count{0};
   size_t ce_cache_miss_count{0};
@@ -31,10 +31,8 @@ class JoeQueryIteration final {
 
   size_t idx;
   std::string name;
-  std::vector<JoePlan> plans;
+  std::vector<std::shared_ptr<JoePlan>> plans;
   std::optional<std::chrono::seconds> current_plan_timeout;
-  std::chrono::microseconds best_plan_execution_duration{0};
-  size_t best_plan_idx{0};
 };
 
 }  // namespace opossum

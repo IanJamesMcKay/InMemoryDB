@@ -7,7 +7,7 @@ namespace opossum {
 
 struct JoeQuerySample {
   std::string name;
-  std::chrono::microseconds best_plan_execution_duration;
+  std::shared_ptr<JoePlan> best_plan;
 };
 
 std::ostream &operator<<(std::ostream &stream, const JoeQuerySample &sample);

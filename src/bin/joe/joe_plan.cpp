@@ -20,6 +20,7 @@ std::ostream &operator<<(std::ostream &stream, const JoePlanSample &sample) {
     sample.aim_cost << "," <<
     sample.abs_est_cost_error << "," <<
     sample.abs_re_est_cost_error;
+  return stream;
 }
 
 JoePlan::JoePlan(JoeQueryIteration& query_iteration, const std::shared_ptr<AbstractLQPNode>& lqp, const size_t idx):
@@ -70,12 +71,12 @@ void JoePlan::run() {
   /**
    * Adjust dynamic timeout
    */
-  if (idx == 0 || sample.execution_duration < query_iteration.best_plan_execution_duration) {
-    query_iteration.best_plan_idx = idx;
-
-    if (config->dynamic_plan_timeout_enabled) {
-      query_iteration.current_plan_timeout = std::chrono::duration_cast<std::chrono::seconds>(sample.execution_duration).count() * 1.2f + 2;
-      out() << "----- New dynamic timeout is " << *query_iteration.current_plan_timeout << " seconds"
+  if (config->dynamic_plan_timeout_enabled) {
+   if (!query_iteration.sample.best_plan || sample.execution_duration < query_iteration.sample.best_plan->sample.execution_duration) {
+      query_iteration.current_plan_timeout =
+        std::chrono::duration_cast<std::chrono::seconds>(sample.execution_duration) +
+        std::chrono::seconds(2);
+      out() << "----- New dynamic timeout is " << query_iteration.current_plan_timeout->count() << " seconds"
             << std::endl;
     }
   }
@@ -131,7 +132,7 @@ void JoePlan::save_plan_result_table(const SQLQueryPlan& plan) {
   auto limit = std::make_shared<Limit>(output_wrapper, 500);
   limit->execute();
 
-  std::ofstream output_file(query_iteration.query.name + ".result.txt");
+  std::ofstream output_file(query_iteration.query.sample.name + ".result.txt");
   output_file << "Total Row Count: " << plan.tree_roots().at(0)->get_output()->row_count() << std::endl;
   output_file << std::endl;
   Print::print(limit->get_output(), 0, output_file);

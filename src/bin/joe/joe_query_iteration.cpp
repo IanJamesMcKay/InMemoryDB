@@ -10,8 +10,13 @@
 namespace opossum {
 
 std::ostream &operator<<(std::ostream &stream, const JoeQueryIterationSample &sample) {
+  if (sample.best_plan) {
+    stream << sample.best_plan->sample.execution_duration.count() << ",";
+  } else {
+    stream << 0 << ",";
+  }
+
   stream <<
-         sample.execution_duration.count() << "," <<
          sample.planning_duration.count() << "," <<
          sample.ce_cache_hit_count << "," <<
          sample.ce_cache_miss_count << "," <<
@@ -67,15 +72,17 @@ void JoeQueryIteration::run() {
   /**
    * Initialise the plans
    */
-  for (const auto& join_plan : join_plans) {
+  auto join_plan_iter = join_plans.begin();
+  for (auto join_plan_idx = size_t{0}; join_plan_idx < join_plans.size(); ++join_plan_idx, ++join_plan_iter) {
      // Create LQP from join plan
+    const auto& join_plan = *join_plan_iter;
     const auto join_ordered_sub_lqp = join_plan.lqp;
     for (const auto &parent_relation : join_graph->output_relations) {
       parent_relation.output->set_input(parent_relation.input_side, join_ordered_sub_lqp);
     }
 
     lqp_root->print();
-    plans.emplace_back(*this, lqp_root->left_input()->deep_copy());
+    plans.emplace_back(std::make_shared<JoePlan>(*this, lqp_root->left_input()->deep_copy(), join_plan_idx));
   }
 
   /**
@@ -107,7 +114,7 @@ void JoeQueryIteration::run() {
       break;
     }
 
-    if (config->unique_plans && !query.executed_plans.emplace(plan.lqp).second) {
+    if (config->unique_plans && !query.executed_plans.emplace(plan->lqp).second) {
       if (config->force_plan_zero && plan_idx == 0) {
         out() << "----- Plan was already executed, but is rank#0 and --force-plan-zero is set, so it is executed again" << std::endl;
       } else {
@@ -119,7 +126,14 @@ void JoeQueryIteration::run() {
     /**
      * Evaluate the plan
      */
-    plan.run();
+    plan->run();
+
+    /**
+     * Update best_plan
+     */
+    if (!sample.best_plan || plan->sample.execution_duration < sample.best_plan->sample.execution_duration) {
+      sample.best_plan = plan;
+    }
 
     /**
      * Timeout query

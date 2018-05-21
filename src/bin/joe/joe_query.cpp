@@ -8,7 +8,14 @@
 namespace opossum {
 
 std::ostream &operator<<(std::ostream &stream, const JoeQuerySample &sample) {
-  stream << sample.name << "," << sample.best_plan_execution_duration.count();
+  stream << sample.name << ",";
+
+  if (sample.best_plan) {
+    stream << sample.best_plan->sample.execution_duration.count();
+  } else {
+    stream << 0;
+  }
+
   return stream;
 }
 
@@ -30,19 +37,17 @@ void JoeQuery::run() {
 
   // Init Query Iterations
   for (size_t query_iteration_idx = size_t{0}; query_iteration_idx < config->iterations_per_query; ++query_iteration_idx) {
-    query_iterations.emplace_back(*this);
+    query_iterations.emplace_back(*this, query_iteration_idx);
   }
 
   // Run Query Iterations
   for (auto query_iteration : query_iterations) {
     query_iteration.run();
-    std::chrono::microseconds execution_duration;
-    std::chrono::microseconds planning_duration;
-    size_t ce_cache_hit_count{0};
-    size_t ce_cache_miss_count{0};
-    size_t ce_cache_size{0};
-    size_t ce_cache_distinct_hit_count{0};
-    size_t ce_cache_distinct_miss_count{0};
+
+    if (!sample.best_plan || sample.best_plan->sample.execution_duration > query_iteration.sample.best_plan->sample.execution_duration) {
+      sample.best_plan = query_iteration.sample.best_plan;
+    }
+
     write_csv(query_iterations,
               "ExecutionDuration,",
               config->evaluation_prefix + "Queries.csv");
