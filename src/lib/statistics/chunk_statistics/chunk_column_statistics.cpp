@@ -75,7 +75,7 @@ std::shared_ptr<ChunkColumnStatistics> ChunkColumnStatistics::build_statistics(D
   // });
   // return statistics;
 
-  std::shared_ptr<ChunkColumnStatistics> statistics;
+  auto statistics = std::make_shared<ChunkColumnStatistics>();
 
   TableColumnDefinitions column_definitions;
   column_definitions.emplace_back("col_1", data_type);

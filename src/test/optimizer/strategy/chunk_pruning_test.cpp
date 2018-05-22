@@ -48,6 +48,10 @@ class ChunkPruningTest : public StrategyBaseTest {
   std::shared_ptr<ChunkPruningRule> _rule;
 };
 
+/**
+ * TODO(tim): verify and fix all tests
+ */
+
 TEST_F(ChunkPruningTest, SimplePruningTest) {
   auto stored_table_node = std::make_shared<StoredTableNode>("compressed");
 
