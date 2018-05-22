@@ -15,37 +15,62 @@ HistogramType EqualHeightHistogram<T>::histogram_type() const {
 
 template <typename T>
 size_t EqualHeightHistogram<T>::num_buckets() const {
-  return _mins.size();
+  return _maxs.size();
 }
 
 template <typename T>
 BucketID EqualHeightHistogram<T>::bucket_for_value(const T value) const {
-  const auto it = std::upper_bound(_mins.begin(), _mins.end(), value);
+  const auto it = std::lower_bound(_maxs.begin(), _maxs.end(), value);
+  const auto index = static_cast<BucketID>(std::distance(_maxs.begin(), it));
 
-  if (it == _mins.begin() || value > _max) {
+  if (it == _maxs.end() || value < _min) {
     return INVALID_BUCKET_ID;
   }
 
-  return static_cast<BucketID>(std::distance(_mins.begin(), it) - 1);
+  return index;
+}
+
+template <typename T>
+BucketID EqualHeightHistogram<T>::lower_bound_for_value(const T value) const {
+  const auto it = std::lower_bound(_maxs.begin(), _maxs.end(), value);
+  const auto index = static_cast<BucketID>(std::distance(_maxs.begin(), it));
+
+  if (it == _maxs.end()) {
+    return INVALID_BUCKET_ID;
+  }
+
+  return index;
+}
+
+template <typename T>
+BucketID EqualHeightHistogram<T>::upper_bound_for_value(const T value) const {
+  const auto it = std::upper_bound(_maxs.begin(), _maxs.end(), value);
+  const auto index = static_cast<BucketID>(std::distance(_maxs.begin(), it));
+
+  if (it == _maxs.end()) {
+    return INVALID_BUCKET_ID;
+  }
+
+  return index;
 }
 
 template <typename T>
 T EqualHeightHistogram<T>::bucket_min(const BucketID index) const {
-  DebugAssert(index < _mins.size(), "Index is not a valid bucket.");
-  return _mins[index];
+  DebugAssert(index < _maxs.size(), "Index is not a valid bucket.");
+
+  // If it's the first bucket, return _min.
+  if (index == 0u) {
+    return _min;
+  }
+
+  // Otherwise it is the value just after the maximum of the previous bucket.
+  return this->bucket_max(index - 1) + 1;
 }
 
 template <typename T>
 T EqualHeightHistogram<T>::bucket_max(const BucketID index) const {
   DebugAssert(index < this->num_buckets(), "Index is not a valid bucket.");
-
-  // If it's the last bucket, return max.
-  if (index == this->num_buckets() - 1) {
-    return _max;
-  }
-
-  // Otherwise it is the value just before the minimum of the next bucket.
-  return this->bucket_min(index + 1) - 1;
+  return _maxs[index];
 }
 
 template <typename T>
@@ -58,6 +83,11 @@ template <typename T>
 uint64_t EqualHeightHistogram<T>::bucket_count_distinct(const BucketID index) const {
   DebugAssert(index < this->num_buckets(), "Index is not a valid bucket.");
   return bucket_max(index) - this->bucket_min(index) + 1;
+}
+
+template <typename T>
+uint64_t EqualHeightHistogram<T>::total_count() const {
+  return num_buckets() * _count_per_bucket;
 }
 
 template <typename T>
@@ -80,7 +110,7 @@ void EqualHeightHistogram<T>::_generate(const ColumnID column_id, const size_t m
   const auto count_column =
       std::static_pointer_cast<const ValueColumn<int64_t>>(result->get_chunk(ChunkID{0})->get_column(ColumnID{1}));
 
-  _max = distinct_column->get(result->row_count() - 1);
+  _min = distinct_column->get(0u);
 
   // Buckets shall have (approximately) the same height.
   auto table = this->_table.lock();
@@ -89,21 +119,17 @@ void EqualHeightHistogram<T>::_generate(const ColumnID column_id, const size_t m
   _count_per_bucket = table->row_count() / num_buckets;
 
   auto current_height = 0u;
-  auto current_begin_index = 0u;
   for (auto index = 0u; index < distinct_column->size(); index++) {
     current_height += count_column->get(index);
 
     if (current_height >= _count_per_bucket) {
-      _mins.emplace_back(distinct_column->get(current_begin_index));
-      //      _count_distincts.emplace_back(index - current_begin_index + 1);
+      _maxs.emplace_back(distinct_column->get(index));
       current_height = 0u;
-      current_begin_index = index + 1;
     }
   }
 
   if (current_height > 0u) {
-    _mins.emplace_back(distinct_column->get(current_begin_index));
-    //    _count_distincts.emplace_back(distinct_column->size() - current_begin_index);
+    _maxs.emplace_back(distinct_column->get(result->row_count() - 1));
   }
 }
 

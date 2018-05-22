@@ -31,6 +31,30 @@ BucketID EqualNumElementsHistogram<T>::bucket_for_value(const T value) const {
 }
 
 template <typename T>
+BucketID EqualNumElementsHistogram<T>::lower_bound_for_value(const T value) const {
+  const auto it = std::lower_bound(_maxs.begin(), _maxs.end(), value);
+  const auto index = static_cast<BucketID>(std::distance(_maxs.begin(), it));
+
+  if (it == _maxs.end()) {
+    return INVALID_BUCKET_ID;
+  }
+
+  return index;
+}
+
+template <typename T>
+BucketID EqualNumElementsHistogram<T>::upper_bound_for_value(const T value) const {
+  const auto it = std::upper_bound(_maxs.begin(), _maxs.end(), value);
+  const auto index = static_cast<BucketID>(std::distance(_maxs.begin(), it));
+
+  if (it == _maxs.end()) {
+    return INVALID_BUCKET_ID;
+  }
+
+  return index;
+}
+
+template <typename T>
 T EqualNumElementsHistogram<T>::bucket_min(const BucketID index) const {
   DebugAssert(index < _mins.size(), "Index is not a valid bucket.");
   return _mins[index];
@@ -51,6 +75,11 @@ uint64_t EqualNumElementsHistogram<T>::bucket_count(const BucketID index) const 
 template <typename T>
 uint64_t EqualNumElementsHistogram<T>::bucket_count_distinct(const BucketID index) const {
   return _distinct_count_per_bucket + (index < _num_buckets_with_extra_value ? 1 : 0);
+}
+
+template <typename T>
+uint64_t EqualNumElementsHistogram<T>::total_count() const {
+  return std::accumulate(_counts.begin(), _counts.end(), 0ul);
 }
 
 template <typename T>

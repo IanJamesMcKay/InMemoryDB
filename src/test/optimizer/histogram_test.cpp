@@ -1,9 +1,9 @@
 #include "../base_test.hpp"
 #include "gtest/gtest.h"
 
-#include "optimizer/histograms/equal_height_histogram.hpp"
-#include "optimizer/histograms/equal_num_elements_histogram.hpp"
-#include "optimizer/histograms/equal_width_histogram.hpp"
+#include "statistics/chunk_statistics/histograms/equal_height_histogram.hpp"
+#include "statistics/chunk_statistics/histograms/equal_num_elements_histogram.hpp"
+#include "statistics/chunk_statistics/histograms/equal_width_histogram.hpp"
 #include "utils/load_table.hpp"
 
 namespace opossum {
@@ -23,19 +23,19 @@ TYPED_TEST_CASE(BasicHistogramTest, HistogramTypes);
 TYPED_TEST(BasicHistogramTest, CanPruneLowerBound) {
   TypeParam hist(this->_int_float4);
   hist.generate(ColumnID{0}, 2u);
-  ASSERT_TRUE(hist.can_prune(0u, PredicateCondition::Equals));
+  ASSERT_TRUE(hist.can_prune(AllTypeVariant{0}, PredicateCondition::Equals));
 }
 
 TYPED_TEST(BasicHistogramTest, CanPruneUpperBound) {
   TypeParam hist(this->_int_float4);
   hist.generate(ColumnID{0}, 2u);
-  ASSERT_TRUE(hist.can_prune(1'000'000u, PredicateCondition::Equals));
+  ASSERT_TRUE(hist.can_prune(AllTypeVariant{1'000'000}, PredicateCondition::Equals));
 }
 
 TYPED_TEST(BasicHistogramTest, CannotPruneExistingValue) {
   TypeParam hist(this->_int_float4);
   hist.generate(ColumnID{0}, 2u);
-  ASSERT_FALSE(hist.can_prune(12u, PredicateCondition::Equals));
+  ASSERT_FALSE(hist.can_prune(AllTypeVariant{12}, PredicateCondition::Equals));
 }
 
 class HistogramTest : public ::testing::Test {
@@ -60,15 +60,15 @@ TEST_F(HistogramTest, EqualNumElementsBasic) {
   hist.generate(ColumnID{0}, 2u);
   EXPECT_EQ(hist.num_buckets(), 2u);
   EXPECT_EQ(hist.estimate_cardinality(0, PredicateCondition::Equals), 0.f);
-  EXPECT_TRUE(hist.can_prune(0, PredicateCondition::Equals));
+  EXPECT_TRUE(hist.can_prune(AllTypeVariant{0}, PredicateCondition::Equals));
   EXPECT_EQ(hist.estimate_cardinality(12, PredicateCondition::Equals), 1.f);
-  EXPECT_FALSE(hist.can_prune(12, PredicateCondition::Equals));
+  EXPECT_FALSE(hist.can_prune(AllTypeVariant{12}, PredicateCondition::Equals));
   EXPECT_EQ(hist.estimate_cardinality(1'234, PredicateCondition::Equals), 0.f);
-  EXPECT_TRUE(hist.can_prune(1'234, PredicateCondition::Equals));
+  EXPECT_TRUE(hist.can_prune(AllTypeVariant{1'234}, PredicateCondition::Equals));
   EXPECT_EQ(hist.estimate_cardinality(123'456, PredicateCondition::Equals), 2.5f);
-  EXPECT_FALSE(hist.can_prune(123'456, PredicateCondition::Equals));
+  EXPECT_FALSE(hist.can_prune(AllTypeVariant{123'456}, PredicateCondition::Equals));
   EXPECT_EQ(hist.estimate_cardinality(1'000'000, PredicateCondition::Equals), 0.f);
-  EXPECT_TRUE(hist.can_prune(1'000'000, PredicateCondition::Equals));
+  EXPECT_TRUE(hist.can_prune(AllTypeVariant{1'000'000}, PredicateCondition::Equals));
 }
 
 TEST_F(HistogramTest, EqualNumElementsUnevenBuckets) {
@@ -76,15 +76,15 @@ TEST_F(HistogramTest, EqualNumElementsUnevenBuckets) {
   hist.generate(ColumnID{0}, 3u);
   EXPECT_EQ(hist.num_buckets(), 3u);
   EXPECT_EQ(hist.estimate_cardinality(0, PredicateCondition::Equals), 0.f);
-  EXPECT_TRUE(hist.can_prune(0, PredicateCondition::Equals));
+  EXPECT_TRUE(hist.can_prune(AllTypeVariant{0}, PredicateCondition::Equals));
   EXPECT_EQ(hist.estimate_cardinality(12, PredicateCondition::Equals), 1.f);
-  EXPECT_FALSE(hist.can_prune(12, PredicateCondition::Equals));
+  EXPECT_FALSE(hist.can_prune(AllTypeVariant{12}, PredicateCondition::Equals));
   EXPECT_EQ(hist.estimate_cardinality(1'234, PredicateCondition::Equals), 0.f);
-  EXPECT_TRUE(hist.can_prune(1'234, PredicateCondition::Equals));
+  EXPECT_TRUE(hist.can_prune(AllTypeVariant{1'234}, PredicateCondition::Equals));
   EXPECT_EQ(hist.estimate_cardinality(123'456, PredicateCondition::Equals), 3.f);
-  EXPECT_FALSE(hist.can_prune(123'456, PredicateCondition::Equals));
+  EXPECT_FALSE(hist.can_prune(AllTypeVariant{123'456}, PredicateCondition::Equals));
   EXPECT_EQ(hist.estimate_cardinality(1'000'000, PredicateCondition::Equals), 0.f);
-  EXPECT_TRUE(hist.can_prune(1'000'000, PredicateCondition::Equals));
+  EXPECT_TRUE(hist.can_prune(AllTypeVariant{1'000'000}, PredicateCondition::Equals));
 }
 
 TEST_F(HistogramTest, EqualNumElementsFloat) {
@@ -162,11 +162,12 @@ TEST_F(HistogramTest, EqualHeightHistogramBasic) {
   hist.generate(ColumnID{1}, 4u);
   EXPECT_EQ(hist.num_buckets(), 4u);
   EXPECT_EQ(hist.estimate_cardinality(0, PredicateCondition::Equals), 0.f);
-  EXPECT_EQ(hist.estimate_cardinality(1, PredicateCondition::Equals), 6 / 4.f);
-  EXPECT_EQ(hist.estimate_cardinality(2, PredicateCondition::Equals), 6 / 4.f);
-  EXPECT_EQ(hist.estimate_cardinality(5, PredicateCondition::Equals), 6 / 3.f);
-  EXPECT_EQ(hist.estimate_cardinality(12, PredicateCondition::Equals), 6 / 12.f);
-  EXPECT_EQ(hist.estimate_cardinality(20, PredicateCondition::Equals), 6.f);
+  EXPECT_EQ(hist.estimate_cardinality(1, PredicateCondition::Equals), 6 / 2.f);
+  EXPECT_EQ(hist.estimate_cardinality(2, PredicateCondition::Equals), 6 / 2.f);
+  EXPECT_EQ(hist.estimate_cardinality(5, PredicateCondition::Equals), 6 / 5.f);
+  EXPECT_EQ(hist.estimate_cardinality(6, PredicateCondition::Equals), 6 / 5.f);
+  EXPECT_EQ(hist.estimate_cardinality(12, PredicateCondition::Equals), 6 / 11.f);
+  EXPECT_EQ(hist.estimate_cardinality(20, PredicateCondition::Equals), 6 / 2.f);
   EXPECT_EQ(hist.estimate_cardinality(21, PredicateCondition::Equals), 0.f);
 }
 
@@ -176,13 +177,13 @@ TEST_F(HistogramTest, EqualHeightHistogramUnevenBuckets) {
   EXPECT_EQ(hist.num_buckets(), 5u);
   EXPECT_EQ(hist.estimate_cardinality(0, PredicateCondition::Equals), 0.f);
   EXPECT_EQ(hist.estimate_cardinality(1, PredicateCondition::Equals), 4 / 1.f);
-  EXPECT_EQ(hist.estimate_cardinality(2, PredicateCondition::Equals), 4 / 5.f);
-  EXPECT_EQ(hist.estimate_cardinality(5, PredicateCondition::Equals), 4 / 5.f);
-  EXPECT_EQ(hist.estimate_cardinality(7, PredicateCondition::Equals), 4 / 1.f);
-  EXPECT_EQ(hist.estimate_cardinality(9, PredicateCondition::Equals), 4 / 4.f);
-  EXPECT_EQ(hist.estimate_cardinality(10, PredicateCondition::Equals), 4 / 4.f);
-  EXPECT_EQ(hist.estimate_cardinality(12, PredicateCondition::Equals), 4 / 9.f);
-  EXPECT_EQ(hist.estimate_cardinality(20, PredicateCondition::Equals), 4 / 9.f);
+  EXPECT_EQ(hist.estimate_cardinality(2, PredicateCondition::Equals), 4 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(5, PredicateCondition::Equals), 4 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(7, PredicateCondition::Equals), 4 / 2.f);
+  EXPECT_EQ(hist.estimate_cardinality(9, PredicateCondition::Equals), 4 / 2.f);
+  EXPECT_EQ(hist.estimate_cardinality(10, PredicateCondition::Equals), 4 / 11.f);
+  EXPECT_EQ(hist.estimate_cardinality(12, PredicateCondition::Equals), 4 / 11.f);
+  EXPECT_EQ(hist.estimate_cardinality(20, PredicateCondition::Equals), 4 / 11.f);
   EXPECT_EQ(hist.estimate_cardinality(21, PredicateCondition::Equals), 0.f);
 }
 

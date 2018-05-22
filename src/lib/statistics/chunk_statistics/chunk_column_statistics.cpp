@@ -8,6 +8,7 @@
 #include "resolve_type.hpp"
 
 #include "abstract_filter.hpp"
+#include "histograms/equal_num_elements_histogram.hpp"
 #include "min_max_filter.hpp"
 #include "range_filter.hpp"
 #include "storage/base_encoded_column.hpp"
@@ -42,38 +43,57 @@ static std::shared_ptr<ChunkColumnStatistics> build_statistics_from_dictionary(c
 
 std::shared_ptr<ChunkColumnStatistics> ChunkColumnStatistics::build_statistics(DataType data_type,
                                                                                std::shared_ptr<BaseColumn> column) {
+  // std::shared_ptr<ChunkColumnStatistics> statistics;
+  // resolve_data_and_column_type(*column, [&statistics](auto type, auto& typed_column) {
+  //   using ColumnType = typename std::decay<decltype(typed_column)>::type;
+  //   using DataTypeT = typename decltype(type)::type;
+  //
+  //   // clang-format off
+  //   if constexpr(std::is_same_v<ColumnType, DictionaryColumn<DataTypeT>>) {
+  //       // we can use the fact that dictionary columns have an accessor for the dictionary
+  //       const auto& dictionary = *typed_column.dictionary();
+  //       statistics = build_statistics_from_dictionary(dictionary);
+  //   } else {
+  //     if constexpr(std::is_base_of_v<BaseEncodedColumn, ColumnType>) {
+  //       // if we have a generic encoded column we create the dictionary ourselves
+  //       auto iterable = create_iterable_from_column(typed_column);
+  //       std::unordered_set<DataTypeT> values;
+  //       iterable.for_each([&](const auto& value) {
+  //         // we are only interested in non-null values
+  //         if (!value.is_null()) {
+  //           values.insert(value.value());
+  //         }
+  //       });
+  //       pmr_vector<DataTypeT> dictionary{values.cbegin(), values.cend()};
+  //       std::sort(dictionary.begin(), dictionary.end());
+  //       statistics = build_statistics_from_dictionary(dictionary);
+  //     } else {
+  //      Fail("ChunkColumnStatistics should only be built for encoded columns.");
+  //     }
+  //   }
+  //   // clang-format on
+  // });
+  // return statistics;
+
   std::shared_ptr<ChunkColumnStatistics> statistics;
-  resolve_data_and_column_type(*column, [&statistics](auto type, auto& typed_column) {
-    using ColumnType = typename std::decay<decltype(typed_column)>::type;
+
+  TableColumnDefinitions column_definitions;
+  column_definitions.emplace_back("col_1", data_type);
+  auto table = std::make_shared<Table>(column_definitions, TableType::Data);
+  table->append_chunk({column});
+
+  resolve_data_and_column_type(*column, [&statistics, &table](auto type, auto& typed_column) {
     using DataTypeT = typename decltype(type)::type;
 
-    // clang-format off
-    if constexpr(std::is_same_v<ColumnType, DictionaryColumn<DataTypeT>>) {
-        // we can use the fact that dictionary columns have an accessor for the dictionary
-        const auto& dictionary = *typed_column.dictionary();
-        statistics = build_statistics_from_dictionary(dictionary);
-    } else {
-      if constexpr(std::is_base_of_v<BaseEncodedColumn, ColumnType>) {
-        // if we have a generic encoded column we create the dictionary ourselves
-        auto iterable = create_iterable_from_column(typed_column);
-        std::unordered_set<DataTypeT> values;
-        iterable.for_each([&](const auto& value) {
-          // we are only interested in non-null values
-          if (!value.is_null()) {
-            values.insert(value.value());
-          }
-        });
-        pmr_vector<DataTypeT> dictionary{values.cbegin(), values.cend()};
-        std::sort(dictionary.begin(), dictionary.end());
-        statistics = build_statistics_from_dictionary(dictionary);
-      } else {
-       Fail("ChunkColumnStatistics should only be built for encoded columns.");
-      }
-    }
-    // clang-format on
+    auto hist = std::make_shared<EqualNumElementsHistogram<DataTypeT>>(table);
+    hist->generate(ColumnID{0}, 3u);
+
+    statistics->add_filter(hist);
   });
+
   return statistics;
 }
+
 void ChunkColumnStatistics::add_filter(std::shared_ptr<AbstractFilter> filter) { _filters.emplace_back(filter); }
 
 bool ChunkColumnStatistics::can_prune(const AllTypeVariant& value, const PredicateCondition predicate_type) const {

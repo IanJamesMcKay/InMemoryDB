@@ -35,6 +35,25 @@ BucketID EqualWidthHistogram<T>::bucket_for_value(const T value) const {
 }
 
 template <typename T>
+BucketID EqualWidthHistogram<T>::lower_bound_for_value(const T value) const {
+  if (value < _min) {
+    return 0u;
+  }
+
+  return bucket_for_value(value);
+}
+
+template <typename T>
+BucketID EqualWidthHistogram<T>::upper_bound_for_value(const T value) const {
+  if (value < _min) {
+    return 0u;
+  }
+
+  const auto index = bucket_for_value(value);
+  return index < num_buckets() - 2 ? index + 1 : INVALID_BUCKET_ID;
+}
+
+template <typename T>
 T EqualWidthHistogram<T>::bucket_min(const BucketID index) const {
   DebugAssert(index < this->num_buckets(), "Index is not a valid bucket.");
   const auto base_index = _min + index * bucket_count_distinct(index);
@@ -61,6 +80,11 @@ template <typename T>
 uint64_t EqualWidthHistogram<T>::bucket_count(const BucketID index) const {
   DebugAssert(index < _counts.size(), "Index is not a valid bucket.");
   return _counts[index];
+}
+
+template <typename T>
+uint64_t EqualWidthHistogram<T>::total_count() const {
+  return std::accumulate(_counts.begin(), _counts.end(), 0ul);
 }
 
 template <typename T>
