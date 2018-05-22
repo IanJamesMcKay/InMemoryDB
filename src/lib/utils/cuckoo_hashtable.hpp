@@ -36,7 +36,7 @@ class HashTable : private Noncopyable {
     for (size_t i = 0; i < NUMBER_OF_HASH_FUNCTIONS; i++) {
       auto position = hash<T>(i, value);
       auto element = _hashtables[i][position];
-      if (element.isValid() && value_equal(element.value, value)) {
+      if (element.is_valid() && value_equal(element.value, value)) {
         element.row_ids->push_back(row_id);
         return;
       }
@@ -54,7 +54,7 @@ class HashTable : private Noncopyable {
     for (size_t i = 0; i < NUMBER_OF_HASH_FUNCTIONS; i++) {
       auto position = hash<S>(i, value);
       auto element = _hashtables[i][position];
-      if (element.isValid() && value_equal(element.value, value)) {
+      if (element.is_valid() && value_equal(element.value, value)) {
         return element.row_ids;
       }
     }
@@ -68,7 +68,7 @@ class HashTable : private Noncopyable {
   struct HashElement {
     T value;
     std::shared_ptr<PosList> row_ids;
-    bool isValid() const { return row_ids != nullptr; }
+    bool is_valid() const { return row_ids != nullptr; }
   };
 
   /*
@@ -98,7 +98,7 @@ class HashTable : private Noncopyable {
     auto& hashtable = _hashtables[hash_function];
 
     auto old_element = hashtable[position];
-    if (old_element.isValid()) {
+    if (old_element.is_valid()) {
       hashtable[position] = element;
       place(old_element, (hash_function + 1) % NUMBER_OF_HASH_FUNCTIONS, iterations + 1);
     } else {
