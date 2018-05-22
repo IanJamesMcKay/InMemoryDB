@@ -1,7 +1,7 @@
 #pragma once
 
-#include <array>
 #include <algorithm>
+#include <array>
 #include <memory>
 #include <string>
 #include <utility>
@@ -25,7 +25,7 @@ class HashTable : private Noncopyable {
  public:
   explicit HashTable(size_t input_table_size) : _input_table_size(input_table_size) {
     // prepare internal hash tables and fill with empty elements
-    std::for_each(_hashtables.begin(), _hashtables.end(), [&](auto & vec){ vec.resize(input_table_size); });
+    std::for_each(_hashtables.begin(), _hashtables.end(), [&](auto& vec) { vec.resize(input_table_size); });
   }
 
   /*
@@ -80,7 +80,7 @@ class HashTable : private Noncopyable {
   n: maximum number of times function can be recursively
   called before stopping and declaring presence of cycle
   */
-  void place(const HashElement & element, int hash_function, size_t iterations) {
+  void place(const HashElement& element, int hash_function, size_t iterations) {
     /*
     We were not able to reproduce this case with the current setting (3 hash functions). With 3 hash functions the
     hash table will have a maximum load of 33%, which should be less enough to avoid cycles at all. In theory there

@@ -167,8 +167,7 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
 
   template <typename T>
   std::shared_ptr<Partition<T>> _materialize_input(const std::shared_ptr<const Table> in_table, ColumnID column_id,
-                                                   std::vector<Histogram>& histograms,
-                                                   bool keep_nulls = false) {
+                                                   std::vector<Histogram>& histograms, bool keep_nulls = false) {
     // list of all elements that will be partitioned
     auto elements = std::make_shared<Partition<T>>();
     elements->resize(in_table->row_count());
@@ -270,9 +269,7 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
   template <typename T>
   RadixContainer<T> _partition_radix_parallel(std::shared_ptr<Partition<T>> materialized,
                                               std::shared_ptr<std::vector<size_t>> chunk_offsets,
-                                              std::vector<Histogram>& histograms,
-                                              bool keep_nulls = false) {
-
+                                              std::vector<Histogram>& histograms, bool keep_nulls = false) {
     // currently, we just do one pass
     size_t pass = 0;
     size_t mask = static_cast<uint32_t>(pow(2, _radix_bits * (pass + 1)) - 1);
