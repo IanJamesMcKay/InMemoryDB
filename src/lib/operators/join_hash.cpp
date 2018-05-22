@@ -111,13 +111,16 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
   std::shared_ptr<Table> _output_table;
 
   const unsigned int _partitioning_seed = 13;
-  const size_t _radix_bits = 9;
+  static constexpr size_t _radix_bits = 9;
+  static constexpr size_t _num_partitions = 1 << _radix_bits;
 
   // Determine correct type for hashing
   using HashedType = typename JoinHashTraits<LeftType, RightType>::HashType;
 
   using PosLists = std::vector<std::shared_ptr<const PosList>>;
   using PosListsByColumn = std::vector<std::shared_ptr<PosLists>>;
+
+  using Histogram = std::array<size_t, _num_partitions>;
 
   /*
   This is how elements of the input relations are saved after materialization.
@@ -164,14 +167,11 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
 
   template <typename T>
   std::shared_ptr<Partition<T>> _materialize_input(const std::shared_ptr<const Table> in_table, ColumnID column_id,
-                                                   std::vector<std::shared_ptr<std::vector<size_t>>>& histograms,
+                                                   std::vector<Histogram>& histograms,
                                                    bool keep_nulls = false) {
     // list of all elements that will be partitioned
     auto elements = std::make_shared<Partition<T>>();
     elements->resize(in_table->row_count());
-
-    // fan-out
-    const size_t num_partitions = 1 << _radix_bits;
 
     // currently, we just do one pass
     size_t pass = 0;
@@ -189,7 +189,7 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
     }
 
     // create histograms per chunk
-    histograms = std::vector<std::shared_ptr<std::vector<size_t>>>();
+    histograms = std::vector<Histogram>();
     histograms.resize(chunk_offsets.size());
 
     std::vector<std::shared_ptr<AbstractTask>> jobs;
@@ -202,10 +202,7 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
         auto column = in_table->get_chunk(chunk_id)->get_column(column_id);
         auto& output = static_cast<Partition<T>&>(*elements);
 
-        // prepare histogram
-        histograms[chunk_id] = std::make_shared<std::vector<size_t>>(num_partitions);
-
-        auto& histogram = static_cast<std::vector<size_t>&>(*histograms[chunk_id]);
+        auto& histogram = histograms[chunk_id];
 
         auto materialized_chunk = std::vector<std::pair<RowID, T>>();
 
@@ -273,10 +270,8 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
   template <typename T>
   RadixContainer<T> _partition_radix_parallel(std::shared_ptr<Partition<T>> materialized,
                                               std::shared_ptr<std::vector<size_t>> chunk_offsets,
-                                              std::vector<std::shared_ptr<std::vector<size_t>>>& histograms,
+                                              std::vector<Histogram>& histograms,
                                               bool keep_nulls = false) {
-    // fan-out
-    const size_t num_partitions = 1 << _radix_bits;
 
     // currently, we just do one pass
     size_t pass = 0;
@@ -290,14 +285,14 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
 
     RadixContainer<T> radix_output;
     radix_output.elements = output;
-    radix_output.partition_offsets.resize(num_partitions + 1);
+    radix_output.partition_offsets.resize(_num_partitions + 1);
 
     // use histograms to calculate partition offsets
     for (ChunkID chunk_id{0}; chunk_id < offsets.size(); ++chunk_id) {
       size_t local_sum = 0;
-      auto& histogram = static_cast<std::vector<size_t>&>(*histograms[chunk_id]);
+      auto& histogram = histograms[chunk_id];
 
-      for (size_t partition_id = 0; partition_id < num_partitions; ++partition_id) {
+      for (size_t partition_id = 0; partition_id < _num_partitions; ++partition_id) {
         // update local prefix sum
         local_sum += histogram[partition_id];
         // update output partition offsets
@@ -312,7 +307,7 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
     We now calculate the offsets by adding up the sizes previous partitions.
     */
     size_t offset = 0;
-    for (size_t partition_id = 0; partition_id < num_partitions + 1; ++partition_id) {
+    for (size_t partition_id = 0; partition_id < _num_partitions + 1; ++partition_id) {
       size_t next_offset = offset + radix_output.partition_offsets[partition_id];
       radix_output.partition_offsets[partition_id] = offset;
       offset = next_offset;
@@ -324,18 +319,18 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
     for (ChunkID chunk_id{0}; chunk_id < offsets.size(); ++chunk_id) {
       jobs.emplace_back(std::make_shared<JobTask>([&, chunk_id] {
         // calculate output offsets for each partition
-        auto output_offsets = std::vector<size_t>(num_partitions, 0);
+        auto output_offsets = std::vector<size_t>(_num_partitions, 0);
 
         // add up the output offsets for chunks before this one
         for (ChunkID i{0}; i < chunk_id; ++i) {
-          const auto& histogram = *histograms[i];
-          for (size_t j = 0; j < num_partitions; ++j) {
+          const auto& histogram = histograms[i];
+          for (size_t j = 0; j < _num_partitions; ++j) {
             output_offsets[j] += histogram[j];
           }
         }
         for (auto i = chunk_id; i < offsets.size(); ++i) {
-          const auto& histogram = *histograms[i];
-          for (size_t j = 1; j < num_partitions; ++j) {
+          const auto& histogram = histograms[i];
+          for (size_t j = 1; j < _num_partitions; ++j) {
             output_offsets[j] += histogram[j - 1];
           }
         }
@@ -613,8 +608,8 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
     Timer performance_timer;
 
     // Materialization phase
-    std::vector<std::shared_ptr<std::vector<size_t>>> histograms_left;
-    std::vector<std::shared_ptr<std::vector<size_t>>> histograms_right;
+    std::vector<std::array<size_t, _num_partitions>> histograms_left;
+    std::vector<std::array<size_t, _num_partitions>> histograms_right;
     /*
     NUMA notes:
     The materialized vectors don't have any strong NUMA preference because they haven't been partitioned yet.
