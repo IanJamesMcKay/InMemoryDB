@@ -19,7 +19,7 @@ void JoeConfig::add_options(cxxopts::Options& cli_options_description) {
   // clang-format off
   cli_options_description.add_options()
   ("help", "print this help message")
-  ("e,evaluation-name", "Specify a name for the evaluation. Leave empty and one will be generated based on the current time and date", cxxopts::value<std::string>(evaluation_name)->default_value(""))
+  ("e,evaluation", "Specify a name for the evaluation. Leave empty and one will be generated based on the current time and date", cxxopts::value<std::string>(evaluation_name)->default_value(""))
   ("v,verbose", "Print log messages", cxxopts::value<bool>(verbose)->default_value("true"))
   ("s,scale", "Database scale factor (1.0 ~ 1GB). TPCH only", cxxopts::value<float>(scale_factor)->default_value("0.001"))
   ("m,cost-model", "CostModel to use (all, naive, linear)", cxxopts::value<std::string>(cost_model_str)->default_value(cost_model_str))  // NOLINT
@@ -39,6 +39,7 @@ void JoeConfig::add_options(cxxopts::Options& cli_options_description) {
   ("save-plan-results", "Save measurements per plan", cxxopts::value(save_plan_results)->default_value("true"))  // NOLINT
   ("save-query-iterations-results", "Save measurements per query iterations", cxxopts::value(save_query_iterations_results)->default_value("true"))  // NOLINT
   ("cardinality-estimation-cache-log", "Create logfiles for accesses to the CardinalityEstimationCache", cxxopts::value(cardinality_estimation_cache_log)->default_value("true"))  // NOLINT
+  ("cardinality-estimation-cache-dump", "Store the state of the cardinality estimation Cache", cxxopts::value(cardinality_estimation_cache_dump)->default_value("true"))  // NOLINT
   ("unique-plans", "For each query, execute only plans that were not executed before", cxxopts::value(unique_plans)->default_value("false"))  // NOLINT
   ("force-plan-zero", "Independently of shuffling, always executed the plan the optimizer labeled as best", cxxopts::value(force_plan_zero)->default_value("false"))  // NOLINT
   ("queries", "Specify queries to run, default is all of the workload that are supported", cxxopts::value<std::vector<std::string>>()); // NOLINT
@@ -183,6 +184,13 @@ void JoeConfig::parse(const cxxopts::ParseResult& cli_parse_result) {
     out() << "-- CardinalityEstimationCache logging enabled" << std::endl;
   } else {
     out() << "-- CardinalityEstimationCache logging disabled" << std::endl;
+  }
+
+  // Process "cardinality_estimation_cache_dump" parameter
+  if (cardinality_estimation_cache_dump) {
+    out() << "-- CardinalityEstimationCache dumping enabled" << std::endl;
+  } else {
+    out() << "-- CardinalityEstimationCache dumping disabled" << std::endl;
   }
 
   // Process "unique_plans" parameter

@@ -27,6 +27,8 @@ class CardinalityEstimationCache final {
 
   void set_log(const std::shared_ptr<std::ostream>& log);
 
+  void print(std::ostream& stream) const;
+
   static BaseJoinGraph _normalize(const BaseJoinGraph& join_graph);
   static std::shared_ptr<const AbstractJoinPlanPredicate> _normalize(const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate);
 

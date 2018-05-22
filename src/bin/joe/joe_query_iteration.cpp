@@ -148,7 +148,6 @@ void JoeQueryIteration::run() {
                 config->evaluation_prefix + name + ".Plans.csv");
     }
 
-
     /**
      * Timeout query
      */
@@ -163,10 +162,19 @@ void JoeQueryIteration::run() {
     }
   }
 
+  dump_cardinality_estimation_cache();
+
   /**
    * Reset
    */
   config->cardinality_estimation_cache->reset_distinct_hit_miss_counts();
+}
+
+void JoeQueryIteration::dump_cardinality_estimation_cache() {
+  if (!query.config->cardinality_estimation_cache_dump) return;
+
+  std::ofstream stream{query.config->evaluation_prefix + "CardinalityEstimationCache-" + query.sample.name + ".dump.log"};
+  query.config->cardinality_estimation_cache->print(stream);
 }
 
 }  // namespace opossum

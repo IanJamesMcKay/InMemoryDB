@@ -89,6 +89,22 @@ void CardinalityEstimationCache::set_log(const std::shared_ptr<std::ostream>& lo
   _log = log;
 }
 
+void CardinalityEstimationCache::print(std::ostream& stream) const {
+  stream << "-------------------- ENGAGED ENTRIES ------------------------" << std::endl;
+  for (const auto& pair : _cache) {
+    if (pair.second.cardinality) {
+      stream << pair.first.description() << ": " << *pair.second.cardinality << std::endl;
+    }
+  }
+  stream << std::endl;
+  stream << "------------------- DISENGAGED ENTRIES ------------------------" << std::endl;
+  for (const auto& pair : _cache) {
+    if (!pair.second.cardinality) {
+      stream << pair.first.description() << ": -" << std::endl;
+    }
+  }
+}
+
 BaseJoinGraph CardinalityEstimationCache::_normalize(const BaseJoinGraph& join_graph) {
   auto normalized_join_graph = join_graph;
 

@@ -103,36 +103,29 @@ void SQLQueryPlanVisualizer::_add_operator(const std::shared_ptr<const AbstractO
 
       auto &row_count_info = comparisons.add_sublayout();
       row_count_info.add_label("RowCount");
-      row_count_info.add_label(
-      format_integer(static_cast<size_t>(op->lqp_node()->get_statistics()->row_count())) + " est");
-      row_count_info.add_label("-");
+      if (op->lqp_node()->optimizer_info) {
+        row_count_info.add_label(
+        format_integer(static_cast<size_t>(op->lqp_node()->optimizer_info->estimated_cardinality)) + " est");
+      } else {
+        row_count_info.add_label("-");
+      }
       if (op->get_output()) row_count_info.add_label(format_integer(op->get_output()->row_count()) + " aim");
 
-      if (_cost_model) {
-        auto &cost_info = comparisons.add_sublayout();
-        cost_info.add_label("Cost");
+      auto &cost_info = comparisons.add_sublayout();
+      cost_info.add_label("Cost");
 
-        const auto node_cost = _cost_model->estimate_cost(CostFeatureLQPNodeProxy{op->lqp_node()});
-        if (node_cost > 0) {
-          cost_info.add_label(format_integer(static_cast<int>(node_cost)) + " est");
-        } else {
-          cost_info.add_label("-");
-        }
+      if (op->lqp_node()->optimizer_info) {
+        cost_info.add_label(format_integer(static_cast<int>(op->lqp_node()->optimizer_info->estimated_cost)) + " est");
+      } else {
+        cost_info.add_label("-");
+      }
 
-        const auto op_cost = _cost_model->estimate_cost(CostFeatureOperatorProxy{std::const_pointer_cast<AbstractOperator>(op)});
-        if (op_cost > 0) {
-          cost_info.add_label(format_integer(static_cast<int>(op_cost)) + " re-est");
-        } else {
-          cost_info.add_label("-");
-        }
-
-        const auto target_cost = _cost_model->get_reference_operator_cost(
-        std::const_pointer_cast<AbstractOperator>(op));
-        if (target_cost > 0) {
-          cost_info.add_label(format_integer(static_cast<int>(target_cost)) + " aim");
-        } else {
-          cost_info.add_label("-");
-        }
+      const auto target_cost = _cost_model->get_reference_operator_cost(
+      std::const_pointer_cast<AbstractOperator>(op));
+      if (target_cost > 0) {
+        cost_info.add_label(format_integer(static_cast<int>(target_cost)) + " aim");
+      } else {
+        cost_info.add_label("-");
       }
     }
 

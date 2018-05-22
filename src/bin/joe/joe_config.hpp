@@ -39,6 +39,7 @@ struct JoeConfig final {
   CardinalityEstimationMode cardinality_estimation_mode{CardinalityEstimationMode::ColumnStatistics};
   std::optional<long> cardinality_estimator_execution_timeout{0};
   bool cardinality_estimation_cache_log{true};
+  bool cardinality_estimation_cache_dump{true};
   bool unique_plans{false};
   bool force_plan_zero{false};
   std::string evaluation_name;

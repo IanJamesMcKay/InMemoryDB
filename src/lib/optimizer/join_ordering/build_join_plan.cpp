@@ -84,6 +84,12 @@ void add_predicate(const std::shared_ptr<const AbstractJoinPlanPredicate>& predi
 
   join_plan_node.join_graph.predicates.emplace_back(predicate);
 
+
+  join_plan_node.lqp->optimizer_info = OptimizerInfo{
+  join_plan_node.plan_cost,
+  cardinality_estimator.estimate(join_plan_node.join_graph.vertices, join_plan_node.join_graph.predicates)
+  };
+
 //  Assert(join_plan_node.lqp->get_statistics()->row_count() == cardinality_estimator.estimate(join_plan_node.join_graph.vertices, join_plan_node.join_graph.predicates), "Row counts are diverged");
 //  Assert(cost_lqp(join_plan_node.lqp, cost_model) == join_plan_node.plan_cost, "Costs have diverged!");
 
@@ -181,6 +187,12 @@ JoinPlanNode build_join_plan_join_node(
 
     cost_feature_proxy = CostFeatureGenericProxy::from_join_plan_predicate(primary_join_predicate, left_input.join_graph, right_input.join_graph, cardinality_estimator);
 
+    join_plan_node.lqp->optimizer_info = OptimizerInfo{
+    join_plan_node.plan_cost,
+    cardinality_estimator.estimate(join_plan_node.join_graph.vertices, join_plan_node.join_graph.predicates)
+    };
+
+
     join_plan_node.join_graph.predicates.emplace_back(primary_join_predicate);
   }
 
@@ -198,6 +210,11 @@ JoinPlanNode build_join_plan_join_node(
     add_predicate(predicate, join_plan_node, cost_model, cardinality_estimator);
   }
 
+  join_plan_node.lqp->optimizer_info = OptimizerInfo{
+    join_plan_node.plan_cost,
+    cardinality_estimator.estimate(join_plan_node.join_graph.vertices, join_plan_node.join_graph.predicates)
+  };
+
   return join_plan_node;
 }
 
@@ -213,7 +230,6 @@ JoinPlanNode build_join_plan_vertex_node(
   for (const auto& predicate : predicates) {
     add_predicate(predicate, join_plan_node, cost_model, cardinality_estimator);
   }
-
   return join_plan_node;
 }
 

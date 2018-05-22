@@ -675,6 +675,7 @@ std::shared_ptr<AbstractLQPNode> AbstractLQPNode::_deep_copy(PreviousCopiesMap& 
   // We cannot use the copy constructor here, because it does not work with shared_from_this()
   auto deep_copy = _deep_copy_impl(copied_left_input, copied_right_input);
   deep_copy->_table_alias = _table_alias;
+  deep_copy->optimizer_info = optimizer_info;
   if (copied_left_input) deep_copy->set_left_input(copied_left_input);
   if (copied_right_input) deep_copy->set_right_input(copied_right_input);
 

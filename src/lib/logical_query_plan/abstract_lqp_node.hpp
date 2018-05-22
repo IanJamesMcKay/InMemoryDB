@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "cost_model/cost.hpp"
+#include "statistics/abstract_cardinality_estimator.hpp"
 #include "lqp_column_reference.hpp"
 #include "lqp_expression.hpp"
 #include "types.hpp"
@@ -64,6 +65,11 @@ struct QualifiedColumnName {
 
   std::string column_name;
   std::optional<std::string> table_name = std::nullopt;
+};
+
+struct OptimizerInfo {
+  Cost estimated_cost;
+  Cardinality estimated_cardinality;
 };
 
 /**
@@ -319,6 +325,8 @@ class AbstractLQPNode : public std::enable_shared_from_this<AbstractLQPNode>, pr
   size_t hash() const;
 
   virtual std::string cardinality_estimation_info() const;
+
+  std::optional<OptimizerInfo> optimizer_info;
 
  protected:
   // Holds the actual implementation of deep_copy

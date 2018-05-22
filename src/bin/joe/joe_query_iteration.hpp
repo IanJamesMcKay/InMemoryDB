@@ -26,6 +26,8 @@ class JoeQueryIteration final {
 
   void run();
 
+  void dump_cardinality_estimation_cache();
+
   JoeQuery& query;
 
   JoeQueryIterationSample sample;
