@@ -22,13 +22,20 @@ if __name__ == "__main__":
         file_path = os.path.join(root_directory, file_name)
         c = numpy.genfromtxt(file_path, names=True, delimiter=",")
 
-        if "Duration" not in c.dtype.fields:
+        if "RankZeroPlanExecutionDuration" not in c.dtype.fields:
             print("  Skipping")
             continue
 
-        name = re.match("JOB-([0-9]+[a-z]+)", file_name).group(1)
+        job_match = re.match(".*(JOB-[0-9]+[a-z]+)", file_name)
+        if job_match is None:
+            print("  Skipping")
+            continue
 
-        durations = c["Duration"]
+        name = job_match.group(1)
+
+        durations = c["RankZeroPlanExecutionDuration"]
+
+        print("  {}: {}".format(name, numpy.min(durations)))
 
         result.append((name, numpy.min(durations), numpy.max(durations), numpy.average(durations), numpy.median(durations)))
 
