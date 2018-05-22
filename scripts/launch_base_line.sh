@@ -1,0 +1,1 @@
+./$1/hyriseJoinOrderingEvaluator -e baseline -m linear --dynamic-timeout-plan=false --timeout-query=0 --timeout-plan=0 --max-plan-execution-count=1 --max-plan-generation-count=1 --workload=job --cardinality-estimation=executed --save-query-iterations-results=true --save-plan-results=false --iterations-per-query=5 -- $2
