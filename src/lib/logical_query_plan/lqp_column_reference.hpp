@@ -23,6 +23,8 @@ class LQPColumnReference final {
 
   std::string description() const;
 
+  size_t hash() const;
+
   bool operator==(const LQPColumnReference& rhs) const;
 
  private:

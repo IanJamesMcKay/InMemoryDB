@@ -44,6 +44,18 @@ set(
     import_export/csv_parser.hpp
     import_export/csv_writer.cpp
     import_export/csv_writer.hpp
+    query_block/abstract_query_block.cpp
+    query_block/abstract_query_block.hpp
+    query_block/aggregate_block.cpp
+    query_block/aggregate_block.hpp
+    query_block/query_blocks_from_lqp.cpp
+    query_block/query_blocks_from_lqp.hpp
+    query_block/outer_join_block.cpp
+    query_block/outer_join_block.hpp
+    query_block/predicates_block.cpp
+    query_block/predicates_block.hpp
+    query_block/stored_table_block.cpp
+    query_block/stored_table_block.hpp
     logical_query_plan/abstract_lqp_node.cpp
     logical_query_plan/abstract_lqp_node.hpp
     logical_query_plan/aggregate_node.cpp
