@@ -74,6 +74,9 @@ void JoeConfig::parse(const cxxopts::ParseResult& cli_parse_result) {
     out() << "-- Benchmarking all supported queries of workload" << std::endl;
   }
 
+  // Process "visualize"
+  out() << "-- Visualizing plans " << (visualize ? "enabled" : "disabled") << std::endl;
+
   // Process "timeout-plan/query" parameters
   if (*plan_timeout_seconds <= 0) {
     plan_timeout_seconds.reset();
