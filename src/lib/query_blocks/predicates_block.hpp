@@ -5,6 +5,10 @@
 
 namespace opossum {
 
+/**
+ * Represents a set of Predicates that operate on a set of SubBlocks. The predicates can be either local (only
+ * referencing one SubBlock) or connect multiple SubBlocks with InnerJoin semantics.
+ */
 class PredicateBlock : public AbstractQueryBlock {
  public:
   PredicateBlock();
