@@ -4,6 +4,7 @@
 
 #include "out.hpp"
 #include "write_csv.hpp"
+#include "planviz/join_graph_visualizer.hpp"
 
 namespace opossum {
 
@@ -53,6 +54,27 @@ void JoeQuery::run() {
                 "RankZeroPlanExecutionDuration,BestPlanExecutionDuration,PlanningDuration,CECacheHitCount,CECacheMissCount,CECacheSize,CECacheDistinctHitCount,CECacheDistinctMissCount,RankZeroPlanHash,BestPlanExecutionDuration",
                 config->evaluation_prefix + sample.name + ".Iterations.csv");
     }
+
+    if (config->visualize && !join_graph_visualized) {
+      visualize_join_graph(query_iteration.join_graph);
+      join_graph_visualized = true;
+    }
+  }
+
+}
+
+void JoeQuery::visualize_join_graph(const std::shared_ptr<JoinGraph>& join_graph) {
+  GraphvizConfig graphviz_config;
+  graphviz_config.format = "svg";
+  VizGraphInfo viz_graph_info;
+  viz_graph_info.bg_color = "black";
+
+  try {
+    JoinGraphVisualizer visualizer{graphviz_config, viz_graph_info, {}, {}};
+    visualizer.visualize(join_graph, config->tmp_dot_file_path,
+                         std::string(config->evaluation_dir + "/viz/") + sample.name + "-JoinGraph.svg");
+  } catch (const std::exception &e) {
+    out() << "----- Error while visualizing: " << e.what() << std::endl;
   }
 }
 

@@ -37,6 +37,7 @@ class JoeQueryIteration final {
   std::vector<std::shared_ptr<JoePlan>> plans;
   size_t plans_execution_count{0};
   std::optional<std::chrono::seconds> current_plan_timeout;
+  std::shared_ptr<JoinGraph> join_graph;
 };
 
 }  // namespace opossum

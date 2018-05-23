@@ -42,6 +42,7 @@ struct JoeConfig final {
   bool cardinality_estimation_cache_dump{true};
   bool unique_plans{false};
   bool force_plan_zero{false};
+  bool join_graph_log{true};
   std::string evaluation_name;
 
   /**

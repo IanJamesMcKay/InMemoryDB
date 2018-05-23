@@ -50,7 +50,7 @@ void JoeQueryIteration::run() {
   auto sql_pipeline_statement = SQL{query.sql}.disable_mvcc().pipeline_statement();
   const auto unoptimized_lqp = sql_pipeline_statement.get_unoptimized_logical_plan();
   const auto lqp_root = std::shared_ptr<AbstractLQPNode>(LogicalPlanRootNode::make(unoptimized_lqp));
-  const auto join_graph = JoinGraph::from_lqp(unoptimized_lqp);
+  join_graph = JoinGraph::from_lqp(unoptimized_lqp);
   const auto plan_generation_count = query.config->max_plan_generation_count ? *query.config->max_plan_generation_count : DpSubplanCacheTopK::NO_ENTRY_LIMIT;
   DpCcpTopK dp_ccp_top_k{plan_generation_count, query.config->cost_model, query.config->main_cardinality_estimator};
   dp_ccp_top_k(join_graph);

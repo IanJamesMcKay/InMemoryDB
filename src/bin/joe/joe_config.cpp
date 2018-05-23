@@ -40,6 +40,7 @@ void JoeConfig::add_options(cxxopts::Options& cli_options_description) {
   ("save-query-iterations-results", "Save measurements per query iterations", cxxopts::value(save_query_iterations_results)->default_value("true"))  // NOLINT
   ("cardinality-estimation-cache-log", "Create logfiles for accesses to the CardinalityEstimationCache", cxxopts::value(cardinality_estimation_cache_log)->default_value("true"))  // NOLINT
   ("cardinality-estimation-cache-dump", "Store the state of the cardinality estimation Cache", cxxopts::value(cardinality_estimation_cache_dump)->default_value("true"))  // NOLINT
+  ("join-graph-log", "For each query, create a logfile with the join graph", cxxopts::value(join_graph_log)->default_value("true"))  // NOLINT
   ("unique-plans", "For each query, execute only plans that were not executed before", cxxopts::value(unique_plans)->default_value("false"))  // NOLINT
   ("force-plan-zero", "Independently of shuffling, always executed the plan the optimizer labeled as best", cxxopts::value(force_plan_zero)->default_value("false"))  // NOLINT
   ("queries", "Specify queries to run, default is all of the workload that are supported", cxxopts::value<std::vector<std::string>>()); // NOLINT
@@ -76,6 +77,9 @@ void JoeConfig::parse(const cxxopts::ParseResult& cli_parse_result) {
 
   // Process "visualize"
   out() << "-- Visualizing plans " << (visualize ? "enabled" : "disabled") << std::endl;
+  
+  // Process "join_graph_log"
+  out() << "-- Logging JoinGraphs " << (join_graph_log ? "enabled" : "disabled") << std::endl;
 
   // Process "timeout-plan/query" parameters
   if (*plan_timeout_seconds <= 0) {

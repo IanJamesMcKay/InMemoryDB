@@ -18,11 +18,14 @@ class JoeQuery final {
 
   void run();
 
+  void visualize_join_graph(const std::shared_ptr<JoinGraph>& join_graph);
+
   std::shared_ptr<JoeConfig> config;
   std::string sql;
 
   std::chrono::steady_clock::time_point execution_begin;
   bool save_plan_results{false};
+  bool join_graph_visualized{false};
   std::unordered_set<std::shared_ptr<AbstractLQPNode>, LQPHash, LQPEqual> executed_plans;
 
   std::vector<JoeQueryIteration> query_iterations;
