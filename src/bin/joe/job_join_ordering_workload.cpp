@@ -6,7 +6,8 @@ using namespace std::string_literals;  // NOLINT
 
 namespace opossum {
 
-JobWorkload::JobWorkload(const std::optional<std::vector<std::string>>& query_names)
+JobWorkload::JobWorkload(const std::optional<std::vector<std::string>>& query_names, const std::string& imdb_dir, const std::string& job_dir):
+  _imdb_dir(imdb_dir), _job_dir(job_dir)
 {
   if (query_names) {
     _query_names = *query_names;
@@ -94,7 +95,7 @@ void JobWorkload::setup() {
   "title"
   };
 
-  const auto csvs_path = "/home/Moritz.Eyssen/imdb/csv/";
+  const auto csvs_path = _imdb_dir + "/";
 
   for (const auto& table_name : table_names) {
     const auto table_csv_path = csvs_path + table_name + ".csv";
@@ -159,7 +160,7 @@ size_t JobWorkload::query_count() const {
 }
 
 std::string JobWorkload::get_query(const size_t query_idx) const {
-  auto query_file_directory = std::string{"/home/Moritz.Eyssen/hyrise/third_party/join-order-benchmark/"};
+  auto query_file_directory = _job_dir + "/";
 
   const auto query_file_path = query_file_directory + _query_names[query_idx] + ".sql";
 

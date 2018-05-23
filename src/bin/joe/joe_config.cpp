@@ -19,17 +19,19 @@ void JoeConfig::add_options(cxxopts::Options& cli_options_description) {
   // clang-format off
   cli_options_description.add_options()
   ("help", "print this help message")
-  ("e,evaluation", "Specify a name for the evaluation. Leave empty and one will be generated based on the current time and date", cxxopts::value<std::string>(evaluation_name)->default_value(""))
-  ("v,verbose", "Print log messages", cxxopts::value<bool>(verbose)->default_value("true"))
-  ("s,scale", "Database scale factor (1.0 ~ 1GB). TPCH only", cxxopts::value<float>(scale_factor)->default_value("0.001"))
-  ("m,cost-model", "CostModel to use (all, naive, linear)", cxxopts::value<std::string>(cost_model_str)->default_value(cost_model_str))  // NOLINT
+  ("evaluation", "Specify a name for the evaluation. Leave empty and one will be generated based on the current time and date", cxxopts::value<std::string>(evaluation_name)->default_value(""))
+  ("verbose", "Print log messages", cxxopts::value<bool>(verbose)->default_value("true"))
+  ("scale", "Database scale factor (1.0 ~ 1GB). TPCH only", cxxopts::value<float>(scale_factor)->default_value("0.001"))
+  ("cost-model", "CostModel to use (all, naive, linear)", cxxopts::value<std::string>(cost_model_str)->default_value(cost_model_str))  // NOLINT
   ("timeout-plan", "Timeout per plan, in seconds. Default: 120", cxxopts::value<long>(*plan_timeout_seconds)->default_value("120"))  // NOLINT
   ("dynamic-timeout-plan", "If active, lower timeout to current fastest plan.", cxxopts::value<bool>(dynamic_plan_timeout_enabled)->default_value("true"))  // NOLINT
   ("timeout-query", "Timeout per plan, in seconds. Default: 1800", cxxopts::value<long>(*query_timeout_seconds)->default_value("1800"))  // NOLINT
   ("max-plan-execution-count", "Maximum number of plans per query to execute. Default: 100", cxxopts::value<size_t>(*max_plan_execution_count)->default_value("100"))  // NOLINT
   ("max-plan-generation-count", "Maximum number of plans to generate. Default: 100", cxxopts::value<size_t>(*max_plan_generation_count)->default_value("100"))  // NOLINT
   ("visualize", "Visualize every query plan", cxxopts::value<bool>(visualize)->default_value("false"))  // NOLINT
-  ("w,workload", "Workload to run (tpch, job). Default: tpch", cxxopts::value(workload_str)->default_value(workload_str))  // NOLINT
+  ("workload", "Workload to run (tpch, job). Default: tpch", cxxopts::value(workload_str)->default_value(workload_str))  // NOLINT
+  ("imdb-dir", "Location of the JOB data", cxxopts::value(imdb_dir)->default_value(imdb_dir))  // NOLINT
+  ("job-dir", "Location of the JOB queries", cxxopts::value(job_dir)->default_value(job_dir))  // NOLINT
   ("save-results", "Save head of result tables.", cxxopts::value(save_results)->default_value("true"))  // NOLINT
   ("shuffle-idx", "Shuffle plan order from this index on, 0 to disable", cxxopts::value(*plan_order_shuffling)->default_value("0"))  // NOLINT
   ("iterations-per-query", "Number of times to execute/optimize each query", cxxopts::value(iterations_per_query)->default_value("1"))  // NOLINT
@@ -77,7 +79,7 @@ void JoeConfig::parse(const cxxopts::ParseResult& cli_parse_result) {
 
   // Process "visualize"
   out() << "-- Visualizing plans " << (visualize ? "enabled" : "disabled") << std::endl;
-  
+
   // Process "join_graph_log"
   out() << "-- Logging JoinGraphs " << (join_graph_log ? "enabled" : "disabled") << std::endl;
 
@@ -212,6 +214,7 @@ void JoeConfig::parse(const cxxopts::ParseResult& cli_parse_result) {
     out() << "-- Always executing plan at rank #0" <<std::endl;
   }
 
+
   // Process "workload" parameter
   if (workload_str == "tpch") {
     out() << "-- Using TPCH workload" << std::endl;
@@ -225,10 +228,13 @@ void JoeConfig::parse(const cxxopts::ParseResult& cli_parse_result) {
     workload = std::make_shared<TpchJoinOrderingWorkload>(scale_factor, query_ids);
   } else if (workload_str == "job") {
     out() << "-- Using Join Order Benchmark workload" << std::endl;
-    workload = std::make_shared<JobWorkload>(query_name_strs);
+    out() << "-- Loading IMDB from '" << imdb_dir << "'" << std::endl;
+    out() << "-- Loading JOB from '" << job_dir << "'" << std::endl;
+    workload = std::make_shared<JobWorkload>(query_name_strs, imdb_dir, job_dir);
   } else {
     Fail("Unknown workload");
   }
+
 }
 
 void JoeConfig::setup() {

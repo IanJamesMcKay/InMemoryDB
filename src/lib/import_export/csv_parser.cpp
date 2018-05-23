@@ -104,7 +104,7 @@ std::shared_ptr<Table> CsvParser::_create_table_from_meta() {
 bool CsvParser::_find_fields_in_chunk(std::string_view csv_content, const Table& table,
                                       std::vector<size_t>& field_ends) {
   field_ends.clear();
-  if (csv_content.empty()) {
+  if (csv_content.empty() || csv_content == "\n") {
     return false;
   }
 

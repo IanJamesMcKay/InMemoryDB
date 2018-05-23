@@ -21,6 +21,8 @@ struct JoeConfig final {
   std::string cost_model_str = "linear";
   std::string workload_str = "tpch";
   std::string cardinality_estimation_str = "cached";
+  std::string imdb_dir = "";
+  std::string job_dir = "";
   float scale_factor = 0.1f;
   bool visualize = false;
   std::optional<long> plan_timeout_seconds = std::optional<long>{0};

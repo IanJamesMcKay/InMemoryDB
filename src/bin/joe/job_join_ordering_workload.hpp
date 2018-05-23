@@ -60,7 +60,7 @@ namespace opossum {
 
 class JobWorkload : public AbstractJoinOrderingWorkload {
  public:
-  explicit JobWorkload(const std::optional<std::vector<std::string>>& query_names);
+  explicit JobWorkload(const std::optional<std::vector<std::string>>& query_names, const std::string& imdb_dir, const std::string& job_dir);
 
   void setup() override;
   size_t query_count() const override;
@@ -68,6 +68,7 @@ class JobWorkload : public AbstractJoinOrderingWorkload {
   std::string get_query_name(const size_t query_idx) const override;
 
  private:
+  std::string _imdb_dir, _job_dir;
   std::vector<std::string> _query_names;
 };
 
