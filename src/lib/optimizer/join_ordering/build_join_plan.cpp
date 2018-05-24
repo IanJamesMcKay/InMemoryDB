@@ -76,7 +76,8 @@ void add_predicate(const std::shared_ptr<const AbstractJoinPlanPredicate>& predi
 //  std::cout << "/Before" << std::endl;
 
   join_plan_node.lqp = build_lqp_for_predicate(*predicate, join_plan_node.lqp);
-  join_plan_node.plan_cost += cost_predicate(predicate, join_plan_node.join_graph, cost_model, cardinality_estimator);
+  const auto predicate_cost = cost_predicate(predicate, join_plan_node.join_graph, cost_model, cardinality_estimator);
+  join_plan_node.plan_cost += predicate_cost;
 
 //  std::cout << "After" << std::endl;
 //  join_plan_node.lqp->print();
@@ -86,7 +87,7 @@ void add_predicate(const std::shared_ptr<const AbstractJoinPlanPredicate>& predi
 
 
   join_plan_node.lqp->optimizer_info = OptimizerInfo{
-    join_plan_node.plan_cost,
+      predicate_cost,
     cardinality_estimator.estimate(join_plan_node.join_graph.vertices, join_plan_node.join_graph.predicates)
   };
 
@@ -188,14 +189,15 @@ JoinPlanNode build_join_plan_join_node(
     cost_feature_proxy = CostFeatureGenericProxy::from_join_plan_predicate(primary_join_predicate, left_input.join_graph, right_input.join_graph, cardinality_estimator);
 
     join_plan_node.join_graph.predicates.emplace_back(primary_join_predicate);
-
-    join_plan_node.lqp->optimizer_info = OptimizerInfo{
-      join_plan_node.plan_cost,
-      cardinality_estimator.estimate(join_plan_node.join_graph.vertices, join_plan_node.join_graph.predicates)
-    };
   }
 
-  join_plan_node.plan_cost += cost_model.estimate_cost(cost_feature_proxy);
+  const auto predicate_cost = cost_model.estimate_cost(cost_feature_proxy);
+  join_plan_node.plan_cost += predicate_cost;
+
+  join_plan_node.lqp->optimizer_info = OptimizerInfo{
+      predicate_cost,
+      cardinality_estimator.estimate(join_plan_node.join_graph.vertices, join_plan_node.join_graph.predicates)
+  };
 
 //  join_plan_node.lqp->print();
 
@@ -208,11 +210,6 @@ JoinPlanNode build_join_plan_join_node(
   for (const auto& predicate : secondary_predicates) {
     add_predicate(predicate, join_plan_node, cost_model, cardinality_estimator);
   }
-
-  join_plan_node.lqp->optimizer_info = OptimizerInfo{
-    join_plan_node.plan_cost,
-    cardinality_estimator.estimate(join_plan_node.join_graph.vertices, join_plan_node.join_graph.predicates)
-  };
 
   return join_plan_node;
 }
