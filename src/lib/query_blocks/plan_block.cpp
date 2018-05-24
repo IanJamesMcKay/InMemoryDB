@@ -2,8 +2,8 @@
 
 namespace opossum {
 
-PlanBlock::PlanBlock(const std::shared_ptr<AbstractLQPNode>& lqp):
-  AbstractQueryBlock(QueryBlockType::Plan, {}), lqp(lqp) {}
+PlanBlock::PlanBlock(const std::shared_ptr<AbstractLQPNode>& lqp, const std::shared_ptr<AbstractQueryBlock>& input):
+  AbstractQueryBlock(QueryBlockType::Plan, {input}), lqp(lqp) {}
 
 size_t PlanBlock::_shallow_hash_impl() const {
   return lqp->hash();

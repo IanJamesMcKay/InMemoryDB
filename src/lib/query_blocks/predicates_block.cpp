@@ -11,6 +11,11 @@ PredicateBlock::PredicateBlock(const std::vector<std::shared_ptr<AbstractQueryBl
                const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates):
   AbstractQueryBlock(QueryBlockType::Predicates, sub_blocks), predicates(predicates) {
 
+  // We need those expressions sorted, so the hash becomes unique
+  auto& mutable_column_expression = const_cast<std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>&>(this->predicates);
+  std::sort(mutable_column_expression.begin(), mutable_column_expression.end(), [](const auto& lhs, const auto& rhs) {
+    return lhs->hash() < rhs->hash();
+  });
 }
 
 size_t PredicateBlock::_shallow_hash_impl() const {

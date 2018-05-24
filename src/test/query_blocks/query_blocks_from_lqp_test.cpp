@@ -31,6 +31,16 @@ class QueryBlocksFromLQPTest : public ::testing::Test {
     int_float2_b = int_float2->get_column("b"s);
   }
 
+  bool has_stored_table_sub_block(const std::shared_ptr<AbstractQueryBlock>& query_block,
+                     const std::shared_ptr<StoredTableNode>& node) const {
+    for (const auto& sub_block : query_block->sub_blocks) {
+      if (sub_block->type != QueryBlockType::StoredTable) continue;
+      const auto stored_table_block = std::static_pointer_cast<StoredTableBlock>(sub_block);
+      if (stored_table_block->node == node) return true;
+    }
+    return false;
+  }
+
   std::shared_ptr<StoredTableNode> int_float, int_float2;
   LQPColumnReference int_float_a, int_float_b, int_float2_a, int_float2_b;
 };
@@ -50,15 +60,12 @@ TEST_F(QueryBlocksFromLQPTest, InnerJoinSimple) {
   ASSERT_TRUE(predicate_a);
   EXPECT_EQ(predicate_a->predicate_condition, PredicateCondition::Equals);
   EXPECT_EQ(predicate_a->left_operand, int_float_a);
-  EXPECT_EQ(predicate_a->right_operand, AllParameterVariant(int_float_b));
+  EXPECT_EQ(predicate_a->right_operand, AllParameterVariant(int_float2_a));
 
-  ASSERT_EQ(predicates_block->sub_blocks.size(), 2u);
-  const auto stored_table_block_a = std::dynamic_pointer_cast<StoredTableBlock>(predicates_block->sub_blocks.at(0));
-  ASSERT_TRUE(stored_table_block_a);
-  EXPECT_EQ(stored_table_block_a->stored_table_node, int_float);
-  const auto stored_table_block_b = std::dynamic_pointer_cast<StoredTableBlock>(predicates_block->sub_blocks.at(1));
-  ASSERT_TRUE(stored_table_block_b);
-  EXPECT_EQ(stored_table_block_b->stored_table_node, int_float2);
+  // Test StoredTableNodes - NOTE that the order is dependant on the hash function and we therefore can't test it
+  EXPECT_EQ(predicates_block->sub_blocks.size(), 2u);
+  EXPECT_TRUE(has_stored_table_sub_block(predicates_block, int_float));
+  EXPECT_TRUE(has_stored_table_sub_block(predicates_block, int_float2));
 }
 
 }  // namespace opossum

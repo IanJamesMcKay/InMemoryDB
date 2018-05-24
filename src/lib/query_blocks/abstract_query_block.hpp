@@ -18,7 +18,7 @@ class AbstractQueryBlock {
 
   virtual ~AbstractQueryBlock() = default;
 
-  size_t deep_hash() const;
+  size_t hash() const;
   bool deep_equals(const AbstractQueryBlock& rhs) const;
 
   const QueryBlockType type;

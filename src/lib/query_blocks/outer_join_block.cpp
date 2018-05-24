@@ -1,28 +1,24 @@
 #include "outer_join_block.hpp"
 
+#include "logical_query_plan/join_node.hpp"
 #include "utils/assert.hpp"
 
 namespace opossum {
 
-OuterJoinBlock::OuterJoinBlock(const JoinMode join_mode,
-               const std::shared_ptr<AbstractJoinPlanPredicate>& predicate,
+OuterJoinBlock::OuterJoinBlock(const std::shared_ptr<JoinNode>& join_node,
                const std::shared_ptr<AbstractQueryBlock>& left_input,
                const std::shared_ptr<AbstractQueryBlock>& right_input):
-  AbstractQueryBlock(QueryBlockType::OuterJoin, {left_input, right_input}), join_mode(join_mode), predicate(predicate) {
-
+  AbstractQueryBlock(QueryBlockType::OuterJoin, {left_input, right_input}), join_node(join_node) {
+  Assert(join_node->join_mode() == JoinMode::Outer || join_node->join_mode() == JoinMode::Left || join_node->join_mode() == JoinMode::Right, "Not an outer join");
 }
 
 size_t OuterJoinBlock::_shallow_hash_impl() const {
-  auto hash = boost::hash_value(static_cast<std::underlying_type_t<JoinMode>>(join_mode));
-  boost::hash_combine(hash, predicate->hash());
-  return hash;
+  return join_node->hash();
 }
 
 bool OuterJoinBlock::_shallow_deep_equals_impl(const AbstractQueryBlock& rhs) const {
   const auto outer_join_block_rhs = static_cast<const OuterJoinBlock&>(rhs);
-
-  // TODO(moritz) replace with proper equality check
-  return join_mode == outer_join_block_rhs.join_mode && predicate->hash() == outer_join_block_rhs.predicate->hash();
+  return join_node->shallow_equals(*outer_join_block_rhs.join_node);
 }
 
 }  // namespace opossum

@@ -12,9 +12,9 @@ namespace opossum {
  */
 class StoredTableBlock : public AbstractQueryBlock {
  public:
-  explicit StoredTableBlock(const std::shared_ptr<StoredTableNode>& stored_table_node);
+  explicit StoredTableBlock(const std::shared_ptr<AbstractLQPNode>& node);
 
-  const std::shared_ptr<StoredTableNode> stored_table_node;
+  const std::shared_ptr<AbstractLQPNode> node;
 
  protected:
   size_t _shallow_hash_impl() const override;

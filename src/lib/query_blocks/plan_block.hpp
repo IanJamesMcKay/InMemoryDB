@@ -11,7 +11,7 @@ namespace opossum {
  */
 class PlanBlock : public AbstractQueryBlock {
  public:
-  PlanBlock(const std::shared_ptr<AbstractLQPNode>& lqp);
+  PlanBlock(const std::shared_ptr<AbstractLQPNode>& lqp, const std::shared_ptr<AbstractQueryBlock>& input);
 
   std::shared_ptr<AbstractLQPNode> lqp;
 

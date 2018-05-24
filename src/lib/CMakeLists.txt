@@ -46,10 +46,6 @@ set(
     import_export/csv_writer.hpp
     query_blocks/abstract_query_block.cpp
     query_blocks/abstract_query_block.hpp
-    query_blocks/aggregate_block.cpp
-    query_blocks/aggregate_block.hpp
-    query_blocks/finalizing_block.cpp
-    query_blocks/finalizing_block.hpp
     query_blocks/query_blocks_from_lqp.cpp
     query_blocks/query_blocks_from_lqp.hpp
     query_blocks/outer_join_block.cpp

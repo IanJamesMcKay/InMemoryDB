@@ -7,7 +7,7 @@
 #include "query_blocks/predicates_block.hpp"
 #include "query_blocks/stored_table_block.hpp"
 #include "query_blocks/outer_join_block.hpp"
-#include "query_blocks/aggregate_block.hpp"
+#include "query_blocks/plan_block.hpp"
 #include "utils/assert.hpp"
 
 namespace {
@@ -195,20 +195,35 @@ std::shared_ptr<PredicateBlock> build_predicate_block(const std::shared_ptr<Abst
   return std::make_shared<PredicateBlock>(sub_blocks, predicates);
 }
 
-std::shared_ptr<PredicateBlock> build_outer_join_block(const std::shared_ptr<AbstractLQPNode>& lqp) {
-  return {};
+std::shared_ptr<OuterJoinBlock> build_outer_join_block(const std::shared_ptr<AbstractLQPNode>& lqp) {
+  const auto join_node = std::static_pointer_cast<JoinNode>(lqp);
+  const auto left_input_block = query_blocks_from_lqp(join_node->left_input());
+  const auto right_input_block = query_blocks_from_lqp(join_node->right_input());
+  join_node->set_left_input(nullptr);
+  join_node->set_right_input(nullptr);
+  return std::make_shared<OuterJoinBlock>(join_node, left_input_block, right_input_block);
 }
 
-std::shared_ptr<PredicateBlock> build_aggregate_block(const std::shared_ptr<AbstractLQPNode>& lqp) {
-  return {};
+std::shared_ptr<PlanBlock> build_plan_block(const std::shared_ptr<AbstractLQPNode>& lqp) {
+  auto current_node = lqp;
+
+  while (true) {
+    Assert(current_node->left_input() && !current_node->right_input(), "LQP has unexpected node");
+
+    switch (current_node->left_input()->type()) {
+      case LQPNodeType::Aggregate: case LQPNodeType::Projection: case LQPNodeType::Sort:
+        break;
+      default:
+        current_node->set_left_input(nullptr);
+        return std::make_shared<PlanBlock>(lqp, query_blocks_from_lqp(current_node->left_input()));
+    }
+
+    current_node = current_node->left_input();
+  }
 }
 
-std::shared_ptr<PredicateBlock> build_stored_table_block(const std::shared_ptr<AbstractLQPNode>& lqp) {
-  return {};
-}
-
-std::shared_ptr<PredicateBlock> build_finalizing_block(const std::shared_ptr<AbstractLQPNode>& lqp) {
-  return {};
+std::shared_ptr<StoredTableBlock> build_stored_table_block(const std::shared_ptr<AbstractLQPNode>& lqp) {
+  return std::make_shared<StoredTableBlock>(std::static_pointer_cast<StoredTableNode>(lqp));
 }
 
 }  // namespace
@@ -228,13 +243,13 @@ std::shared_ptr<AbstractQueryBlock> query_blocks_from_lqp(const std::shared_ptr<
           return build_outer_join_block(lqp);
       }
     }
-    case LQPNodeType::Sort: case LQPNodeType::Projection: case LQPNodeType::Limit: return build_finalizing_block(lqp);
+    case LQPNodeType::Sort: case LQPNodeType::Projection: case LQPNodeType::Limit: return build_plan_block(lqp);
     case LQPNodeType::StoredTable: return build_stored_table_block(lqp);
-    case LQPNodeType::Aggregate: return build_aggregate_block(lqp);
+    case LQPNodeType::Aggregate: return build_plan_block(lqp);
+
     case LQPNodeType::Validate:
       Assert(lqp->left_input() && !lqp->right_input(), "Validate is expected to have a left input")
       return query_blocks_from_lqp(lqp->left_input());
-
 
     default:
       Fail("Couldn't turn LQP into QueryBlock");

@@ -8,13 +8,11 @@ namespace opossum {
 
 class OuterJoinBlock : public AbstractQueryBlock {
  public:
-  OuterJoinBlock(const JoinMode join_mode,
-                 const std::shared_ptr<AbstractJoinPlanPredicate>& predicate,
+  OuterJoinBlock(const std::shared_ptr<JoinNode>& join_node,
                  const std::shared_ptr<AbstractQueryBlock>& left_input,
                  const std::shared_ptr<AbstractQueryBlock>& right_input);
 
-  const JoinMode join_mode;
-  const std::shared_ptr<AbstractJoinPlanPredicate> predicate;
+  const std::shared_ptr<JoinNode> join_node;
 
  protected:
   size_t _shallow_hash_impl() const override;

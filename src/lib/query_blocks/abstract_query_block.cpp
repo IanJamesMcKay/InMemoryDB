@@ -5,14 +5,22 @@
 namespace opossum {
 
 AbstractQueryBlock::AbstractQueryBlock(const QueryBlockType type, const std::vector<std::shared_ptr<AbstractQueryBlock>>& sub_blocks):
-  type(type), sub_blocks(sub_blocks) {}
+  type(type), sub_blocks(sub_blocks) {
 
-size_t AbstractQueryBlock::deep_hash() const {
+  // We need those sub blocks sorted, so the hash becomes unique
+  auto& mutable_sub_blocks = const_cast<std::vector<std::shared_ptr<AbstractQueryBlock>>&>(this->sub_blocks);
+  std::sort(mutable_sub_blocks.begin(), mutable_sub_blocks.end(), [](const auto& lhs, const auto& rhs) {
+    return lhs->hash() < rhs->hash();
+  });
+
+}
+
+size_t AbstractQueryBlock::hash() const {
   auto hash = boost::hash_value(static_cast<std::underlying_type_t<QueryBlockType>>(type));
   boost::hash_combine(hash, _shallow_hash_impl());
 
   for (const auto& sub_block : sub_blocks) {
-    boost::hash_combine(hash, sub_block->deep_hash());
+    boost::hash_combine(hash, sub_block->hash());
   }
 
   return hash;
