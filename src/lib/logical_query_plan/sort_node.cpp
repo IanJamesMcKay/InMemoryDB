@@ -14,6 +14,10 @@ namespace opossum {
 OrderByDefinition::OrderByDefinition(const LQPColumnReference& column_reference, const OrderByMode order_by_mode)
     : column_reference(column_reference), order_by_mode(order_by_mode) {}
 
+bool OrderByDefinition::operator==(const OrderByDefinition& rhs) const {
+  return column_reference == rhs.column_reference && order_by_mode == rhs.order_by_mode;
+}
+
 SortNode::SortNode(const OrderByDefinitions& order_by_definitions)
     : AbstractLQPNode(LQPNodeType::Sort), _order_by_definitions(order_by_definitions) {}
 

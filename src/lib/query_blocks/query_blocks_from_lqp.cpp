@@ -12,30 +12,31 @@ namespace {
 
 using namespace opossum;
 
-void traverse_for_predicates(const std::shared_ptr<AbstractLQPNode>& lqp,
-                             std::vector<std::shared_ptr<AbstractQueryBlock>>& sub_blocks,
-                             std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates) {
-
-}
-
-std::shared_ptr<PredicateBlock> build_predicate_block(const std::shared_ptr<AbstractLQPNode>& lqp) {
-  std::vector<std::shared_ptr<AbstractQueryBlock>> sub_blocks;
-  std::vector<std::shared_ptr<AbstractJoinPlanPredicate>> predicates;
-
-  traverse_for_predicates(lqp, sub_blocks, predicates);
-
-  return std::make_shared<PredicateBlock>(sub_blocks, predicates);
-}
+//void traverse_for_predicates(const std::shared_ptr<AbstractLQPNode>& lqp,
+//                             std::vector<std::shared_ptr<AbstractQueryBlock>>& sub_blocks,
+//                             std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates) {
+//
+//}
+//
+//std::shared_ptr<PredicateBlock> build_predicate_block(const std::shared_ptr<AbstractLQPNode>& lqp) {
+//  std::vector<std::shared_ptr<AbstractQueryBlock>> sub_blocks;
+//  std::vector<std::shared_ptr<AbstractJoinPlanPredicate>> predicates;
+//
+//  traverse_for_predicates(lqp, sub_blocks, predicates);
+//
+//  return std::make_shared<PredicateBlock>(sub_blocks, predicates);
+//}
 
 }  // namespace
 
 namespace opossum {
 
 std::shared_ptr<AbstractQueryBlock> query_blocks_from_lqp(const std::shared_ptr<AbstractLQPNode>& lqp) {
-  switch (lqp->type()) {
-    case LQPNodeType::Predicate:
-      build_predicate_block(lqp);
-  }
+//  switch (lqp->type()) {
+//    case LQPNodeType::Predicate:
+//      build_predicate_block(lqp);
+//  }
+  return {};
 }
 
 }  // namespace opossum

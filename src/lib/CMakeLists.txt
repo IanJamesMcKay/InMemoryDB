@@ -48,10 +48,14 @@ set(
     query_blocks/abstract_query_block.hpp
     query_blocks/aggregate_block.cpp
     query_blocks/aggregate_block.hpp
+    query_blocks/finalizing_block.cpp
+    query_blocks/finalizing_block.hpp
     query_blocks/query_blocks_from_lqp.cpp
     query_blocks/query_blocks_from_lqp.hpp
     query_blocks/outer_join_block.cpp
     query_blocks/outer_join_block.hpp
+    query_blocks/plan_block.cpp
+    query_blocks/plan_block.hpp
     query_blocks/predicates_block.cpp
     query_blocks/predicates_block.hpp
     query_blocks/stored_table_block.cpp

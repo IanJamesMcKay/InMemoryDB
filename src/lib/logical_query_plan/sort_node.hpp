@@ -16,6 +16,8 @@ namespace opossum {
 struct OrderByDefinition {
   OrderByDefinition(const LQPColumnReference& column_reference, const OrderByMode order_by_mode);
 
+  bool operator==(const OrderByDefinition& rhs) const;
+
   LQPColumnReference column_reference;
   OrderByMode order_by_mode;
 };

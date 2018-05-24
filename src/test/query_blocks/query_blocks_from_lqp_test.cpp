@@ -12,6 +12,8 @@
 #include "utils/load_table.hpp"
 #include "storage/storage_manager.hpp"
 
+using namespace std::string_literals;
+
 namespace opossum {
 
 class QueryBlocksFromLQPTest : public ::testing::Test {
