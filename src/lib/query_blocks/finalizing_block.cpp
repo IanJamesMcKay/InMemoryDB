@@ -5,9 +5,15 @@
 namespace opossum {
 
 FinalizingBlock::FinalizingBlock(const std::vector<std::shared_ptr<LQPExpression>>& column_expressions,
-                const OrderByDefinitions& order_by_definitions, const std::shared_ptr<AbstractQueryBlock>& input):
-  AbstractQueryBlock(QueryBlockType::Finalizing, {input}), column_expressions(column_expressions), order_by_definitions(order_by_definitions) {
+                const OrderByDefinitions& order_by_definitions,
+const std::optional<size_t>& limit,const std::shared_ptr<AbstractQueryBlock>& input):
+  AbstractQueryBlock(QueryBlockType::Finalizing, {input}), column_expressions(column_expressions), order_by_definitions(order_by_definitions), limit(limit) {
 
+  // We need thos expressions sorted, so the hash becomes unique
+  auto& mutable_column_expression = const_cast<std::vector<std::shared_ptr<LQPExpression>>&>(column_expressions);
+  std::sort(mutable_column_expression.begin(), mutable_column_expression.end(), [](const auto& lhs, const auto& rhs) {
+    return lhs->hash() < rhs->hash();
+  });
 }
 
 size_t FinalizingBlock::_shallow_hash_impl() const {
@@ -19,6 +25,9 @@ size_t FinalizingBlock::_shallow_hash_impl() const {
     boost::hash_combine(hash, order_by_definition.column_reference.hash());
     boost::hash_combine(hash, static_cast<std::underlying_type_t<OrderByMode>>(order_by_definition.order_by_mode));
   }
+  boost::hash_combine(hash, limit.has_value());
+  boost::hash_combine(hash, limit.value_or(0));
+
   return hash;
 }
 
