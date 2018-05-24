@@ -32,6 +32,7 @@ class EqualHeightHistogram : public AbstractHistogram<T> {
 
  private:
   std::vector<T> _maxs;
+  std::vector<uint64_t> _distinct_counts;
   T _min;
   uint64_t _count_per_bucket;
 };

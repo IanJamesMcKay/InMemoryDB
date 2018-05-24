@@ -64,12 +64,22 @@ T EqualHeightHistogram<T>::bucket_min(const BucketID index) const {
   }
 
   // Otherwise it is the value just after the maximum of the previous bucket.
-  return this->bucket_max(index - 1) + 1;
+  if constexpr (std::is_integral_v<T>) {
+    return this->bucket_max(index - 1) + 1;
+  }
+
+  if constexpr (std::is_floating_point_v<T>) {
+    const auto previous_max = this->bucket_max(index - 1);
+    return std::nextafter(previous_max, previous_max + 1);
+  }
+
+  // TODO(tim): support strings
+  Fail("Histogram type not yet supported.");
 }
 
 template <typename T>
 T EqualHeightHistogram<T>::bucket_max(const BucketID index) const {
-  DebugAssert(index < this->num_buckets(), "Index is not a valid bucket.");
+  DebugAssert(index < _maxs.size(), "Index is not a valid bucket.");
   return _maxs[index];
 }
 
@@ -81,8 +91,8 @@ uint64_t EqualHeightHistogram<T>::bucket_count(const BucketID index) const {
 
 template <typename T>
 uint64_t EqualHeightHistogram<T>::bucket_count_distinct(const BucketID index) const {
-  DebugAssert(index < this->num_buckets(), "Index is not a valid bucket.");
-  return bucket_max(index) - this->bucket_min(index) + 1;
+  DebugAssert(index < _distinct_counts.size(), "Index is not a valid bucket.");
+  return _distinct_counts[index];
 }
 
 template <typename T>
@@ -118,23 +128,29 @@ void EqualHeightHistogram<T>::_generate(const ColumnID column_id, const size_t m
   // TODO(tim): row_count() is approximate due to MVCC - fix!
   _count_per_bucket = table->row_count() / num_buckets;
 
+  auto current_begin = 0u;
   auto current_height = 0u;
-  for (auto index = 0u; index < distinct_column->size(); index++) {
-    current_height += count_column->get(index);
+  for (auto current_end = 0u; current_end < distinct_column->size(); current_end++) {
+    current_height += count_column->get(current_end);
 
     if (current_height >= _count_per_bucket) {
-      _maxs.emplace_back(distinct_column->get(index));
+      _maxs.emplace_back(distinct_column->get(current_end));
+      _distinct_counts.emplace_back(current_end - current_begin + 1);
       current_height = 0u;
+      current_begin = current_end + 1;
     }
   }
 
   if (current_height > 0u) {
-    _maxs.emplace_back(distinct_column->get(result->row_count() - 1));
+    _maxs.emplace_back(distinct_column->get(distinct_column->size() - 1));
+    _distinct_counts.emplace_back(distinct_column->size() - current_begin);
   }
 }
 
 // These histograms only make sense for data types for which there is a discreet number of elements in a range.
 template class EqualHeightHistogram<int32_t>;
 template class EqualHeightHistogram<int64_t>;
+template class EqualHeightHistogram<float>;
+template class EqualHeightHistogram<double>;
 
 }  // namespace opossum

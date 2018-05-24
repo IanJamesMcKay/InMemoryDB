@@ -18,11 +18,11 @@ class AbstractHistogram : public AbstractFilter {
 
   void generate(const ColumnID column_id, const size_t max_num_buckets);
   float estimate_cardinality(const T value, const PredicateCondition predicate_condition) const;
-  // bool can_prune(const T value, const PredicateCondition predicate_condition) const;
   bool can_prune(const AllTypeVariant& value, const PredicateCondition predicate_type) const override;
 
   T lower_end() const;
   T upper_end() const;
+  T bucket_width(const BucketID index) const;
 
   virtual HistogramType histogram_type() const = 0;
 

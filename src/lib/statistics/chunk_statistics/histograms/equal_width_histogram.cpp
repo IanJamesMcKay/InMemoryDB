@@ -25,13 +25,13 @@ BucketID EqualWidthHistogram<T>::bucket_for_value(const T value) const {
   }
 
   if (_num_buckets_with_larger_range == 0u || value <= bucket_max(_num_buckets_with_larger_range - 1u)) {
-    // All buckets up to that point have the exact same width (i.e., number of distinct values), so we can use index 0.
-    return (value - _min) / bucket_count_distinct(0u);
+    // All buckets up to that point have the exact same width, so we can use index 0.
+    return (value - _min) / this->bucket_width(0u);
   }
 
   // All buckets after that point have the exact same width as well, so we use that as the new base and add it up.
   return _num_buckets_with_larger_range +
-         (value - bucket_min(_num_buckets_with_larger_range)) / bucket_count_distinct(_num_buckets_with_larger_range);
+         (value - bucket_min(_num_buckets_with_larger_range)) / this->bucket_width(_num_buckets_with_larger_range);
 }
 
 template <typename T>
@@ -55,25 +55,34 @@ BucketID EqualWidthHistogram<T>::upper_bound_for_value(const T value) const {
 
 template <typename T>
 T EqualWidthHistogram<T>::bucket_min(const BucketID index) const {
-  DebugAssert(index < this->num_buckets(), "Index is not a valid bucket.");
-  const auto base_index = _min + index * bucket_count_distinct(index);
-  if (index < _num_buckets_with_larger_range) {
-    return base_index;
-  }
-  return base_index + _num_buckets_with_larger_range;
+  DebugAssert(index < num_buckets(), "Index is not a valid bucket.");
+
+  // TODO(tim): fix for floats. think about making bucket_width (pure) virtual because it calls bucket_min again.
+  const auto base_min = _min + index * (_max - _min + 1) / this->num_buckets();
+  return base_min + std::min(index, _num_buckets_with_larger_range);
 }
 
 template <typename T>
 T EqualWidthHistogram<T>::bucket_max(const BucketID index) const {
-  DebugAssert(index < this->num_buckets(), "Index is not a valid bucket.");
+  DebugAssert(index < num_buckets(), "Index is not a valid bucket.");
 
   // If it's the last bucket, return max.
-  if (index == this->num_buckets() - 1) {
+  if (index == num_buckets() - 1) {
     return _max;
   }
 
   // Otherwise it is the value just before the minimum of the next bucket.
-  return bucket_min(index + 1) - 1;
+  if constexpr (std::is_integral_v<T>) {
+    return bucket_min(index + 1) - 1;
+  }
+
+  if constexpr (std::is_floating_point_v<T>) {
+    const auto next_min = bucket_min(index + 1);
+    return std::nextafter(next_min, next_min - 1);
+  }
+
+  // TODO(tim): support strings
+  Fail("Histogram type not yet supported.");
 }
 
 template <typename T>
@@ -89,9 +98,8 @@ uint64_t EqualWidthHistogram<T>::total_count() const {
 
 template <typename T>
 uint64_t EqualWidthHistogram<T>::bucket_count_distinct(const BucketID index) const {
-  DebugAssert(index < this->num_buckets(), "Index is not a valid bucket.");
-  const auto count_distinct = (_max - _min + 1) / this->num_buckets();
-  return count_distinct + (index < _num_buckets_with_larger_range ? 1 : 0);
+  DebugAssert(index < _distinct_counts.size(), "Index is not a valid bucket.");
+  return _distinct_counts[index];
 }
 
 template <typename T>
@@ -121,9 +129,9 @@ void EqualWidthHistogram<T>::_generate(const ColumnID column_id, const size_t ma
   _num_buckets_with_larger_range = (_max - _min + 1) % num_buckets;
 
   auto current_begin = distinct_column->values().begin();
-  auto current_end = distinct_column->values().begin();
   T begin_value = _min;
   for (size_t bucket_index = 0; bucket_index < num_buckets; bucket_index++) {
+    auto current_end = current_begin;
     T end_value = begin_value + bucket_width - 1;
 
     if (bucket_index < _num_buckets_with_larger_range) {
@@ -137,6 +145,7 @@ void EqualWidthHistogram<T>::_generate(const ColumnID column_id, const size_t ma
     const auto begin_index = std::distance(distinct_column->values().begin(), current_begin);
     const auto end_index = std::distance(distinct_column->values().begin(), current_end);
 
+    _distinct_counts.emplace_back(end_index - begin_index + 1);
     _counts.emplace_back(std::accumulate(count_column->values().begin() + begin_index,
                                          count_column->values().begin() + end_index + 1, uint64_t{0}));
 
@@ -148,5 +157,7 @@ void EqualWidthHistogram<T>::_generate(const ColumnID column_id, const size_t ma
 // These histograms only make sense for data types for which there is a discreet number of elements in a range.
 template class EqualWidthHistogram<int32_t>;
 template class EqualWidthHistogram<int64_t>;
+// template class EqualWidthHistogram<float>;
+// template class EqualWidthHistogram<double>;
 
 }  // namespace opossum

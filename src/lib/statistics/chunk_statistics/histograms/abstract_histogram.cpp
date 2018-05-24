@@ -51,6 +51,21 @@ T AbstractHistogram<T>::upper_end() const {
 }
 
 template <typename T>
+T AbstractHistogram<T>::bucket_width(const BucketID index) const {
+  DebugAssert(index < num_buckets(), "Index is not a valid bucket.");
+
+  if constexpr (std::is_integral_v<T>) {
+    return bucket_max(index) - bucket_min(index) + 1;
+  }
+
+  if constexpr (std::is_floating_point_v<T>) {
+    return bucket_max(index) - bucket_min(index);
+  }
+
+  Fail("Histogram type not yet supported.");
+};
+
+template <typename T>
 float AbstractHistogram<T>::estimate_cardinality(const T value, const PredicateCondition predicate_condition) const {
   DebugAssert(num_buckets() > 0u, "Called method on histogram before initialization.");
 

@@ -34,6 +34,7 @@ class EqualWidthHistogram : public AbstractHistogram<T> {
   T _min;
   T _max;
   std::vector<uint64_t> _counts;
+  std::vector<uint64_t> _distinct_counts;
   uint64_t _num_buckets_with_larger_range;
 };
 
