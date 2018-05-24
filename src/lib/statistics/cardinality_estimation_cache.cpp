@@ -99,7 +99,7 @@ BaseJoinGraph CardinalityEstimationCache::_normalize(const BaseJoinGraph& join_g
   return normalized_join_graph;
 }
 
-std::shared_ptr<const AbstractJoinPlanPredicate> CardinalityEstimationCache::_normalize(const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate) {
+std::shared_ptr<AbstractJoinPlanPredicate> CardinalityEstimationCache::_normalize(const std::shared_ptr<AbstractJoinPlanPredicate>& predicate) {
   if (predicate->type() == JoinPlanPredicateType::Atomic) {
     const auto atomic_predicate = std::static_pointer_cast<const JoinPlanAtomicPredicate>(predicate);
     if (is_lqp_column_reference(atomic_predicate->right_operand)) {

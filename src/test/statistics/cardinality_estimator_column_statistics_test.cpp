@@ -42,7 +42,7 @@ class BasicCardinalityEstimatorTest : public ::testing::Test {
   }
 
   std::shared_ptr<AbstractLQPNode> vertex_x, vertex_y, vertex_z;
-  std::shared_ptr<const AbstractJoinPlanPredicate> x1_lt_4, x1_gt_5, x2_ge_10, x2_ge_14, x1_gt_8, x1_lt_8, x1_eq_y1, x1_ne_y1, y1_eq_z1, y1_gt_5;
+  std::shared_ptr<AbstractJoinPlanPredicate> x1_lt_4, x1_gt_5, x2_ge_10, x2_ge_14, x1_gt_8, x1_lt_8, x1_eq_y1, x1_ne_y1, y1_eq_z1, y1_gt_5;
   CardinalityEstimatorColumnStatistics cardinality_estimator;
 
 };

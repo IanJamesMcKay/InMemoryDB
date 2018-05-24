@@ -11,7 +11,7 @@ CardinalityEstimatorCached::CardinalityEstimatorCached(const std::shared_ptr<Car
 {}
 
 Cardinality CardinalityEstimatorCached::estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& relations,
-                     const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates) const {
+                     const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates) const {
   const auto cached_cardinality = _cache->get({relations, predicates});
 
   if (cached_cardinality) return *cached_cardinality;

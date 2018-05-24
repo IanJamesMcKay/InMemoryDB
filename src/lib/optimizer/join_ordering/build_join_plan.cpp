@@ -20,7 +20,7 @@ namespace {
 
 using namespace opossum;  // NOLINT
 
-Cost cost_predicate(const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate,
+Cost cost_predicate(const std::shared_ptr<AbstractJoinPlanPredicate>& predicate,
                                                 BaseJoinGraph join_graph,
                                                 const AbstractCostModel& cost_model,
                                                 const AbstractCardinalityEstimator& cardinality_estimator) {
@@ -64,7 +64,7 @@ Cost cost_predicate(const std::shared_ptr<const AbstractJoinPlanPredicate>& pred
   Fail("Should be unreachable, but clang doesn't realize");
 }
 
-void add_predicate(const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate,
+void add_predicate(const std::shared_ptr<AbstractJoinPlanPredicate>& predicate,
                    JoinPlanNode& join_plan_node,
                    const AbstractCostModel& cost_model,
                    const AbstractCardinalityEstimator& cardinality_estimator) {
@@ -89,7 +89,7 @@ void add_predicate(const std::shared_ptr<const AbstractJoinPlanPredicate>& predi
 
 }
 
-//void order_predicates(std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates,
+//void order_predicates(std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates,
 //                      const JoinPlanNode& join_plan_node,
 //                      const AbstractCostModel& cost_model,
 //                      const AbstractCardinalityEstimator& cardinality_estimator) {
@@ -111,13 +111,13 @@ JoinPlanNode build_join_plan_join_node(
     const AbstractCostModel& cost_model,
     const JoinPlanNode& left_input,
     const JoinPlanNode& right_input,
-    const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates,
+    const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates,
     const AbstractCardinalityEstimator& cardinality_estimator) {
   JoinPlanNode join_plan_node{nullptr,
                               left_input.plan_cost + right_input.plan_cost,
                               BaseJoinGraph::from_joined_graphs(left_input.join_graph, right_input.join_graph)};
 
-  auto primary_join_predicate = std::shared_ptr<const JoinPlanAtomicPredicate>{};
+  auto primary_join_predicate = std::shared_ptr<JoinPlanAtomicPredicate>{};
   auto secondary_predicates = predicates;
 
   /**
@@ -204,7 +204,7 @@ JoinPlanNode build_join_plan_join_node(
 JoinPlanNode build_join_plan_vertex_node(
     const AbstractCostModel& cost_model,
     const std::shared_ptr<AbstractLQPNode>& vertex_node,
-    const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates,
+    const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates,
     const AbstractCardinalityEstimator& cardinality_estimator) {
   auto join_plan_node = JoinPlanNode{vertex_node, 0.0f, {{vertex_node}, {}}};
 

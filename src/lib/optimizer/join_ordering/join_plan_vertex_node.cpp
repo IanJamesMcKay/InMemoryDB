@@ -3,14 +3,14 @@
 namespace opossum {
 
 JoinPlanVertexNode::JoinPlanVertexNode(const std::shared_ptr<AbstractLQPNode>& vertex_node,
-                                       const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates,
+                                       const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates,
                                        const std::shared_ptr<TableStatistics>& statistics, const float node_cost)
     : AbstractJoinPlanNode(JoinPlanNodeType::Vertex, node_cost, statistics), _lqp_node(vertex_node), _predicates(predicates) {
 }
 
 std::shared_ptr<AbstractLQPNode> JoinPlanVertexNode::lqp_node() const { return _lqp_node; }
 
-const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& JoinPlanVertexNode::predicates() const {
+const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& JoinPlanVertexNode::predicates() const {
   return _predicates;
 }
 

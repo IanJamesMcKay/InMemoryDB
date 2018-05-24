@@ -18,7 +18,7 @@ class CardinalityEstimatorExecution : public AbstractCardinalityEstimator {
   CardinalityEstimatorExecution();
 
   Cardinality estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices,
-                       const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates) const override;
+                       const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates) const override;
 
   std::optional<std::chrono::seconds> timeout;
 

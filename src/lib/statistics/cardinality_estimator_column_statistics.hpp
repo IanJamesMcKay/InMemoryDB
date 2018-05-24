@@ -13,7 +13,7 @@ class AbstractColumnStatistics;
 class CardinalityEstimatorColumnStatistics : public AbstractCardinalityEstimator {
  public:
   Cardinality estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& relations,
-                       const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates) const override;
+                       const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates) const override;
 
  private:
   struct EstimationState final {

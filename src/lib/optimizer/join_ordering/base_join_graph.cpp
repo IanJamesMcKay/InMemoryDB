@@ -21,7 +21,7 @@ BaseJoinGraph BaseJoinGraph::from_joined_graphs(const BaseJoinGraph& left, const
   return joined_graph;
 }
 
-BaseJoinGraph::BaseJoinGraph(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices, const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates):
+BaseJoinGraph::BaseJoinGraph(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices, const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates):
   vertices(vertices), predicates(predicates) {}
 
 std::shared_ptr<AbstractLQPNode> BaseJoinGraph::find_vertex(const LQPColumnReference& column_reference) const {

@@ -23,7 +23,7 @@ GenericInputCostFeatures GenericInputCostFeatures::from_join_graph(const BaseJoi
   };
 }
 
-GenericPredicateCostFeatures GenericPredicateCostFeatures::from_join_plan_predicate(const std::shared_ptr<const JoinPlanAtomicPredicate> &predicate,
+GenericPredicateCostFeatures GenericPredicateCostFeatures::from_join_plan_predicate(const std::shared_ptr<JoinPlanAtomicPredicate> &predicate,
                                                              const BaseJoinGraph &input_join_graph,
                                                              const AbstractCardinalityEstimator &cardinality_estimator) {
   const auto left_operand_vertex = input_join_graph.find_vertex(predicate->left_operand);
@@ -59,13 +59,13 @@ GenericPredicateCostFeatures::GenericPredicateCostFeatures(const DataType left_d
   left_data_type(left_data_type), right_data_type(right_data_type), right_is_column(right_is_column), predicate_condition(predicate_condition) {}
 
 
-CostFeatureGenericProxy CostFeatureGenericProxy::from_join_plan_predicate(const std::shared_ptr<const JoinPlanAtomicPredicate> &predicate,
+CostFeatureGenericProxy CostFeatureGenericProxy::from_join_plan_predicate(const std::shared_ptr<JoinPlanAtomicPredicate> &predicate,
                                                                             const BaseJoinGraph &input_join_graph,
                                                                             const AbstractCardinalityEstimator &cardinality_estimator) {
   const auto input_features = GenericInputCostFeatures::from_join_graph(input_join_graph, cardinality_estimator);
   const auto predicate_features = GenericPredicateCostFeatures::from_join_plan_predicate(predicate, input_join_graph, cardinality_estimator);
 
-  std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> output_graph_predicates(input_join_graph.predicates.begin(), input_join_graph.predicates.end());
+  std::vector<std::shared_ptr<AbstractJoinPlanPredicate>> output_graph_predicates(input_join_graph.predicates.begin(), input_join_graph.predicates.end());
   output_graph_predicates.emplace_back(predicate);
 
   return {
@@ -77,11 +77,11 @@ CostFeatureGenericProxy CostFeatureGenericProxy::from_join_plan_predicate(const 
   };
 }
 
-CostFeatureGenericProxy CostFeatureGenericProxy::from_join_plan_predicate(const std::shared_ptr<const JoinPlanAtomicPredicate> &predicate,
+CostFeatureGenericProxy CostFeatureGenericProxy::from_join_plan_predicate(const std::shared_ptr<JoinPlanAtomicPredicate> &predicate,
                                                                             const BaseJoinGraph &left_input_join_graph,
                                                                             const BaseJoinGraph &right_input_join_graph,
                                                                             const AbstractCardinalityEstimator &cardinality_estimator) {
-  std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> joined_graph_predicates(left_input_join_graph.predicates.begin(), left_input_join_graph.predicates.end());
+  std::vector<std::shared_ptr<AbstractJoinPlanPredicate>> joined_graph_predicates(left_input_join_graph.predicates.begin(), left_input_join_graph.predicates.end());
   joined_graph_predicates.insert(joined_graph_predicates.end(), right_input_join_graph.predicates.begin(), right_input_join_graph.predicates.end());
 
   std::vector<std::shared_ptr<AbstractLQPNode>> joined_graph_vertices(left_input_join_graph.vertices.begin(), left_input_join_graph.vertices.end());
@@ -111,7 +111,7 @@ CostFeatureGenericProxy CostFeatureGenericProxy::from_cross_join(const BaseJoinG
   const auto left_input_features = GenericInputCostFeatures::from_join_graph(left_input_join_graph, cardinality_estimator);
   const auto right_input_features = GenericInputCostFeatures::from_join_graph(right_input_join_graph, cardinality_estimator);
 
-  std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> joined_graph_predicates(left_input_join_graph.predicates.begin(), left_input_join_graph.predicates.end());
+  std::vector<std::shared_ptr<AbstractJoinPlanPredicate>> joined_graph_predicates(left_input_join_graph.predicates.begin(), left_input_join_graph.predicates.end());
   joined_graph_predicates.insert(joined_graph_predicates.end(), right_input_join_graph.predicates.begin(), right_input_join_graph.predicates.end());
 
   std::vector<std::shared_ptr<AbstractLQPNode>> joined_graph_vertices(left_input_join_graph.vertices.begin(), left_input_join_graph.vertices.end());

@@ -31,7 +31,7 @@ CardinalityEstimatorExecution::CardinalityEstimatorExecution() {
 }
 
 Cardinality CardinalityEstimatorExecution::estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices,
-                                                    const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates) const {
+                                                    const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates) const {
   if (vertices.empty()) return 0.0f;
 
   auto lqp = vertices.front();

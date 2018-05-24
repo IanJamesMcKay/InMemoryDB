@@ -44,7 +44,7 @@ class AbstractJoinPlanNode : public std::enable_shared_from_this<AbstractJoinPla
  protected:
   std::shared_ptr<AbstractLQPNode> _insert_predicate(
   const std::shared_ptr<AbstractLQPNode>& lqp,
-  const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate) const;
+  const std::shared_ptr<AbstractJoinPlanPredicate>& predicate) const;
 
   const JoinPlanNodeType _type;
   Cost _node_cost{0.0f};

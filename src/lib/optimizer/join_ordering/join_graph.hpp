@@ -45,12 +45,12 @@ class JoinGraph final {
   /**
    * Find all predicates that use exactly the nodes in vertex set
    */
-  std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> find_predicates(const JoinVertexSet& vertex_set) const;
+  std::vector<std::shared_ptr<AbstractJoinPlanPredicate>> find_predicates(const JoinVertexSet& vertex_set) const;
 
   /**
    * Find all predicates that "connect" the two vertex sets, i.e. have operands in both of them
    */
-  std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> find_predicates(
+  std::vector<std::shared_ptr<AbstractJoinPlanPredicate>> find_predicates(
       const JoinVertexSet& vertex_set_a, const JoinVertexSet& vertex_set_b) const;
 
   /**

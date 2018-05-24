@@ -26,9 +26,9 @@ AbstractJoinPlanPredicate::AbstractJoinPlanPredicate(const JoinPlanPredicateType
 JoinPlanPredicateType AbstractJoinPlanPredicate::type() const { return _type; }
 
 JoinPlanLogicalPredicate::JoinPlanLogicalPredicate(
-    const std::shared_ptr<const AbstractJoinPlanPredicate>& left_operand,
+    const std::shared_ptr<AbstractJoinPlanPredicate>& left_operand,
     JoinPlanPredicateLogicalOperator logical_operator,
-    const std::shared_ptr<const AbstractJoinPlanPredicate>& right_operand)
+    const std::shared_ptr<AbstractJoinPlanPredicate>& right_operand)
     : AbstractJoinPlanPredicate(JoinPlanPredicateType::LogicalOperator),
       left_operand(left_operand),
       logical_operator(logical_operator),

@@ -13,7 +13,7 @@ struct BaseJoinGraph final {
   static BaseJoinGraph from_joined_graphs(const BaseJoinGraph& left, const BaseJoinGraph& right);
 
   BaseJoinGraph() = default;
-  BaseJoinGraph(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices, const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates);
+  BaseJoinGraph(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices, const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates);
 
   std::shared_ptr<AbstractLQPNode> find_vertex(const LQPColumnReference& column_reference) const;
 
@@ -22,7 +22,7 @@ struct BaseJoinGraph final {
   bool operator==(const BaseJoinGraph& rhs) const;
 
   std::vector<std::shared_ptr<AbstractLQPNode>> vertices;
-  std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> predicates;
+  std::vector<std::shared_ptr<AbstractJoinPlanPredicate>> predicates;
 };
 
 } // namespace opossum

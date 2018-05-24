@@ -8,19 +8,19 @@ JoinPlanJoinNode::JoinPlanJoinNode(
     const std::shared_ptr<const AbstractJoinPlanNode>& left_child,
     const std::shared_ptr<const AbstractJoinPlanNode>& right_child,
     const std::shared_ptr<TableStatistics>& statistics,
-    const std::shared_ptr<const JoinPlanAtomicPredicate>& primary_join_predicate,
-    const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& secondary_predicates, const Cost node_cost)
+    const std::shared_ptr<JoinPlanAtomicPredicate>& primary_join_predicate,
+    const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& secondary_predicates, const Cost node_cost)
     : AbstractJoinPlanNode(JoinPlanNodeType::Join, node_cost, statistics, left_child, right_child),
       _primary_join_predicate(primary_join_predicate),
       _secondary_predicates(secondary_predicates) {
 
 }
 
-std::shared_ptr<const JoinPlanAtomicPredicate> JoinPlanJoinNode::primary_join_predicate() const {
+std::shared_ptr<JoinPlanAtomicPredicate> JoinPlanJoinNode::primary_join_predicate() const {
   return _primary_join_predicate;
 }
 
-const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& JoinPlanJoinNode::secondary_predicates() const {
+const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& JoinPlanJoinNode::secondary_predicates() const {
   return _secondary_predicates;
 }
 

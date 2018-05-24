@@ -5,7 +5,7 @@
 namespace opossum {
 
 OuterJoinBlock::OuterJoinBlock(const JoinMode join_mode,
-               const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate,
+               const std::shared_ptr<AbstractJoinPlanPredicate>& predicate,
                const std::shared_ptr<AbstractQueryBlock>& left_input,
                const std::shared_ptr<AbstractQueryBlock>& right_input):
   AbstractQueryBlock(QueryBlockType::OuterJoin, {left_input, right_input}), join_mode(join_mode), predicate(predicate) {

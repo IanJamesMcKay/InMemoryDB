@@ -13,9 +13,9 @@ class PredicateBlock : public AbstractQueryBlock {
  public:
   PredicateBlock();
   PredicateBlock(const std::vector<std::shared_ptr<AbstractQueryBlock>>& sub_blocks,
-                 const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates);
+                 const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates);
 
-  const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates;
+  const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>> predicates;
 
  protected:
   size_t _shallow_hash_impl() const override;

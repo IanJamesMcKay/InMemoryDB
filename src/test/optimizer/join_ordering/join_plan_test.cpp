@@ -49,7 +49,7 @@ class JoinPlanTest : public ::testing::Test {
   }
 
   std::shared_ptr<AbstractLQPNode> vertex_r, vertex_s, vertex_t;
-  std::shared_ptr<const AbstractJoinPlanPredicate> a_lt_4, a_gt_5, a_gt_8, a_lt_8, a_eq_d, d_eq_f, b_lt_5, a_ne_b, b_eq_d;
+  std::shared_ptr<AbstractJoinPlanPredicate> a_lt_4, a_gt_5, a_gt_8, a_lt_8, a_eq_d, d_eq_f, b_lt_5, a_ne_b, b_eq_d;
   CardinalityEstimatorColumnStatistics cardinality_estimator;
   CostModelNaive cost_model;
   LQPColumnReference a, d, f, b;

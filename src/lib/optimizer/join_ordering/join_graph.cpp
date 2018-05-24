@@ -23,9 +23,9 @@ JoinGraph::JoinGraph(std::vector<std::shared_ptr<AbstractLQPNode>> vertices,
                      std::vector<LQPOutputRelation> output_relations, std::vector<std::shared_ptr<JoinEdge>> edges)
     : vertices(std::move(vertices)), output_relations(std::move(output_relations)), edges(std::move(edges)) {}
 
-std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> JoinGraph::find_predicates(
+std::vector<std::shared_ptr<AbstractJoinPlanPredicate>> JoinGraph::find_predicates(
     const JoinVertexSet& vertex_set) const {
-  std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> predicates;
+  std::vector<std::shared_ptr<AbstractJoinPlanPredicate>> predicates;
 
   for (const auto& edge : edges) {
     if (edge->vertex_set != vertex_set) continue;
@@ -38,11 +38,11 @@ std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> JoinGraph::find_pr
   return predicates;
 }
 
-std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> JoinGraph::find_predicates(
+std::vector<std::shared_ptr<AbstractJoinPlanPredicate>> JoinGraph::find_predicates(
     const JoinVertexSet& vertex_set_a, const JoinVertexSet& vertex_set_b) const {
   DebugAssert((vertex_set_a & vertex_set_b).none(), "Vertex sets are not distinct");
 
-  std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> predicates;
+  std::vector<std::shared_ptr<AbstractJoinPlanPredicate>> predicates;
 
   for (const auto& edge : edges) {
     if ((edge->vertex_set & vertex_set_a).none() || (edge->vertex_set & vertex_set_b).none()) continue;

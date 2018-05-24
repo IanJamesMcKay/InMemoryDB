@@ -26,7 +26,7 @@ struct GenericInputCostFeatures final {
 };
 
 struct GenericPredicateCostFeatures final {
-  static GenericPredicateCostFeatures from_join_plan_predicate(const std::shared_ptr<const JoinPlanAtomicPredicate> &predicate,
+  static GenericPredicateCostFeatures from_join_plan_predicate(const std::shared_ptr<JoinPlanAtomicPredicate> &predicate,
                                                                const BaseJoinGraph &input_join_graph,
                                                                const AbstractCardinalityEstimator &cardinality_estimator);
 
@@ -44,11 +44,11 @@ struct GenericPredicateCostFeatures final {
 
 class CostFeatureGenericProxy : public AbstractCostFeatureProxy {
  public:
-  static CostFeatureGenericProxy from_join_plan_predicate(const std::shared_ptr<const JoinPlanAtomicPredicate> &predicate,
+  static CostFeatureGenericProxy from_join_plan_predicate(const std::shared_ptr<JoinPlanAtomicPredicate> &predicate,
                                                           const BaseJoinGraph &input_join_graph,
                                                           const AbstractCardinalityEstimator &cardinality_estimator);
 
-  static CostFeatureGenericProxy from_join_plan_predicate(const std::shared_ptr<const JoinPlanAtomicPredicate> &predicate,
+  static CostFeatureGenericProxy from_join_plan_predicate(const std::shared_ptr<JoinPlanAtomicPredicate> &predicate,
                                                           const BaseJoinGraph &left_input_join_graph,
                                                           const BaseJoinGraph &right_input_join_graph,
                                                           const AbstractCardinalityEstimator &cardinality_estimator);

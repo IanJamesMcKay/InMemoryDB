@@ -8,7 +8,7 @@ PredicateBlock::PredicateBlock():
   PredicateBlock({}, {}) {}
 
 PredicateBlock::PredicateBlock(const std::vector<std::shared_ptr<AbstractQueryBlock>>& sub_blocks,
-               const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates):
+               const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates):
   AbstractQueryBlock(QueryBlockType::Predicates, sub_blocks), predicates(predicates) {
 
 }

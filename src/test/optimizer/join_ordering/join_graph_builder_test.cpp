@@ -110,7 +110,7 @@ class JoinGraphBuilderTest : public ::testing::Test {
     _predicate_node_a->set_left_input(_aggregate_node_a);
   }
 
-  std::string to_string(const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate) {
+  std::string to_string(const std::shared_ptr<AbstractJoinPlanPredicate>& predicate) {
     std::stringstream stream;
     predicate->print(stream);
     return stream.str();

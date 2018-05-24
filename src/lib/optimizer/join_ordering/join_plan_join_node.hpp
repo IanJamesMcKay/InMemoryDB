@@ -13,12 +13,12 @@ class JoinPlanJoinNode final : public AbstractJoinPlanNode {
   JoinPlanJoinNode(const std::shared_ptr<const AbstractJoinPlanNode>& left_child,
                    const std::shared_ptr<const AbstractJoinPlanNode>& right_child,
                    const std::shared_ptr<TableStatistics>& statistics,
-                   const std::shared_ptr<const JoinPlanAtomicPredicate>& primary_join_predicate,
-                   const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& secondary_predicates,
+                   const std::shared_ptr<JoinPlanAtomicPredicate>& primary_join_predicate,
+                   const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& secondary_predicates,
                    const Cost node_cost);
 
-  std::shared_ptr<const JoinPlanAtomicPredicate> primary_join_predicate() const;
-  const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& secondary_predicates() const;
+  std::shared_ptr<JoinPlanAtomicPredicate> primary_join_predicate() const;
+  const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& secondary_predicates() const;
 
   bool contains_vertex(const std::shared_ptr<AbstractLQPNode>& node) const override;
   std::optional<ColumnID> find_column_id(const LQPColumnReference& column_reference) const override;
@@ -27,8 +27,8 @@ class JoinPlanJoinNode final : public AbstractJoinPlanNode {
   std::string description() const override;
 
  private:
-  std::shared_ptr<const JoinPlanAtomicPredicate> _primary_join_predicate;
-  std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> _secondary_predicates;
+  std::shared_ptr<JoinPlanAtomicPredicate> _primary_join_predicate;
+  std::vector<std::shared_ptr<AbstractJoinPlanPredicate>> _secondary_predicates;
 };
 
 }  // namespace opossum

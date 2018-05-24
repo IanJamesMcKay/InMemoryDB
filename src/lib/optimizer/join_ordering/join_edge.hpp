@@ -18,12 +18,12 @@ class AbstractJoinPlanPredicate;
  */
 class JoinEdge final {
  public:
-  explicit JoinEdge(const JoinVertexSet& vertex_set, const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>&predicates = {});
+  explicit JoinEdge(const JoinVertexSet& vertex_set, const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>&predicates = {});
 
   void print(std::ostream& stream = std::cout) const;
 
   const JoinVertexSet vertex_set;
-  std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>> predicates;
+  std::vector<std::shared_ptr<AbstractJoinPlanPredicate>> predicates;
 };
 
 }  // namespace opossum

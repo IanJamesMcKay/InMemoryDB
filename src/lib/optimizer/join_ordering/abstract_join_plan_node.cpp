@@ -48,7 +48,7 @@ void AbstractJoinPlanNode::print(std::ostream& stream) const {
 
 std::shared_ptr<AbstractLQPNode> AbstractJoinPlanNode::_insert_predicate(
 const std::shared_ptr<AbstractLQPNode>& lqp,
-const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate) const {
+const std::shared_ptr<AbstractJoinPlanPredicate>& predicate) const {
   switch (predicate->type()) {
     case JoinPlanPredicateType::Atomic: {
       const auto atomic_predicate = std::static_pointer_cast<const JoinPlanAtomicPredicate>(predicate);

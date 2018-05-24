@@ -33,11 +33,11 @@ using namespace opossum;
  */
 struct PredicateParseResult {
   PredicateParseResult(const std::shared_ptr<AbstractLQPNode>& base_node,
-                       const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate)
+                       const std::shared_ptr<AbstractJoinPlanPredicate>& predicate)
   : base_node(base_node), predicate(predicate) {}
 
   std::shared_ptr<AbstractLQPNode> base_node;
-  std::shared_ptr<const AbstractJoinPlanPredicate> predicate;
+  std::shared_ptr<AbstractJoinPlanPredicate> predicate;
 };
 
 PredicateParseResult gather_predicate_from_union(const std::shared_ptr<UnionNode>& union_node);
@@ -51,7 +51,7 @@ const std::shared_ptr<AbstractLQPNode> &node) {
   if (node->type() == LQPNodeType::Predicate) {
     const auto predicate_node = std::static_pointer_cast<const PredicateNode>(node);
 
-    std::shared_ptr<const AbstractJoinPlanPredicate> left_predicate;
+    std::shared_ptr<AbstractJoinPlanPredicate> left_predicate;
 
     if (predicate_node->value2()) {
       DebugAssert(predicate_node->predicate_condition() == PredicateCondition::Between, "Expected between");
@@ -239,7 +239,6 @@ std::shared_ptr<AbstractQueryBlock> query_blocks_from_lqp(const std::shared_ptr<
     default:
       Fail("Couldn't turn LQP into QueryBlock");
   }
-
 }
 
 }  // namespace opossum

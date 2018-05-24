@@ -50,7 +50,7 @@ TEST_F(QueryBlocksFromLQPTest, InnerJoinSimple) {
   ASSERT_TRUE(predicate_a);
   EXPECT_EQ(predicate_a->predicate_condition, PredicateCondition::Equals);
   EXPECT_EQ(predicate_a->left_operand, int_float_a);
-  EXPECT_EQ(predicate_a->right_operand, int_float_b);
+  EXPECT_EQ(predicate_a->right_operand, AllParameterVariant(int_float_b));
 
   ASSERT_EQ(predicates_block->sub_blocks.size(), 2u);
   const auto stored_table_block_a = std::dynamic_pointer_cast<StoredTableBlock>(predicates_block->sub_blocks.at(0));

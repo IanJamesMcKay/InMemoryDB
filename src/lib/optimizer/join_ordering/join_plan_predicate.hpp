@@ -47,9 +47,9 @@ class AbstractJoinPlanPredicate {
  */
 class JoinPlanLogicalPredicate : public AbstractJoinPlanPredicate {
  public:
-  JoinPlanLogicalPredicate(const std::shared_ptr<const AbstractJoinPlanPredicate>& left_operand,
+  JoinPlanLogicalPredicate(const std::shared_ptr<AbstractJoinPlanPredicate>& left_operand,
                            JoinPlanPredicateLogicalOperator logical_operator,
-                           const std::shared_ptr<const AbstractJoinPlanPredicate>& right_operand);
+                           const std::shared_ptr<AbstractJoinPlanPredicate>& right_operand);
 
   JoinVertexSet get_accessed_vertex_set(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices) const override;
 
@@ -59,9 +59,9 @@ class JoinPlanLogicalPredicate : public AbstractJoinPlanPredicate {
 
   bool operator==(const JoinPlanLogicalPredicate& rhs) const;
 
-  const std::shared_ptr<const AbstractJoinPlanPredicate> left_operand;
+  const std::shared_ptr<AbstractJoinPlanPredicate> left_operand;
   const JoinPlanPredicateLogicalOperator logical_operator;
-  const std::shared_ptr<const AbstractJoinPlanPredicate> right_operand;
+  const std::shared_ptr<AbstractJoinPlanPredicate> right_operand;
 };
 
 /**

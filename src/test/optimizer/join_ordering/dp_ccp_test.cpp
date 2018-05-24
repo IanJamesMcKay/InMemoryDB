@@ -50,7 +50,7 @@ class DpCcpTest : public ::testing::Test {
   }
 
   std::shared_ptr<AbstractLQPNode> vertex_r, vertex_s, vertex_t;
-  std::shared_ptr<const AbstractJoinPlanPredicate> a_lt_4, a_gt_5, a_gt_8, a_lt_8, a_eq_d, d_eq_f;
+  std::shared_ptr<AbstractJoinPlanPredicate> a_lt_4, a_gt_5, a_gt_8, a_lt_8, a_eq_d, d_eq_f;
   std::shared_ptr<CardinalityEstimatorColumnStatistics> cardinality_estimator;
   std::shared_ptr<CostModelNaive> cost_model;
   LQPColumnReference a, d, f;
@@ -61,7 +61,7 @@ TEST_F(DpCcpTest, Basic) {
    * Test two vertices and a single join predicate
    */
 
-  auto join_edge = std::make_shared<JoinEdge>(boost::dynamic_bitset<>{2, 0b11}, std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>({a_eq_d}));
+  auto join_edge = std::make_shared<JoinEdge>(boost::dynamic_bitset<>{2, 0b11}, std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>({a_eq_d}));
   auto join_graph = std::make_shared<JoinGraph>(
     std::vector<std::shared_ptr<AbstractLQPNode>>({vertex_r, vertex_s}),
     std::vector<LQPOutputRelation>(),

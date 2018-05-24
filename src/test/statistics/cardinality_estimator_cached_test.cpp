@@ -15,7 +15,7 @@ namespace opossum {
 class CardinalityEstimatorDummy : public AbstractCardinalityEstimator {
  public:
   Cardinality estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& relations,
-                       const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates) const {
+                       const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates) const {
     return 42;
   }
 };
