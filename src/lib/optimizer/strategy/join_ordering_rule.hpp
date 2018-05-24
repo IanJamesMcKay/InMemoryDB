@@ -1,10 +1,14 @@
 #pragma once
 
+#include <vector>
+
 #include "abstract_rule.hpp"
 
 namespace opossum {
 
+class AbstractQueryBlock;
 class AbstractJoinOrderingAlgorithm;
+class PredicateBlock;
 
 class JoinOrderingRule : public AbstractRule {
  public:
@@ -15,7 +19,8 @@ class JoinOrderingRule : public AbstractRule {
   bool apply_to(const std::shared_ptr<AbstractLQPNode>& root) override;
 
  private:
-  bool _applicable(const std::shared_ptr<AbstractLQPNode>& node) const;
+  std::shared_ptr<AbstractLQPNode> _apply_to_blocks(const std::shared_ptr<AbstractQueryBlock>& block);
+  std::shared_ptr<AbstractLQPNode> _apply_to_predicate_block(const std::shared_ptr<PredicateBlock>& predicate_block, const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices);
 
   std::shared_ptr<AbstractJoinOrderingAlgorithm> _join_ordering_algorithm;
 };

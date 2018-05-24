@@ -12,60 +12,20 @@
 
 namespace opossum {
 
-std::shared_ptr<JoinGraph> JoinGraphBuilder::operator()(const std::shared_ptr<AbstractLQPNode>& lqp) {
-  /**
-   * 1. Find the "JoinGraphRootNode"
-   * Traverse the LQP for the first non-vertex node, i.e., the "root" node of the JoinGraph. This is the root node from
-   * which on we actually look for JoinPlanPredicates and Vertices
-   */
-  std::queue<std::shared_ptr<AbstractLQPNode>> bfs_queue;
-  std::unordered_set<std::shared_ptr<AbstractLQPNode>> visited_nodes;
-  std::vector<LQPOutputRelation> output_relations;
-  auto join_graph_root_node = std::shared_ptr<AbstractLQPNode>{};
+std::shared_ptr<JoinGraph> JoinGraphBuilder::operator()(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices,
+                                                        const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates) {
 
-  bfs_queue.push(lqp);
-  while(!bfs_queue.empty()) {
-    const auto node = bfs_queue.front();
-    bfs_queue.pop();
-
-    if (!node) continue;
-    if (!visited_nodes.emplace(node).second) continue;
-
-    if (!_lqp_node_type_is_vertex(node->type()) || (!node->left_input() && !node->right_input())) {
-      Assert(!join_graph_root_node || join_graph_root_node == node, "Couldn't find non-ambiguous JoinGraphRootNode");
-      join_graph_root_node = node;
-    } else {
-      bfs_queue.push(node->left_input());
-      bfs_queue.push(node->right_input());
-
-      if (node->left_input() && !_lqp_node_type_is_vertex(node->left_input()->type())) {
-        output_relations.emplace_back(node, LQPInputSide::Left);
-      }
-      if (node->right_input() && !_lqp_node_type_is_vertex(node->right_input()->type())) {
-        output_relations.emplace_back(node, LQPInputSide::Right);
-      }
-    }
-  }
-
-  /**
-   * 2. Traverse the LQP from the "JoinGraphRootNode" found above, identifying JoinPlanPredicates and Vertices
-   */
-  traverse(join_graph_root_node);
-
-  /**
-   * Turn the predicates into JoinEdges and build the JoinGraph
-   */
-  auto edges = join_edges_from_predicates(_vertices, _predicates);
-  auto cross_edges = cross_edges_between_components(_vertices, edges);
+  auto edges = join_edges_from_predicates(vertices, predicates);
+  auto cross_edges = cross_edges_between_components(vertices, edges);
 
   edges.insert(edges.end(), cross_edges.begin(), cross_edges.end());
 
-  return std::make_shared<JoinGraph>(std::move(_vertices), std::move(output_relations), std::move(edges));
+  return std::make_shared<JoinGraph>(std::move(vertices), std::move(edges));
 }
 
 std::vector<std::shared_ptr<JoinEdge>> JoinGraphBuilder::join_edges_from_predicates(
     const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices,
-    const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates) {
+    const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates) {
   std::unordered_map<std::shared_ptr<AbstractLQPNode>, size_t> vertex_to_index;
   std::map<JoinVertexSet, std::shared_ptr<JoinEdge>> vertices_to_edge;
   std::vector<std::shared_ptr<JoinEdge>> edges;
@@ -165,14 +125,6 @@ std::vector<std::shared_ptr<JoinEdge>> JoinGraphBuilder::cross_edges_between_com
   }
 
   return inter_component_edges;
-}
-
-const std::vector<std::shared_ptr<AbstractLQPNode>>& JoinGraphBuilder::vertices() const {
-  return _vertices;
-}
-
-const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& JoinGraphBuilder::predicates() const {
-  return _predicates;
 }
 
 }  // namespace opossum

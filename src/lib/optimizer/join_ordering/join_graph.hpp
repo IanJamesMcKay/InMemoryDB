@@ -35,7 +35,8 @@ class JoinGraph final {
   /**
    * Return the first JoinGraph found when recursively traversing the @param lqp
    */
-  static std::shared_ptr<JoinGraph> from_lqp(const std::shared_ptr<AbstractLQPNode>& lqp);
+  static std::shared_ptr<JoinGraph> from_vertices_and_predicates(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices,
+                                                                 const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates);
 
   JoinGraph() = default;
   JoinGraph(std::vector<std::shared_ptr<AbstractLQPNode>> vertices, std::vector<LQPOutputRelation> output_relations,

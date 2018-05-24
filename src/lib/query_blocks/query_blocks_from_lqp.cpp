@@ -40,14 +40,14 @@ struct PredicateParseResult {
   std::shared_ptr<const AbstractJoinPlanPredicate> predicate;
 };
 
-PredicateParseResult gather_predicate_from_union(const std::shared_ptr<UnionNode>& union_node) const;
+PredicateParseResult gather_predicate_from_union(const std::shared_ptr<UnionNode>& union_node);
 
-bool is_predicate_block_node(const LQPNodeType node_type) const {
+bool is_predicate_block_node(const LQPNodeType node_type) {
   return node_type != LQPNodeType::Join && node_type != LQPNodeType::Union && node_type != LQPNodeType::Predicate;
 }
 
 PredicateParseResult gather_predicate(
-const std::shared_ptr<AbstractLQPNode> &node) const {
+const std::shared_ptr<AbstractLQPNode> &node) {
   if (node->type() == LQPNodeType::Predicate) {
     const auto predicate_node = std::static_pointer_cast<const PredicateNode>(node);
 
@@ -88,7 +88,7 @@ const std::shared_ptr<AbstractLQPNode> &node) const {
 }
 
 PredicateParseResult gather_predicate_from_union(
-const std::shared_ptr<UnionNode>& union_node) const {
+const std::shared_ptr<UnionNode>& union_node) {
   DebugAssert(union_node->left_input() && union_node->right_input(),
               "UnionNode needs both inputs set in order to be parsed");
 
@@ -222,7 +222,7 @@ std::shared_ptr<AbstractQueryBlock> query_blocks_from_lqp(const std::shared_ptr<
       const auto join_node = std::static_pointer_cast<JoinNode>(lqp);
 
       switch (join_node->join_mode()) {
-        case JoinMode::Inner: case JoinMode::Cross
+        case JoinMode::Inner: case JoinMode::Cross:
           return build_predicate_block(lqp);
         default:
           return build_outer_join_block(lqp);

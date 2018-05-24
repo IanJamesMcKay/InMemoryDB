@@ -4,6 +4,10 @@
 #include "optimizer/join_ordering/abstract_join_plan_node.hpp"
 #include "optimizer/join_ordering/dp_ccp.hpp"
 #include "optimizer/join_ordering/join_graph_builder.hpp"
+#include "query_blocks/abstract_query_block.hpp"
+#include "query_blocks/query_blocks_from_lqp.hpp"
+#include "query_blocks/predicates_block.hpp"
+#include "query_blocks/stored_table_block.hpp"
 
 namespace opossum {
 
@@ -13,45 +17,41 @@ JoinOrderingRule::JoinOrderingRule(const std::shared_ptr<AbstractJoinOrderingAlg
 std::string JoinOrderingRule::name() const { return "Join Ordering Rule"; }
 
 bool JoinOrderingRule::apply_to(const std::shared_ptr<AbstractLQPNode>& root) {
-  if (!_applicable(root)) {
-    return _apply_to_inputs(root);
-  }
+  Assert(root->type() == LQPNodeType::Root, "Call JoinOrderingRule with LogicalQueryPlanRootNode");
 
-  const auto join_graph = JoinGraphBuilder{}(root);  // NOLINT
+  const auto root_block = query_blocks_from_lqp(root->left_input());
 
-  const auto join_plan = (*_join_ordering_algorithm)(join_graph);
-  const auto lqp = join_plan.lqp;
-
-  for (const auto& parent_relation : join_graph->output_relations) {
-    parent_relation.output->set_input(parent_relation.input_side, lqp);
-  }
-
-  for (const auto& vertex : join_graph->vertices) {
-    _apply_to_inputs(vertex);
-  }
-
-  return false;
+  const auto optimized_lqp = _apply_to_blocks(root_block);
+  root->set_left_input(optimized_lqp);
 }
 
-bool JoinOrderingRule::_applicable(const std::shared_ptr<AbstractLQPNode>& node) const {
-  if (!node) return true;
+std::shared_ptr<AbstractLQPNode> JoinOrderingRule::_apply_to_blocks(const std::shared_ptr<AbstractQueryBlock>& block) {
+  auto sub_block_lqps = std::vector<std::shared_ptr<AbstractLQPNode>>{};
+  sub_block_lqps.resize(block->sub_blocks.size());
 
-  switch (node->type()) {
-    case LQPNodeType::Join:
-    case LQPNodeType::Predicate:
-    case LQPNodeType::Union:
-    case LQPNodeType::Aggregate:
-    case LQPNodeType::Mock:
-    case LQPNodeType::Root:
-    case LQPNodeType::Limit:
-    case LQPNodeType::Projection:
-    case LQPNodeType::Sort:
-    case LQPNodeType::StoredTable:
-    case LQPNodeType::Validate:
-      return _applicable(node->left_input()) && _applicable(node->right_input());
-    default:
-      return false;
+  for (const auto& sub_block : block->sub_blocks) {
+    sub_block_lqps.emplace_back(_apply_to_blocks(sub_block));
   }
+
+  switch (block->type) {
+    case QueryBlockType::Predicates:
+      return _apply_to_predicate_block(std::static_pointer_cast<PredicateBlock>(block), sub_block_lqps);
+    case QueryBlockType::StoredTable:
+      return std::static_pointer_cast<StoredTableBlock>(block)->stored_table_node;
+
+    default:
+      Fail("Not yet implemented");
+  }
+
+}
+
+std::shared_ptr<AbstractLQPNode> JoinOrderingRule::_apply_to_predicate_block(
+  const std::shared_ptr<PredicateBlock>& predicate_block,
+  const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices) {
+
+  const auto join_graph = JoinGraph::from_vertices_and_predicates(vertices, predicate_block->predicates);
+  const auto join_plan = (*_join_ordering_algorithm)(join_graph);
+  return join_plan.lqp;
 }
 
 }  // namespace opossum

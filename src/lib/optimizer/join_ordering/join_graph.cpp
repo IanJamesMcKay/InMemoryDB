@@ -14,8 +14,9 @@
 
 namespace opossum {
 
-std::shared_ptr<JoinGraph> JoinGraph::from_lqp(const std::shared_ptr<AbstractLQPNode>& lqp) {
-  return JoinGraphBuilder{}(lqp);  // NOLINT - doesn't like {} followed by ()
+std::shared_ptr<JoinGraph> from_vertices_and_predicates(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices,
+                                                               const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates) {
+  return JoinGraphBuilder{}(vertices, predicates);
 }
 
 JoinGraph::JoinGraph(std::vector<std::shared_ptr<AbstractLQPNode>> vertices,
