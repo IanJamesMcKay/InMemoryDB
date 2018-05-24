@@ -77,7 +77,7 @@ CostModelLinearConfig CostModelLinear::create_release_build_config() {
   };
   config.table_scan_models[CostModelLinearTableScanType::ColumnColumnNumeric] = CostFeatureWeights{
   {CostFeature::LeftInputReferenceRowCount, 0.0f},
-  {CostFeature::LeftInputRowCount, 0.0262691992411f},
+  {CostFeature::LeftInputRowCount, 0.262691992411f},
   {CostFeature::OutputRowCount, 0.0f},
   {CostFeature::OutputDereferenceRowCount, 0.0f}
   };
