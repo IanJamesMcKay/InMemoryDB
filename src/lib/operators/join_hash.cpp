@@ -366,7 +366,7 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
   Build all the hash tables for the partitions of Left. We parallelize this process for all partitions of Left
   */
   void _build(const RadixContainer<LeftType>& radix_container,
-              std::vector<std::shared_ptr<HashTable<HashedType>>>& hashtables) {
+              std::array<std::unique_ptr<HashTable<HashedType>>, _num_partitions>& hashtables) {
     std::vector<std::shared_ptr<AbstractTask>> jobs;
     jobs.reserve(radix_container.partition_offsets.size() - 1);
 
@@ -383,7 +383,7 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
           return;
         }
 
-        auto hashtable = std::make_shared<HashTable<HashedType>>(partition_size);
+        auto hashtable = std::make_unique<HashTable<HashedType>>(partition_size);
 
         for (size_t partition_offset = partition_left_begin; partition_offset < partition_left_end;
              ++partition_offset) {
@@ -392,7 +392,7 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
           hashtable->put(type_cast<HashedType>(element.value), element.row_id);
         }
 
-        hashtables[current_partition_id] = hashtable;
+        hashtables[current_partition_id] = std::move(hashtable);
       }));
       jobs.back()->schedule();
     }
@@ -406,7 +406,7 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
   number of hash tables that need to be looked into to just 1.
   */
   void _probe(const RadixContainer<RightType>& radix_container,
-              const std::vector<std::shared_ptr<HashTable<HashedType>>>& hashtables,
+              const std::array<std::unique_ptr<HashTable<HashedType>>, _num_partitions>& hashtables,
               std::vector<PosList>& pos_list_left, std::vector<PosList>& pos_list_right) {
     std::vector<std::shared_ptr<AbstractTask>> jobs;
     jobs.reserve(radix_container.partition_offsets.size() - 1);
@@ -492,7 +492,7 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
   }
 
   void _probe_semi_anti(const RadixContainer<RightType>& radix_container,
-                        const std::vector<std::shared_ptr<HashTable<HashedType>>>& hashtables,
+                        const std::array<std::unique_ptr<HashTable<HashedType>>, _num_partitions>& hashtables,
                         std::vector<PosList>& pos_lists) {
     std::vector<std::shared_ptr<AbstractTask>> jobs;
     jobs.reserve(radix_container.partition_offsets.size() - 1);
@@ -636,8 +636,8 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
         _partition_radix_parallel<RightType>(materialized_right, right_chunk_offsets, histograms_right, keep_nulls);
 
     // Build phase
-    std::vector<std::shared_ptr<HashTable<HashedType>>> hashtables;
-    hashtables.resize(radix_left.partition_offsets.size() - 1);
+    std::array<std::unique_ptr<HashTable<HashedType>>, _num_partitions> hashtables;
+
     /*
     NUMA notes:
     The hashtables for each partition P should also reside on the same node as the two vectors leftP and rightP.
