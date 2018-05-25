@@ -174,6 +174,32 @@ TEST_F(HistogramTest, EqualWidthHistogramUnevenBuckets) {
   EXPECT_EQ(hist.estimate_cardinality(18, PredicateCondition::Equals), 0.f);
 }
 
+TEST_F(HistogramTest, EqualWidthFloat) {
+  auto hist = EqualWidthHistogram<float>(_float2);
+  hist.generate(ColumnID{0}, 4u);
+  EXPECT_EQ(hist.num_buckets(), 4u);
+  EXPECT_EQ(hist.estimate_cardinality(0.4f, PredicateCondition::Equals), 0.f);
+  EXPECT_EQ(hist.estimate_cardinality(0.5f, PredicateCondition::Equals), 3 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(1.1f, PredicateCondition::Equals), 3 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(1.3f, PredicateCondition::Equals), 3 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(1.9f, PredicateCondition::Equals), 3 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(2.0f, PredicateCondition::Equals), 7 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(2.2f, PredicateCondition::Equals), 7 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(2.3f, PredicateCondition::Equals), 7 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(2.5f, PredicateCondition::Equals), 7 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(2.9f, PredicateCondition::Equals), 7 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(3.1f, PredicateCondition::Equals), 7 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(3.2f, PredicateCondition::Equals), 7 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(3.3f, PredicateCondition::Equals), 7 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(3.4f, PredicateCondition::Equals), 3 / 2.f);
+  EXPECT_EQ(hist.estimate_cardinality(3.6f, PredicateCondition::Equals), 3 / 2.f);
+  EXPECT_EQ(hist.estimate_cardinality(3.9f, PredicateCondition::Equals), 3 / 2.f);
+  EXPECT_EQ(hist.estimate_cardinality(4.4f, PredicateCondition::Equals), 3 / 2.f);
+  EXPECT_EQ(hist.estimate_cardinality(4.5f, PredicateCondition::Equals), 3 / 2.f);
+  EXPECT_EQ(hist.estimate_cardinality(6.1f, PredicateCondition::Equals), 1 / 1.f);
+  EXPECT_EQ(hist.estimate_cardinality(6.2f, PredicateCondition::Equals), 0.f);
+}
+
 TEST_F(HistogramTest, EqualHeightHistogramBasic) {
   auto hist = EqualHeightHistogram<int32_t>(_expected_join_result_1);
   hist.generate(ColumnID{1}, 4u);

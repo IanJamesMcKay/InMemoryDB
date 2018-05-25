@@ -22,7 +22,8 @@ class AbstractHistogram : public AbstractFilter {
 
   T lower_end() const;
   T upper_end() const;
-  T bucket_width(const BucketID index) const;
+
+  virtual T bucket_width(const BucketID index) const;
 
   virtual HistogramType histogram_type() const = 0;
 

@@ -51,7 +51,7 @@ T AbstractHistogram<T>::upper_end() const {
 }
 
 template <typename T>
-T AbstractHistogram<T>::bucket_width(const BucketID index) const {
+T AbstractHistogram<T>::bucket_width([[maybe_unused]] const BucketID index) const {
   DebugAssert(index < num_buckets(), "Index is not a valid bucket.");
 
   if constexpr (std::is_integral_v<T>) {

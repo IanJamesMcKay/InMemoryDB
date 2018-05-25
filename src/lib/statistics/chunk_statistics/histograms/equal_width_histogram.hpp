@@ -14,6 +14,9 @@ class EqualWidthHistogram : public AbstractHistogram<T> {
  public:
   using AbstractHistogram<T>::AbstractHistogram;
 
+  // Overriding because it would otherwise recursively call itself.
+  T bucket_width(const BucketID index) const override;
+
   HistogramType histogram_type() const override;
 
   size_t num_buckets() const override;
