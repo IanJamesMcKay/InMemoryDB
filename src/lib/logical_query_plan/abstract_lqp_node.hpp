@@ -68,8 +68,9 @@ struct QualifiedColumnName {
 };
 
 struct OptimizerInfo {
-  Cost estimated_cost;
-  Cardinality estimated_cardinality;
+  Cost estimated_node_cost{0};
+  Cost estimated_plan_cost{0};
+  std::optional<Cardinality> estimated_cardinality;
 };
 
 /**

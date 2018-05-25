@@ -87,7 +87,8 @@ void add_predicate(const std::shared_ptr<const AbstractJoinPlanPredicate>& predi
 
 
   join_plan_node.lqp->optimizer_info = OptimizerInfo{
-      predicate_cost,
+    predicate_cost,
+    join_plan_node.plan_cost,
     cardinality_estimator.estimate(join_plan_node.join_graph.vertices, join_plan_node.join_graph.predicates)
   };
 
@@ -196,6 +197,7 @@ JoinPlanNode build_join_plan_join_node(
 
   join_plan_node.lqp->optimizer_info = OptimizerInfo{
       predicate_cost,
+      join_plan_node.plan_cost,
       cardinality_estimator.estimate(join_plan_node.join_graph.vertices, join_plan_node.join_graph.predicates)
   };
 

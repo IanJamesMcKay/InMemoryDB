@@ -18,7 +18,7 @@ class CardinalityEstimatorCached : public AbstractCardinalityEstimator {
                              const CardinalityEstimationCacheMode cache_mode,
                              const std::shared_ptr<AbstractCardinalityEstimator>& fallback_estimator);
 
-  Cardinality estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& relations,
+  std::optional<Cardinality> estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& relations,
                        const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates) const override;
 
  private:

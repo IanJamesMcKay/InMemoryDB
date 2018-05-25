@@ -92,13 +92,13 @@ TEST_F(CardinalityEstimatorCachedTest, Cache) {
 }
 
 TEST_F(CardinalityEstimatorCachedTest, EmptyCache) {
-  EXPECT_EQ(cardinality_estimator->estimate({}, {}), 42);
-  EXPECT_EQ(cardinality_estimator->estimate({vertex_a}, {}), 42);
-  EXPECT_EQ(cardinality_estimator->estimate({vertex_a, vertex_b}, {a0_eq_b0}), 42);
+  EXPECT_EQ(cardinality_estimator->estimate({}, {}).value(), 42);
+  EXPECT_EQ(cardinality_estimator->estimate({vertex_a}, {}).value(), 42);
+  EXPECT_EQ(cardinality_estimator->estimate({vertex_a, vertex_b}, {a0_eq_b0}).value(), 42);
 
   cardinality_estimation_cache->put({{vertex_a}, {}}, 5);
-  EXPECT_EQ(cardinality_estimator->estimate({vertex_a}, {}), 5);
-  EXPECT_EQ(cardinality_estimator->estimate({vertex_a, vertex_b}, {a0_eq_b0}), 42);
+  EXPECT_EQ(cardinality_estimator->estimate({vertex_a}, {}).value(), 5);
+  EXPECT_EQ(cardinality_estimator->estimate({vertex_a, vertex_b}, {a0_eq_b0}).value(), 42);
 }
 
 }  // namespace opossum

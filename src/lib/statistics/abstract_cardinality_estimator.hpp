@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace opossum {
@@ -26,7 +27,7 @@ class AbstractCardinalityEstimator {
    *
    * @return            The estimated Cardinality of the evaluating `predicates` on `relations`
    */
-  virtual Cardinality estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& relations,
+  virtual std::optional<Cardinality> estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& relations,
                                const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates) const = 0;
 };
 

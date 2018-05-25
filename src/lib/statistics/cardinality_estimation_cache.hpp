@@ -34,6 +34,7 @@ class CardinalityEstimationCache final {
 
   static std::shared_ptr<CardinalityEstimationCache> load(const std::string& path);
   void store(const std::string& path) const;
+  void update(const std::string& path) const;
   nlohmann::json to_json() const;
   static std::shared_ptr<CardinalityEstimationCache> from_json(const nlohmann::json& json);
 

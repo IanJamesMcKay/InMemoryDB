@@ -30,7 +30,7 @@ CardinalityEstimatorExecution::CardinalityEstimatorExecution() {
   _optimizer->add_rule_batch(rule_batch);
 }
 
-Cardinality CardinalityEstimatorExecution::estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices,
+std::optional<Cardinality> CardinalityEstimatorExecution::estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices,
                                                     const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates) const {
   if (vertices.empty()) return 0.0f;
 
@@ -57,7 +57,7 @@ Cardinality CardinalityEstimatorExecution::estimate(const std::vector<std::share
 
   if (timed_out) {
     std::cout << " Timed out" << std::endl;
-    return 1000.f * 1000.f * 1000.f * 1000.f;
+    return std::nullopt;
   } else {
     std::cout << " Returned " << pqp->get_output()->row_count() << " rows" << std::endl;
     return pqp->get_output()->row_count();

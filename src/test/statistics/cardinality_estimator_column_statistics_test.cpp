@@ -48,25 +48,25 @@ class BasicCardinalityEstimatorTest : public ::testing::Test {
 };
 
 TEST_F(BasicCardinalityEstimatorTest, AtomicVertexPredicates) {
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {}), 20.0f);
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {x1_gt_5}), 10.0f);
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {x1_gt_8}), 4.0f);
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {x1_gt_8, x2_ge_10}), 2.4f);
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {x2_ge_10}), 12.0f);
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {x1_gt_5, x1_gt_8}), 4.0f);
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_y}, {y1_gt_5}), 2.0f);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {}).value(), 20.0f);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {x1_gt_5}).value(), 10.0f);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {x1_gt_8}).value(), 4.0f);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {x1_gt_8, x2_ge_10}).value(), 2.4f);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {x2_ge_10}).value(), 12.0f);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {x1_gt_5, x1_gt_8}).value(), 4.0f);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_y}, {y1_gt_5}).value(), 2.0f);
 
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x, vertex_y}, {}), 60.0f);
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x, vertex_y}, {x1_gt_5}), 30.0f);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x, vertex_y}, {}).value(), 60.0f);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x, vertex_y}, {x1_gt_5}).value(), 30.0f);
 }
 
 TEST_F(BasicCardinalityEstimatorTest, AtomicJoinPredicates) {
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x, vertex_y}, {x1_eq_y1}), 6.0f);
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x, vertex_y}, {y1_gt_5, x1_eq_y1}), 4.0f);
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x, vertex_y, vertex_z}, {x1_eq_y1}), 30.0f);
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x, vertex_y, vertex_z}, {x1_eq_y1, y1_eq_z1}), 4.0f);
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x, vertex_y}, {x2_ge_10}), 36.f);
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x, vertex_y}, {x2_ge_10, x1_eq_y1}), 3.6f);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x, vertex_y}, {x1_eq_y1}).value(), 6.0f);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x, vertex_y}, {y1_gt_5, x1_eq_y1}).value(), 4.0f);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x, vertex_y, vertex_z}, {x1_eq_y1}).value(), 30.0f);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x, vertex_y, vertex_z}, {x1_eq_y1, y1_eq_z1}).value(), 4.0f);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x, vertex_y}, {x2_ge_10}).value(), 36.f);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x, vertex_y}, {x2_ge_10, x1_eq_y1}).value(), 3.6f);
 }
 
 TEST_F(BasicCardinalityEstimatorTest, AtomicJoinPredicatesWithDistinctCapping) {
@@ -74,28 +74,28 @@ TEST_F(BasicCardinalityEstimatorTest, AtomicJoinPredicatesWithDistinctCapping) {
   // less tuples than the distinct count of x1.
   // Currently the CardinalityEstimatorColumnStatistics will just cap x1's distinct_count at 4, which is the cardinality after
   // applying (x2 >= 14).
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x, vertex_y}, {x2_ge_14, x1_eq_y1}), 1.2f);
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_y, vertex_x}, {x1_eq_y1, x2_ge_14}), 1.2f);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x, vertex_y}, {x2_ge_14, x1_eq_y1}).value(), 1.2f);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_y, vertex_x}, {x1_eq_y1, x2_ge_14}).value(), 1.2f);
 }
 
 TEST_F(BasicCardinalityEstimatorTest, LogicalPredicates) {
   const auto x1_gt_5_and_lt_8 = std::make_shared<JoinPlanLogicalPredicate>(x1_gt_5, JoinPlanPredicateLogicalOperator::And, x1_lt_8);
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {x1_gt_5_and_lt_8}), 4);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {x1_gt_5_and_lt_8}).value(), 4);
 
   const auto x1_lt_4_or_gt_8 = std::make_shared<JoinPlanLogicalPredicate>(x1_lt_4, JoinPlanPredicateLogicalOperator::Or, x1_gt_8);
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {x1_lt_4_or_gt_8}), 6.8f);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {x1_lt_4_or_gt_8}).value(), 6.8f);
 
   // (x1 < 4 AND x2 >= 10)
   const auto x1_lt_4_and_x2_ge_10 = std::make_shared<JoinPlanLogicalPredicate>(x1_lt_4, JoinPlanPredicateLogicalOperator::And, x2_ge_10);
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {x1_lt_4_and_x2_ge_10}), 3.6);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {x1_lt_4_and_x2_ge_10}).value(), 3.6);
 
   // (x1 < 4 AND x2 >= 10) OR x > 8
   const auto or_x1_gt_8 = std::make_shared<JoinPlanLogicalPredicate>(x1_lt_4_and_x2_ge_10, JoinPlanPredicateLogicalOperator::Or, x1_gt_8);
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {or_x1_gt_8}), 4.4f);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {or_x1_gt_8}).value(), 4.4f);
 
   // ((x1 < 4 AND x2 >= 10) OR x > 8) AND x2 >= 14
   const auto and_x2_ge_14 = std::make_shared<JoinPlanLogicalPredicate>(or_x1_gt_8, JoinPlanPredicateLogicalOperator::And, x2_ge_14);
-  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {and_x2_ge_14}), 4.4f / 3.0f);
+  EXPECT_FLOAT_EQ(cardinality_estimator.estimate({vertex_x}, {and_x2_ge_14}).value(), 4.4f / 3.0f);
 }
 
 }  // namespace opossum

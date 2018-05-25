@@ -10,7 +10,7 @@ CardinalityEstimatorCached::CardinalityEstimatorCached(const std::shared_ptr<Car
   _cache(cache), _cache_mode(cache_mode), _fallback_estimator(fallback_estimator)
 {}
 
-Cardinality CardinalityEstimatorCached::estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& relations,
+std::optional<Cardinality> CardinalityEstimatorCached::estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& relations,
                      const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates) const {
   const auto cached_cardinality = _cache->get({relations, predicates});
 
@@ -18,8 +18,8 @@ Cardinality CardinalityEstimatorCached::estimate(const std::vector<std::shared_p
 
   const auto fallback_cardinality = _fallback_estimator->estimate(relations, predicates);
 
-  if (_cache_mode == CardinalityEstimationCacheMode::ReadAndUpdate) {
-    _cache->put({relations, predicates}, fallback_cardinality);
+  if (fallback_cardinality && _cache_mode == CardinalityEstimationCacheMode::ReadAndUpdate) {
+    _cache->put({relations, predicates}, fallback_cardinality.value());
   }
 
   return fallback_cardinality;

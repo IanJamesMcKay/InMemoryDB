@@ -1,8 +1,15 @@
 #include "cardinality_estimation_cache.hpp"
 
 #include <algorithm>
+#include <chrono>
+#include <experimental/filesystem>
 #include <iostream>
 #include <fstream>
+#include <thread>
+
+#include "boost/interprocess/sync/file_lock.hpp"
+#include "boost/interprocess/sync/sharable_lock.hpp"
+#include "boost/interprocess/sync/scoped_lock.hpp"
 
 #include "json.hpp"
 
@@ -119,18 +126,59 @@ BaseJoinGraph CardinalityEstimationCache::_normalize(const BaseJoinGraph& join_g
 }
 
 std::shared_ptr<CardinalityEstimationCache> CardinalityEstimationCache::load(const std::string& path) {
-  std::ifstream stream{path};
-  Assert(stream.is_open(), "Couldn't open persistent CardinalityEstimationCache");
+  boost::interprocess::file_lock file_lock(path.c_str());
+  boost::interprocess::scoped_lock<boost::interprocess::file_lock> lock(file_lock);
 
-  nlohmann::json json;
-  stream >> json;
+  std::shared_ptr<CardinalityEstimationCache> cache;
 
-  return from_json(json);
+  {
+    std::ifstream stream{path};
+    Assert(stream.is_open(), "Couldn't open persistent CardinalityEstimationCache");
+
+    stream.seekg(0, std::ios_base::end);
+    if (stream.tellg() == 0) return std::make_shared<CardinalityEstimationCache>();
+    stream.seekg(0, std::ios_base::beg);
+
+    nlohmann::json json;
+    stream >> json;
+
+    cache = from_json(json);
+  }
+
+  return cache;
 }
 
 void CardinalityEstimationCache::store(const std::string& path) const {
   std::ofstream stream{path};
   stream << to_json();
+  stream.flush();
+}
+
+void CardinalityEstimationCache::update(const std::string& path) const {
+  // "Touch" the file
+  if (!std::experimental::filesystem::exists(path)) {
+    std::ofstream{path, std::ios_base::app};
+  }
+
+  boost::interprocess::file_lock file_lock(path.c_str());
+  boost::interprocess::scoped_lock<boost::interprocess::file_lock> lock(file_lock);
+
+  // Extra block to ensure file lifetime < lock lifetime
+  {
+    std::shared_ptr<CardinalityEstimationCache> persistent_cache;
+
+    if (std::experimental::filesystem::exists(path)) {
+      persistent_cache = load(path);
+    } else {
+      persistent_cache = std::make_shared<CardinalityEstimationCache>();
+    }
+
+    for (const auto& pair : _cache) {
+      persistent_cache->_cache[pair.first] = pair.second;
+    }
+
+    persistent_cache->store(path);
+  }
 }
 
 nlohmann::json CardinalityEstimationCache::to_json() const {

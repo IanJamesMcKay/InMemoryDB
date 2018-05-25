@@ -18,7 +18,7 @@ namespace opossum {
 
 GenericInputCostFeatures GenericInputCostFeatures::from_join_graph(const BaseJoinGraph &input_join_graph, const AbstractCardinalityEstimator &cardinality_estimator) {
   return {
-    cardinality_estimator.estimate(input_join_graph.vertices, input_join_graph.predicates),
+    cardinality_estimator.estimate(input_join_graph.vertices, input_join_graph.predicates).value_or(1e+12),
     input_join_graph.vertices.size() > 1 || !input_join_graph.predicates.empty()
   };
 }
@@ -73,7 +73,7 @@ CostFeatureGenericProxy CostFeatureGenericProxy::from_join_plan_predicate(const 
      input_features,
      std::nullopt,
      predicate_features,
-     cardinality_estimator.estimate(input_join_graph.vertices, output_graph_predicates)
+     cardinality_estimator.estimate(input_join_graph.vertices, output_graph_predicates).value_or(1e+12)
   };
 }
 
@@ -101,7 +101,7 @@ CostFeatureGenericProxy CostFeatureGenericProxy::from_join_plan_predicate(const 
     left_input_features,
     right_input_features,
     predicate_features,
-    cardinality_estimator.estimate(output_graph.vertices, output_graph.predicates),
+    cardinality_estimator.estimate(output_graph.vertices, output_graph.predicates).value_or(1e+12)
   };
 }
 
@@ -122,7 +122,7 @@ CostFeatureGenericProxy CostFeatureGenericProxy::from_cross_join(const BaseJoinG
     left_input_features,
     right_input_features,
     std::nullopt,
-    cardinality_estimator.estimate(joined_graph_vertices, joined_graph_predicates),
+    cardinality_estimator.estimate(joined_graph_vertices, joined_graph_predicates).value_or(1e+12)
   };
 }
 
@@ -138,7 +138,7 @@ CostFeatureGenericProxy CostFeatureGenericProxy::from_union(const BaseJoinGraph 
     left_input_features,
     right_input_features,
     std::nullopt,
-    cardinality_estimator.estimate(output_join_graph.vertices, output_join_graph.predicates)
+    cardinality_estimator.estimate(output_join_graph.vertices, output_join_graph.predicates).value_or(1e+12)
   };
 }
 

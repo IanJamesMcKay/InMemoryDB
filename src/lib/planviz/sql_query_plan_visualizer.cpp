@@ -104,28 +104,41 @@ void SQLQueryPlanVisualizer::_add_operator(const std::shared_ptr<const AbstractO
       auto &row_count_info = comparisons.add_sublayout();
       row_count_info.add_label("RowCount");
       if (op->lqp_node()->optimizer_info) {
-        row_count_info.add_label(
-        format_integer(static_cast<size_t>(op->lqp_node()->optimizer_info->estimated_cardinality)) + " est");
+        if (op->lqp_node()->optimizer_info->estimated_cardinality) {
+          row_count_info.add_label(
+          format_integer(static_cast<size_t>(*op->lqp_node()->optimizer_info->estimated_cardinality)) + " est");
+        } else {
+          row_count_info.add_label("no est");
+        }
       } else {
         row_count_info.add_label("-");
       }
       if (op->get_output()) row_count_info.add_label(format_integer(op->get_output()->row_count()) + " aim");
 
-      auto &cost_info = comparisons.add_sublayout();
-      cost_info.add_label("Cost");
+      auto &node_cost_info = comparisons.add_sublayout();
+      node_cost_info.add_label("Node Cost");
 
       if (op->lqp_node()->optimizer_info) {
-        cost_info.add_label(format_integer(static_cast<int>(op->lqp_node()->optimizer_info->estimated_cost)) + " est");
+        node_cost_info.add_label(format_integer(static_cast<int>(op->lqp_node()->optimizer_info->estimated_node_cost)) + " est");
       } else {
-        cost_info.add_label("-");
+        node_cost_info.add_label("-");
       }
 
       const auto target_cost = _cost_model->get_reference_operator_cost(
       std::const_pointer_cast<AbstractOperator>(op));
       if (target_cost > 0) {
-        cost_info.add_label(format_integer(static_cast<int>(target_cost)) + " aim");
+        node_cost_info.add_label(format_integer(static_cast<int>(target_cost)) + " aim");
       } else {
-        cost_info.add_label("-");
+        node_cost_info.add_label("-");
+      }
+
+      auto &plan_cost_info = comparisons.add_sublayout();
+      plan_cost_info.add_label("Plan Cost");
+
+      if (op->lqp_node()->optimizer_info) {
+        plan_cost_info.add_label(format_integer(static_cast<int>(op->lqp_node()->optimizer_info->estimated_plan_cost)) + " est");
+      } else {
+        plan_cost_info.add_label("-");
       }
     }
 

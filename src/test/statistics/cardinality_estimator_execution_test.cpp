@@ -40,8 +40,8 @@ class CardinalityEstimatorExecutionTest : public ::testing::Test {
 };
 
 TEST_F(CardinalityEstimatorExecutionTest, Basics) {
-  EXPECT_EQ(cardinality_estimator->estimate({lineitem_node}, {}), 6005);
-  EXPECT_EQ(cardinality_estimator->estimate({lineitem_node}, {l_orderkey_gt_100}), 5895);
+  EXPECT_EQ(cardinality_estimator->estimate({lineitem_node}, {}).value(), 6005);
+  EXPECT_EQ(cardinality_estimator->estimate({lineitem_node}, {l_orderkey_gt_100}).value(), 5895);
 }
 
 TEST_F(CardinalityEstimatorExecutionTest, DoesntAffectLQP) {
