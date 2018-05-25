@@ -91,20 +91,20 @@ TEST_F(HistogramTest, EqualNumElementsFloat) {
   auto hist = EqualNumElementsHistogram<float>(_float2);
   hist.generate(ColumnID{0}, 3u);
   EXPECT_EQ(hist.num_buckets(), 3u);
-  EXPECT_EQ(hist.estimate_cardinality(0.4, PredicateCondition::Equals), 0.f);
-  EXPECT_EQ(hist.estimate_cardinality(0.5, PredicateCondition::Equals), 4 / 4.f);
-  EXPECT_EQ(hist.estimate_cardinality(1.1, PredicateCondition::Equals), 4 / 4.f);
-  EXPECT_EQ(hist.estimate_cardinality(1.3, PredicateCondition::Equals), 4 / 4.f);
-  EXPECT_EQ(hist.estimate_cardinality(2.2, PredicateCondition::Equals), 4 / 4.f);
-  EXPECT_EQ(hist.estimate_cardinality(2.3, PredicateCondition::Equals), 0.f);
-  EXPECT_EQ(hist.estimate_cardinality(2.5, PredicateCondition::Equals), 6 / 3.f);
-  EXPECT_EQ(hist.estimate_cardinality(2.9, PredicateCondition::Equals), 6 / 3.f);
-  EXPECT_EQ(hist.estimate_cardinality(3.3, PredicateCondition::Equals), 6 / 3.f);
-  EXPECT_EQ(hist.estimate_cardinality(3.5, PredicateCondition::Equals), 0.f);
-  EXPECT_EQ(hist.estimate_cardinality(3.6, PredicateCondition::Equals), 4 / 3.f);
-  EXPECT_EQ(hist.estimate_cardinality(3.9, PredicateCondition::Equals), 4 / 3.f);
-  EXPECT_EQ(hist.estimate_cardinality(6.1, PredicateCondition::Equals), 4 / 3.f);
-  EXPECT_EQ(hist.estimate_cardinality(6.2, PredicateCondition::Equals), 0.f);
+  EXPECT_EQ(hist.estimate_cardinality(0.4f, PredicateCondition::Equals), 0.f);
+  EXPECT_EQ(hist.estimate_cardinality(0.5f, PredicateCondition::Equals), 4 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(1.1f, PredicateCondition::Equals), 4 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(1.3f, PredicateCondition::Equals), 4 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(2.2f, PredicateCondition::Equals), 4 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(2.3f, PredicateCondition::Equals), 0.f);
+  EXPECT_EQ(hist.estimate_cardinality(2.5f, PredicateCondition::Equals), 6 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(2.9f, PredicateCondition::Equals), 6 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(3.3f, PredicateCondition::Equals), 6 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(3.5f, PredicateCondition::Equals), 0.f);
+  EXPECT_EQ(hist.estimate_cardinality(3.6f, PredicateCondition::Equals), 4 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(3.9f, PredicateCondition::Equals), 4 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(6.1f, PredicateCondition::Equals), 4 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(6.2f, PredicateCondition::Equals), 0.f);
 }
 
 TEST_F(HistogramTest, EqualNumElementsString) {
@@ -195,21 +195,47 @@ TEST_F(HistogramTest, EqualHeightHistogramBasic) {
 TEST_F(HistogramTest, EqualHeightHistogramUnevenBuckets) {
   auto hist = EqualHeightHistogram<int32_t>(_expected_join_result_1);
   hist.generate(ColumnID{1}, 5u);
-  EXPECT_EQ(hist.num_buckets(), 5u);
+  // For EqualHeightHistograms we cannot guarantee that we will have the expected number of buckets.
+  EXPECT_LE(hist.num_buckets(), 5u);
   EXPECT_EQ(hist.estimate_cardinality(0, PredicateCondition::Equals), 0.f);
-  EXPECT_EQ(hist.estimate_cardinality(1, PredicateCondition::Equals), 4 / 1.f);
-  EXPECT_EQ(hist.estimate_cardinality(2, PredicateCondition::Equals), 4 / 2.f);
-  EXPECT_EQ(hist.estimate_cardinality(3, PredicateCondition::Equals), 4 / 2.f);
-  EXPECT_EQ(hist.estimate_cardinality(5, PredicateCondition::Equals), 4 / 2.f);
-  EXPECT_EQ(hist.estimate_cardinality(6, PredicateCondition::Equals), 4 / 1.f);
-  EXPECT_EQ(hist.estimate_cardinality(7, PredicateCondition::Equals), 4 / 1.f);
-  EXPECT_EQ(hist.estimate_cardinality(8, PredicateCondition::Equals), 4 / 2.f);
-  EXPECT_EQ(hist.estimate_cardinality(9, PredicateCondition::Equals), 4 / 2.f);
-  EXPECT_EQ(hist.estimate_cardinality(10, PredicateCondition::Equals), 4 / 3.f);
-  EXPECT_EQ(hist.estimate_cardinality(12, PredicateCondition::Equals), 4 / 3.f);
-  EXPECT_EQ(hist.estimate_cardinality(18, PredicateCondition::Equals), 4 / 3.f);
-  EXPECT_EQ(hist.estimate_cardinality(20, PredicateCondition::Equals), 4 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(1, PredicateCondition::Equals), 5 / 1.f);
+  EXPECT_EQ(hist.estimate_cardinality(2, PredicateCondition::Equals), 5 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(3, PredicateCondition::Equals), 5 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(5, PredicateCondition::Equals), 5 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(6, PredicateCondition::Equals), 5 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(7, PredicateCondition::Equals), 5 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(8, PredicateCondition::Equals), 5 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(9, PredicateCondition::Equals), 5 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(10, PredicateCondition::Equals), 5 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(12, PredicateCondition::Equals), 5 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(18, PredicateCondition::Equals), 5 / 2.f);
+  EXPECT_EQ(hist.estimate_cardinality(19, PredicateCondition::Equals), 5 / 2.f);
+  EXPECT_EQ(hist.estimate_cardinality(20, PredicateCondition::Equals), 5 / 2.f);
   EXPECT_EQ(hist.estimate_cardinality(21, PredicateCondition::Equals), 0.f);
+}
+
+TEST_F(HistogramTest, EqualHeightFloat) {
+  auto hist = EqualHeightHistogram<float>(_float2);
+  hist.generate(ColumnID{0}, 4u);
+  EXPECT_EQ(hist.num_buckets(), 4u);
+  EXPECT_EQ(hist.estimate_cardinality(0.4f, PredicateCondition::Equals), 0.f);
+  EXPECT_EQ(hist.estimate_cardinality(0.5f, PredicateCondition::Equals), 4 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(1.1f, PredicateCondition::Equals), 4 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(1.3f, PredicateCondition::Equals), 4 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(2.2f, PredicateCondition::Equals), 4 / 4.f);
+  EXPECT_EQ(hist.estimate_cardinality(2.3f, PredicateCondition::Equals), 4 / 2.f);
+  EXPECT_EQ(hist.estimate_cardinality(2.5f, PredicateCondition::Equals), 4 / 2.f);
+  EXPECT_EQ(hist.estimate_cardinality(2.9f, PredicateCondition::Equals), 4 / 2.f);
+  EXPECT_EQ(hist.estimate_cardinality(3.1f, PredicateCondition::Equals), 4 / 2.f);
+  EXPECT_EQ(hist.estimate_cardinality(3.2f, PredicateCondition::Equals), 4 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(3.3f, PredicateCondition::Equals), 4 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(3.5f, PredicateCondition::Equals), 4 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(3.6f, PredicateCondition::Equals), 4 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(3.9f, PredicateCondition::Equals), 4 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(4.4f, PredicateCondition::Equals), 4 / 3.f);
+  EXPECT_EQ(hist.estimate_cardinality(4.5f, PredicateCondition::Equals), 4 / 1.f);
+  EXPECT_EQ(hist.estimate_cardinality(6.1f, PredicateCondition::Equals), 4 / 1.f);
+  EXPECT_EQ(hist.estimate_cardinality(6.2f, PredicateCondition::Equals), 0.f);
 }
 
 }  // namespace opossum

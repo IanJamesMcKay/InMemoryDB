@@ -122,11 +122,16 @@ void EqualHeightHistogram<T>::_generate(const ColumnID column_id, const size_t m
 
   _min = distinct_column->get(0u);
 
-  // Buckets shall have (approximately) the same height.
   auto table = this->_table.lock();
   DebugAssert(table != nullptr, "Corresponding table of histogram is deleted.");
-  // TODO(tim): row_count() is approximate due to MVCC - fix!
+
+  // Buckets shall have (approximately) the same height.
   _count_per_bucket = table->row_count() / num_buckets;
+
+  if (table->row_count() % num_buckets > 0u) {
+    // Add 1 so that we never create more buckets than requested.
+    _count_per_bucket++;
+  }
 
   auto current_begin = 0u;
   auto current_height = 0u;
