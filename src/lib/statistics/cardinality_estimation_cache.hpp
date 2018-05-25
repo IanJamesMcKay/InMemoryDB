@@ -32,6 +32,11 @@ class CardinalityEstimationCache final {
   static BaseJoinGraph _normalize(const BaseJoinGraph& join_graph);
   static std::shared_ptr<const AbstractJoinPlanPredicate> _normalize(const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate);
 
+  static std::shared_ptr<CardinalityEstimationCache> load(const std::string& path);
+  void store(const std::string& path) const;
+  nlohmann::json to_json() const;
+  static std::shared_ptr<CardinalityEstimationCache> from_json(const nlohmann::json& json);
+
  private:
   struct Entry {
     std::optional<Cardinality> cardinality;

@@ -6,6 +6,7 @@
 #include "boost/functional/hash.hpp"
 #include "logical_query_plan/abstract_lqp_node.hpp"
 #include "logical_query_plan/lqp_column_reference.hpp"
+#include "logical_query_plan/stored_table_node.hpp"
 #include "utils/assert.hpp"
 #include "base_join_graph.hpp"
 #include "join_plan_predicate.hpp"
@@ -44,6 +45,68 @@ std::string BaseJoinGraph::description() const {
   }
   stream << "]";
   return stream.str();
+}
+
+nlohmann::json BaseJoinGraph::to_json() const {
+
+  /**
+   * Vertices to JSON
+   */
+  auto vertices_json = nlohmann::json::array();
+  for (const auto& vertex : vertices) {
+    Assert(vertex->type() == LQPNodeType::StoredTable, "to_json() only support StoredTableNodes right now");
+
+    const auto stored_table_node = std::static_pointer_cast<StoredTableNode>(vertex);
+
+    auto vertex_json = nlohmann::json{};
+    vertex_json["table_name"] = stored_table_node->table_name();
+
+    if (stored_table_node->alias()) {
+      vertex_json["alias"] = *vertex->alias();
+    }
+
+    vertices_json.push_back(vertex_json);
+  }
+
+  /**
+   * Predicates to JSON
+   */
+  auto predicates_json = nlohmann::json::array();
+  for (const auto& predicate : predicates) {
+    predicates_json.emplace_back(predicate->to_json());
+  }
+
+  auto json = nlohmann::json();
+
+  json["vertices"] = vertices_json;
+  json["predicates"] = predicates_json;
+
+  return json;
+}
+
+BaseJoinGraph BaseJoinGraph::from_json(const nlohmann::json& json) {
+  BaseJoinGraph base_join_graph;
+
+  if (json.count("vertices")) {
+    for (const auto &vertex_json : json["vertices"]) {
+      const auto table_name = vertex_json["table_name"].get<std::string>();
+      const auto stored_table_node = StoredTableNode::make(table_name);
+      if (vertex_json.count("alias")) {
+        stored_table_node->set_alias(vertex_json["alias"].get<std::string>());
+      }
+
+      base_join_graph.vertices.emplace_back(stored_table_node);
+    }
+  }
+
+  if (json.count("predicates")) {
+    for (const auto &predicate_json : json["predicates"]) {
+      const auto predicate = join_plan_predicate_from_json(predicate_json, base_join_graph.vertices);
+      base_join_graph.predicates.emplace_back(predicate);
+    }
+  }
+
+  return base_join_graph;
 }
 
 bool BaseJoinGraph::operator==(const BaseJoinGraph& rhs) const {

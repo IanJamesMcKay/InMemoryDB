@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include "json.hpp"
+
 #include "types.hpp"
 
 namespace opossum {
@@ -22,6 +24,9 @@ class LQPColumnReference final {
   ColumnID original_column_id() const;
 
   std::string description() const;
+
+  nlohmann::json to_json() const;
+  static LQPColumnReference from_json(const nlohmann::json& json, std::vector<std::shared_ptr<AbstractLQPNode>>& vertices);
 
   bool operator==(const LQPColumnReference& rhs) const;
 

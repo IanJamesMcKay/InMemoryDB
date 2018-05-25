@@ -2,6 +2,9 @@
 
 #include <algorithm>
 #include <iostream>
+#include <fstream>
+
+#include "json.hpp"
 
 #include "optimizer/join_ordering/join_plan_predicate.hpp"
 
@@ -113,6 +116,52 @@ BaseJoinGraph CardinalityEstimationCache::_normalize(const BaseJoinGraph& join_g
   }
 
   return normalized_join_graph;
+}
+
+std::shared_ptr<CardinalityEstimationCache> CardinalityEstimationCache::load(const std::string& path) {
+  std::ifstream stream{path};
+  Assert(stream.is_open(), "Couldn't open persistent CardinalityEstimationCache");
+
+  nlohmann::json json;
+  stream >> json;
+
+  return from_json(json);
+}
+
+void CardinalityEstimationCache::store(const std::string& path) const {
+  std::ofstream stream{path};
+  stream << to_json();
+}
+
+nlohmann::json CardinalityEstimationCache::to_json() const {
+  nlohmann::json json;
+
+  json = nlohmann::json::array();
+
+  for (const auto& pair : _cache) {
+    if (!pair.second.cardinality) continue;
+
+    auto entry_json = nlohmann::json();
+
+    entry_json["key"] = pair.first.to_json();
+    entry_json["value"] = *pair.second.cardinality;
+
+    json.push_back(entry_json);
+  }
+
+  return json;
+}
+
+std::shared_ptr<CardinalityEstimationCache> CardinalityEstimationCache::from_json(const nlohmann::json& json) {
+  const auto cache = std::make_shared<CardinalityEstimationCache>();
+
+  for (const auto& pair : json) {
+    const auto key = BaseJoinGraph::from_json(pair["key"]);
+    const auto value = pair["value"].get<Cardinality>();
+    cache->put(key, value);
+  }
+
+  return cache;
 }
 
 std::shared_ptr<const AbstractJoinPlanPredicate> CardinalityEstimationCache::_normalize(const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate) {

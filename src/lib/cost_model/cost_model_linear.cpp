@@ -94,9 +94,9 @@ CostModelLinearConfig CostModelLinear::create_release_build_config() {
   {CostFeature::OutputDereferenceRowCount, 0.0325447573152f},
   };
   config.table_scan_models[CostModelLinearTableScanType::Like] = CostFeatureWeights{
-  {CostFeature::LeftInputReferenceRowCount, 1.96376974778f},
+  {CostFeature::LeftInputReferenceRowCount, 0.126974778f},
   {CostFeature::LeftInputRowCount, 0.0f},
-  {CostFeature::OutputRowCount, 11.2450352145f},
+  {CostFeature::OutputRowCount, 0.0f},
   {CostFeature::OutputDereferenceRowCount, 0.0f},
   };
 

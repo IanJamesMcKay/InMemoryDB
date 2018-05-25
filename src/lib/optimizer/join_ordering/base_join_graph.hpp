@@ -3,6 +3,8 @@
 #include <vector>
 #include <memory>
 
+#include "json.hpp"
+
 namespace opossum {
 
 class AbstractLQPNode;
@@ -18,6 +20,9 @@ struct BaseJoinGraph final {
   std::shared_ptr<AbstractLQPNode> find_vertex(const LQPColumnReference& column_reference) const;
 
   std::string description() const;
+
+  nlohmann::json to_json() const;
+  static BaseJoinGraph from_json(const nlohmann::json& json);
 
   bool operator==(const BaseJoinGraph& rhs) const;
 

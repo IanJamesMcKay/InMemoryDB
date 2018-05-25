@@ -15,9 +15,15 @@ void Joe::run() {
 
   for (auto &query : queries) {
     query.run();
+
+    if (config->cardinality_estimation_mode == CardinalityEstimationMode::Executed) {
+      config->cardinality_estimation_cache->store(config->cardinality_estimation_execution_cache_path);
+    }
+
     if (config->isolate_queries) config->cardinality_estimation_cache->clear();
 
     write_csv(queries, "Name,BestPlanExecutionDuration", config->evaluation_prefix + "Queries.csv");
+
   }
 }
 

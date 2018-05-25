@@ -2,6 +2,8 @@
 
 #include <ostream>
 
+#include "json.hpp"
+
 #include "all_parameter_variant.hpp"
 #include "join_vertex_set.hpp"
 #include "logical_query_plan/lqp_column_reference.hpp"
@@ -38,6 +40,8 @@ class AbstractJoinPlanPredicate {
 
   virtual size_t hash() const = 0;
 
+  virtual nlohmann::json to_json() const = 0;
+
  private:
   const JoinPlanPredicateType _type;
 };
@@ -56,6 +60,9 @@ class JoinPlanLogicalPredicate : public AbstractJoinPlanPredicate {
   void print(std::ostream& stream = std::cout, const bool enclosing_braces = false) const override;
 
   size_t hash() const override;
+
+  nlohmann::json to_json() const override;
+  static std::shared_ptr<const JoinPlanLogicalPredicate> from_json(const nlohmann::json& json, std::vector<std::shared_ptr<AbstractLQPNode>>& vertices);
 
   bool operator==(const JoinPlanLogicalPredicate& rhs) const;
 
@@ -78,11 +85,16 @@ class JoinPlanAtomicPredicate : public AbstractJoinPlanPredicate {
 
   size_t hash() const override;
 
+  nlohmann::json to_json() const override;
+  static std::shared_ptr<const JoinPlanAtomicPredicate> from_json(const nlohmann::json& json, std::vector<std::shared_ptr<AbstractLQPNode>>& vertices);
+
   bool operator==(const JoinPlanAtomicPredicate& rhs) const;
 
   const LQPColumnReference left_operand;
   const PredicateCondition predicate_condition;
   const AllParameterVariant right_operand;
 };
+
+std::shared_ptr<const AbstractJoinPlanPredicate> join_plan_predicate_from_json(const nlohmann::json& json, std::vector<std::shared_ptr<AbstractLQPNode>>& vertices);
 
 }  // namespace opossum

@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 
+#include "json.hpp"
 #include "null_value.hpp"
 #include "types.hpp"
 
@@ -124,6 +125,9 @@ static const auto NULL_VALUE = AllTypeVariant{};
  * near, e.g. withing a certain absolute difference from each other.
  */
 bool all_type_variant_near(const AllTypeVariant& lhs, const AllTypeVariant& rhs, double max_abs_error = 0.001);
+
+nlohmann::json all_type_variant_to_json(const AllTypeVariant& value);
+AllTypeVariant all_type_variant_from_json(const nlohmann::json& json);
 
 }  // namespace opossum
 

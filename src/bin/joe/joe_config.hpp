@@ -13,6 +13,7 @@
 namespace opossum {
 
 enum class CardinalityEstimationMode { ColumnStatistics, Executed };
+enum class CardinalityEstimationCacheStoreMode { None, ReadOnly, ReadAndWrite };
 
 struct JoeConfig final {
   /**
@@ -21,6 +22,7 @@ struct JoeConfig final {
   std::string cost_model_str = "linear";
   std::string workload_str = "tpch";
   std::string cardinality_estimation_str = "cached";
+  std::string cardinality_estimation_execution_cache_store_mode_str = "none";
   std::string imdb_dir = "";
   std::string job_dir = "";
   float scale_factor = 0.1f;
@@ -55,6 +57,7 @@ struct JoeConfig final {
   std::shared_ptr<CardinalityEstimationCache> cardinality_estimation_cache;
   std::shared_ptr<AbstractCardinalityEstimator> fallback_cardinality_estimator;
   std::shared_ptr<AbstractCardinalityEstimator> main_cardinality_estimator;
+  CardinalityEstimationCacheStoreMode cardinality_estimation_execution_cache_store_mode{CardinalityEstimationCacheStoreMode::None};
 
   /**
    * Misc
@@ -62,6 +65,7 @@ struct JoeConfig final {
   std::string evaluation_dir;
   std::string evaluation_prefix;
   std::string tmp_dot_file_path;
+  std::string cardinality_estimation_execution_cache_path;
 
   void add_options(cxxopts::Options& cli_options_description);
   void parse(const cxxopts::ParseResult& parse_result);

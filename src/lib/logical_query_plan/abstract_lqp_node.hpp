@@ -253,6 +253,8 @@ class AbstractLQPNode : public std::enable_shared_from_this<AbstractLQPNode>, pr
    */
   void set_alias(const std::optional<std::string>& table_alias);
 
+  const std::optional<std::string>& alias() const { return _table_alias; }
+
   // @{
   /**
    * Functions for debugging purposes.

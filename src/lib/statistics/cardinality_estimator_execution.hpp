@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <optional>
 
 #include "abstract_cardinality_estimator.hpp"
 
@@ -19,7 +20,7 @@ class CardinalityEstimatorExecution : public AbstractCardinalityEstimator {
   Cardinality estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices,
                        const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates) const override;
 
-  std::chrono::seconds timeout;
+  std::optional<std::chrono::seconds> timeout;
 
  private:
   // We need a custom optimizer to produce a somewhat sane LQP, but doesn't use a CardinalityEstimatorExecution so we
