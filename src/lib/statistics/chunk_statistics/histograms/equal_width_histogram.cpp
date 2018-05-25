@@ -158,7 +158,7 @@ void EqualWidthHistogram<T>::_generate(const ColumnID column_id, const size_t ma
   if constexpr (std::is_integral_v<T>) {
     bucket_width = (base_width + 1) / num_buckets;
     _num_buckets_with_larger_range = (base_width + 1) % num_buckets;
-  } else if constexpr (std::is_floating_point_v<T>) {
+  } else if constexpr (std::is_floating_point_v<T>) {  // NOLINT
     bucket_width = std::nextafter(base_width, base_width + 1) / num_buckets;
     _num_buckets_with_larger_range = 0u;
   } else {
@@ -179,7 +179,7 @@ void EqualWidthHistogram<T>::_generate(const ColumnID column_id, const size_t ma
         current_end_value++;
         next_begin_value++;
       }
-    } else if constexpr (std::is_floating_point_v<T>) {
+    } else if constexpr (std::is_floating_point_v<T>) {  // NOLINT
       next_begin_value = current_begin_value + bucket_width;
       current_end_value = std::nextafter(next_begin_value, next_begin_value - 1);
     } else {
