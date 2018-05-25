@@ -63,7 +63,7 @@ T AbstractHistogram<T>::bucket_width(const BucketID index) const {
   }
 
   Fail("Histogram type not yet supported.");
-};
+}
 
 template <typename T>
 float AbstractHistogram<T>::estimate_cardinality(const T value, const PredicateCondition predicate_condition) const {
