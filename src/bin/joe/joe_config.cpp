@@ -12,6 +12,7 @@
 using boost::lexical_cast;
 using boost::uuids::uuid;
 using boost::uuids::random_generator;
+using namespace std::string_literals;
 
 namespace opossum {
 
@@ -197,7 +198,7 @@ void JoeConfig::parse(const cxxopts::ParseResult& cli_parse_result) {
     out() << "-- Reading from persistent cardinality estimation cache" << std::endl;
     cardinality_estimation_execution_cache_store_mode = CardinalityEstimationCacheStoreMode::ReadOnly;
   } else if (cardinality_estimation_execution_cache_store_mode_str == "rw") {
-    Assert(cardinality_estimation_mode == CardinalityEstimationMode::Executed, "Writing to persistent CardinalityEstimationCache only enabled in Executed mode, for safety");
+   // Assert(cardinality_estimation_mode == CardinalityEstimationMode::Executed, "Writing to persistent CardinalityEstimationCache only enabled in Executed mode, for safety");
     Assert(!isolate_queries, "Populating the persistent cache and isolating queries doesn't work in combination");
     out() << "-- ReadAndWrite access to persistent cardinality estimation cache" << std::endl;
     cardinality_estimation_execution_cache_store_mode = CardinalityEstimationCacheStoreMode::ReadAndWrite;

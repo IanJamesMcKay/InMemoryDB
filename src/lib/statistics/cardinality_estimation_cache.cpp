@@ -15,6 +15,11 @@
 
 #include "optimizer/join_ordering/join_plan_predicate.hpp"
 
+boost::interprocess::file_lock& get_lock(const std::string& path) {
+  static boost::interprocess::file_lock lock(path.c_str());
+  return lock;
+}
+
 namespace opossum {
 
 std::optional<Cardinality> CardinalityEstimationCache::get(const BaseJoinGraph& join_graph) {
@@ -126,23 +131,25 @@ BaseJoinGraph CardinalityEstimationCache::_normalize(const BaseJoinGraph& join_g
 }
 
 std::shared_ptr<CardinalityEstimationCache> CardinalityEstimationCache::load(const std::string& path) {
-  boost::interprocess::file_lock file_lock(path.c_str());
-  boost::interprocess::scoped_lock<boost::interprocess::file_lock> lock(file_lock);
+  auto& file_lock = get_lock(path);
 
   std::shared_ptr<CardinalityEstimationCache> cache;
 
   {
-    std::ifstream stream{path};
-    Assert(stream.is_open(), "Couldn't open persistent CardinalityEstimationCache");
+    boost::interprocess::scoped_lock<boost::interprocess::file_lock> lock(file_lock);
+    {
+      std::ifstream stream{path};
+      Assert(stream.is_open(), "Couldn't open persistent CardinalityEstimationCache");
 
-    stream.seekg(0, std::ios_base::end);
-    if (stream.tellg() == 0) return std::make_shared<CardinalityEstimationCache>();
-    stream.seekg(0, std::ios_base::beg);
+      stream.seekg(0, std::ios_base::end);
+      if (stream.tellg() == 0) return std::make_shared<CardinalityEstimationCache>();
+      stream.seekg(0, std::ios_base::beg);
 
-    nlohmann::json json;
-    stream >> json;
+      nlohmann::json json;
+      stream >> json;
 
-    cache = from_json(json);
+      cache = from_json(json);
+    }
   }
 
   return cache;
@@ -160,24 +167,42 @@ void CardinalityEstimationCache::update(const std::string& path) const {
     std::ofstream{path, std::ios_base::app};
   }
 
-  boost::interprocess::file_lock file_lock(path.c_str());
-  boost::interprocess::scoped_lock<boost::interprocess::file_lock> lock(file_lock);
+  auto& file_lock = get_lock(path);
 
   // Extra block to ensure file lifetime < lock lifetime
   {
-    std::shared_ptr<CardinalityEstimationCache> persistent_cache;
+    boost::interprocess::scoped_lock<boost::interprocess::file_lock> lock(file_lock);
+    {
+      std::shared_ptr<CardinalityEstimationCache> persistent_cache;
 
-    if (std::experimental::filesystem::exists(path)) {
-      persistent_cache = load(path);
-    } else {
-      persistent_cache = std::make_shared<CardinalityEstimationCache>();
+      if (std::experimental::filesystem::exists(path)) {
+        std::ifstream stream{path};
+        Assert(stream.is_open(), "Couldn't open persistent CardinalityEstimationCache");
+
+        stream.seekg(0, std::ios_base::end);
+        if (stream.tellg() != 0) {
+          stream.clear();
+          stream.seekg(0, std::ios_base::beg);
+
+          std::cout << "Reading, at least about to" << std::endl;
+          nlohmann::json json;
+          stream >> json;
+          std::cout << "...done" << std::endl;
+
+          persistent_cache = from_json(json);
+        } else {
+          persistent_cache = std::make_shared<CardinalityEstimationCache>();
+        }
+      } else {
+        persistent_cache = std::make_shared<CardinalityEstimationCache>();
+      }
+
+      for (const auto &pair : _cache) {
+        persistent_cache->_cache[pair.first] = pair.second;
+      }
+
+      persistent_cache->store(path);
     }
-
-    for (const auto& pair : _cache) {
-      persistent_cache->_cache[pair.first] = pair.second;
-    }
-
-    persistent_cache->store(path);
   }
 }
 
