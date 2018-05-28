@@ -125,13 +125,14 @@ float AbstractHistogram<T>::estimate_cardinality(const T value, const PredicateC
       return cardinality;
     }
     case PredicateCondition::LessThanEquals: {
-      return estimate_cardinality(value, PredicateCondition::LessThan) + estimate_cardinality(value, PredicateCondition::Equals);
+      return estimate_cardinality(value, PredicateCondition::LessThan) +
+             estimate_cardinality(value, PredicateCondition::Equals);
     }
     case PredicateCondition::GreaterThanEquals: {
-      return estimate_cardinality(value, PredicateCondition::GreaterThan) + estimate_cardinality(value, PredicateCondition::Equals);
+      return estimate_cardinality(value, PredicateCondition::GreaterThan) +
+             estimate_cardinality(value, PredicateCondition::Equals);
     }
     case PredicateCondition::GreaterThan: {
-      return 1 - estimate_cardinality(value, PredicateCondition::LessThanEquals);
       // if (value < lower_end()) {
       //   return total_count();
       // }
@@ -167,6 +168,7 @@ float AbstractHistogram<T>::estimate_cardinality(const T value, const PredicateC
       // }
       //
       // return cardinality;
+      return 1 - estimate_cardinality(value, PredicateCondition::LessThanEquals);
     }
     default:
       Fail("Predicate condition not yet supported.");
@@ -195,7 +197,8 @@ bool AbstractHistogram<T>::can_prune(const AllTypeVariant& value, const Predicat
     // TODO(tim): change signature to support two values
     // talk to Moritz about new expression interface first
     // case PredicateCondition::Between:
-    //   return can_prune(value, PredicateCondition::GreaterThanEquals) &&
+    //   // Very basic logic, should be further improved.
+    //   return can_prune(value, PredicateCondition::GreaterThanEquals) ||
     //           can_prune(value2, PredicateCondition::LessThanEquals);
     default:
       // Rather than failing we simply do not prune for things we cannot yet handle.
