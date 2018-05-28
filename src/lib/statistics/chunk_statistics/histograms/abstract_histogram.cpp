@@ -197,9 +197,10 @@ bool AbstractHistogram<T>::can_prune(const AllTypeVariant& value, const Predicat
     // TODO(tim): change signature to support two values
     // talk to Moritz about new expression interface first
     // case PredicateCondition::Between:
-    //   // Very basic logic, should be further improved.
     //   return can_prune(value, PredicateCondition::GreaterThanEquals) ||
-    //           can_prune(value2, PredicateCondition::LessThanEquals);
+    //          can_prune(value2, PredicateCondition::LessThanEquals) ||
+    //          (bucket_for_value(t_value) == INVALID_BUCKET_ID && bucket_for_value(t_value2) == INVALID_BUCKET_ID &&
+    //           upper_bound_for_value(t_value) == upper_bound_for_value(t_value2));
     default:
       // Rather than failing we simply do not prune for things we cannot yet handle.
       return false;
