@@ -12,8 +12,8 @@
 
 namespace opossum {
 
-enum class CardinalityEstimationMode { ColumnStatistics, Executed };
-enum class CardinalityEstimationCacheStoreMode { None, ReadOnly, ReadAndWrite };
+enum class CardinalityEstimationMode { Statistics, CacheOnly, Execution };
+enum class CardinalityEstimationCacheAccess { None, ReadOnly, ReadAndWrite };
 
 struct JoeConfig final {
   /**
@@ -22,7 +22,8 @@ struct JoeConfig final {
   std::string cost_model_str = "linear";
   std::string workload_str = "tpch";
   std::string cardinality_estimation_str = "cached";
-  std::string cardinality_estimation_execution_cache_store_mode_str = "none";
+  std::string cardinality_estimation_cache_access_str = "none";
+  std::string cardinality_estimation_cache_path = "joe/cardinality_estimation_cache.production.json";
   std::string imdb_dir = "";
   std::string job_dir = "";
   float scale_factor = 0.1f;
@@ -40,7 +41,7 @@ struct JoeConfig final {
   bool isolate_queries{true};
   bool save_plan_results{true};
   bool save_query_iterations_results{true};
-  CardinalityEstimationMode cardinality_estimation_mode{CardinalityEstimationMode::ColumnStatistics};
+  CardinalityEstimationMode cardinality_estimation_mode{CardinalityEstimationMode::Statistics};
   std::optional<long> cardinality_estimator_execution_timeout{0};
   bool cardinality_estimation_cache_log{true};
   bool cardinality_estimation_cache_dump{true};
@@ -57,7 +58,7 @@ struct JoeConfig final {
   std::shared_ptr<CardinalityEstimationCache> cardinality_estimation_cache;
   std::shared_ptr<AbstractCardinalityEstimator> fallback_cardinality_estimator;
   std::shared_ptr<AbstractCardinalityEstimator> main_cardinality_estimator;
-  CardinalityEstimationCacheStoreMode cardinality_estimation_execution_cache_store_mode{CardinalityEstimationCacheStoreMode::None};
+  CardinalityEstimationCacheAccess cardinality_estimation_cache_access{CardinalityEstimationCacheAccess::None};
 
   /**
    * Misc
@@ -65,7 +66,6 @@ struct JoeConfig final {
   std::string evaluation_dir;
   std::string evaluation_prefix;
   std::string tmp_dot_file_path;
-  std::string cardinality_estimation_execution_cache_path;
 
   void add_options(cxxopts::Options& cli_options_description);
   void parse(const cxxopts::ParseResult& parse_result);

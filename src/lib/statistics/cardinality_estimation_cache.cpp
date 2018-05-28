@@ -184,10 +184,8 @@ void CardinalityEstimationCache::update(const std::string& path) const {
           stream.clear();
           stream.seekg(0, std::ios_base::beg);
 
-          std::cout << "Reading, at least about to" << std::endl;
           nlohmann::json json;
           stream >> json;
-          std::cout << "...done" << std::endl;
 
           persistent_cache = from_json(json);
         } else {

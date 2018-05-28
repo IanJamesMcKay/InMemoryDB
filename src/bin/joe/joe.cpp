@@ -16,8 +16,8 @@ void Joe::run() {
   for (auto &query : queries) {
     query.run();
 
-    if (config->cardinality_estimation_execution_cache_store_mode == CardinalityEstimationCacheStoreMode::ReadAndWrite) {
-      config->cardinality_estimation_cache->update(config->cardinality_estimation_execution_cache_path);
+    if (config->cardinality_estimation_cache_access == CardinalityEstimationCacheAccess::ReadAndWrite) {
+      config->cardinality_estimation_cache->update(config->cardinality_estimation_cache_path);
     }
 
     if (config->isolate_queries) config->cardinality_estimation_cache->clear();

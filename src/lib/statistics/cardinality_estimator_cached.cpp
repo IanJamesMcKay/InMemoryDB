@@ -1,5 +1,7 @@
 #include "cardinality_estimator_cached.hpp"
 
+#include <iostream>
+
 #include "cardinality_estimation_cache.hpp"
 
 namespace opossum {
@@ -16,7 +18,14 @@ std::optional<Cardinality> CardinalityEstimatorCached::estimate(const std::vecto
 
   if (cached_cardinality) return *cached_cardinality;
 
-  const auto fallback_cardinality = _fallback_estimator->estimate(relations, predicates);
+  auto fallback_cardinality = std::optional<Cardinality>{};
+
+  if (_fallback_estimator) {
+    fallback_cardinality = _fallback_estimator->estimate(relations, predicates);
+  } else {
+    BaseJoinGraph join_graph{relations, predicates};
+    std::cout << "Cardinality for " << join_graph.description() << " not in cache - and no fallback estimator specified" << std::endl;
+  }
 
   if (fallback_cardinality && _cache_mode == CardinalityEstimationCacheMode::ReadAndUpdate) {
     _cache->put({relations, predicates}, fallback_cardinality.value());
