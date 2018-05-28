@@ -124,6 +124,50 @@ float AbstractHistogram<T>::estimate_cardinality(const T value, const PredicateC
 
       return cardinality;
     }
+    case PredicateCondition::LessThanEquals: {
+      return estimate_cardinality(value, PredicateCondition::LessThan) + estimate_cardinality(value, PredicateCondition::Equals);
+    }
+    case PredicateCondition::GreaterThanEquals: {
+      return estimate_cardinality(value, PredicateCondition::GreaterThan) + estimate_cardinality(value, PredicateCondition::Equals);
+    }
+    case PredicateCondition::GreaterThan: {
+      return 1 - estimate_cardinality(value, PredicateCondition::LessThanEquals);
+      // if (value < lower_end()) {
+      //   return total_count();
+      // }
+      //
+      // if (value >= upper_end()) {
+      //   return 0.f;
+      // }
+      //
+      // auto index = bucket_for_value(value);
+      // auto cardinality = 0.f;
+      //
+      // if (index == INVALID_BUCKET_ID) {
+      //   // The value is within the range of the histogram, but does not belong to a bucket.
+      //   // Therefore, we need to sum up the counts of all buckets with a min > value.
+      //   // upper_bound_for_value will return the first bucket following the gap in which the value is.
+      //   index = upper_bound_for_value(value);
+      // } else {
+      //   if constexpr (!std::is_same_v<T, std::string>) {
+      //     // The value is within the range of a bucket.
+      //     // We need to sum up all following buckets and add the share of the bucket of the value that it covers.
+      //
+      //     // Calculate the share of the bucket that the value covers.
+      //     const auto bucket_share = static_cast<float>(bucket_max(index) - value) / bucket_width(index);
+      //     cardinality += bucket_share * bucket_count(index);
+      //   } else {
+      //     Fail("GreaterThan estimation for strings is not yet supported.");
+      //   }
+      // }
+      //
+      // // Sum up all buckets after the bucket (or gap) containing the value.
+      // for (BucketID bucket = index; bucket < num_buckets(); bucket++) {
+      //   cardinality += bucket_count(bucket);
+      // }
+      //
+      // return cardinality;
+    }
     default:
       Fail("Predicate condition not yet supported.");
   }
