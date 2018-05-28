@@ -263,6 +263,8 @@ void JoeConfig::parse(const cxxopts::ParseResult& cli_parse_result) {
     Fail("Unknown workload");
   }
 
+
+  Assert(cardinality_estimation_mode != CardinalityEstimationMode::CacheOnly || !isolate_queries, "Isolating queries in cache only mode is not intended");
 }
 
 void JoeConfig::setup() {

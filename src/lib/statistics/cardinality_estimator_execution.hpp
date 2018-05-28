@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <unordered_set>
 #include <optional>
 
 #include "abstract_cardinality_estimator.hpp"
@@ -26,6 +27,8 @@ class CardinalityEstimatorExecution : public AbstractCardinalityEstimator {
   // We need a custom optimizer to produce a somewhat sane LQP, but doesn't use a CardinalityEstimatorExecution so we
   // don't end up with endless recursive calls to CardinalityEstimatorExecution
   std::shared_ptr<Optimizer> _optimizer;
+
+  mutable std::unordered_set<size_t> _blacklist;
 };
 
 }  // namespace opossum

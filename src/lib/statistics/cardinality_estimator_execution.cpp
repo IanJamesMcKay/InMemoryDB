@@ -34,6 +34,12 @@ std::optional<Cardinality> CardinalityEstimatorExecution::estimate(const std::ve
                                                     const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates) const {
   if (vertices.empty()) return 0.0f;
 
+  BaseJoinGraph join_graph{vertices, predicates};
+  if (_blacklist.count(std::hash<BaseJoinGraph>{}(join_graph))) {
+    std::cout << "CardinalityEstimatorExecution: " << join_graph.description() << std::endl << "   timed out before, not executing again" << std::endl;
+    return std::nullopt;
+  }
+
   auto lqp = vertices.front();
 
   for (auto vertex_idx = size_t{1}; vertex_idx < vertices.size(); ++vertex_idx) {
@@ -57,6 +63,7 @@ std::optional<Cardinality> CardinalityEstimatorExecution::estimate(const std::ve
 
   if (timed_out) {
     std::cout << " Timed out" << std::endl;
+    _blacklist.emplace(std::hash<BaseJoinGraph>{}(join_graph));
     return std::nullopt;
   } else {
     std::cout << " Returned " << pqp->get_output()->row_count() << " rows" << std::endl;
