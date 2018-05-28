@@ -105,14 +105,16 @@ float AbstractHistogram<T>::estimate_cardinality(const T value, const PredicateC
         // Therefore, we need to sum up the counts of all buckets with a max < value.
         index = upper_bound_for_value(value);
       } else {
-        // The value is within the range of a bucket.
-        // We need to sum up all preceding buckets and add the share of the bucket of the value that it covers.
+        if constexpr (!std::is_same_v<T, std::string>) {
+          // The value is within the range of a bucket.
+          // We need to sum up all preceding buckets and add the share of the bucket of the value that it covers.
 
-        // Calculate the share of the bucket that the value covers.
-        // DebugAssert(!std::is_same_v<T, std::string>, "LessThan estimation for strings is not yet supported.");
-        //
-        // const auto bucket_share = static_cast<float>(value - bucket_min(index)) / ;
-        // cardinality += bucket_share * bucket_count(index);
+          // Calculate the share of the bucket that the value covers.
+          const auto bucket_share = static_cast<float>(value - bucket_min(index)) / bucket_width(index);
+          cardinality += bucket_share * bucket_count(index);
+        } else {
+          Fail("LessThan estimation for strings is not yet supported.");
+        }
       }
 
       // Sum up all buckets before the bucket (or gap) containing the value.
