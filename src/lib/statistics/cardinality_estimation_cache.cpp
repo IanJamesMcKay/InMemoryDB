@@ -15,17 +15,11 @@
 
 #include "optimizer/join_ordering/join_plan_predicate.hpp"
 
-boost::interprocess::file_lock& get_lock(const std::string& path) {
-  static boost::interprocess::file_lock lock(path.c_str());
-  return lock;
-}
 
 namespace opossum {
 
 std::optional<Cardinality> CardinalityEstimationCache::get(const BaseJoinGraph& join_graph) {
-  auto normalized_join_graph = _normalize(join_graph);
-
-  auto& entry = _cache[normalized_join_graph];
+  auto& entry = get_entry(join_graph);
 
   if (_log) (*_log) << "CardinalityEstimationCache [" << (entry.request_count == 0 ? "I" : "S") << "]";
 
@@ -42,7 +36,7 @@ std::optional<Cardinality> CardinalityEstimationCache::get(const BaseJoinGraph& 
     ++_miss_count;
   }
 
-  if (_log) (*_log) << normalized_join_graph.description();
+  if (_log) (*_log) << join_graph.description();
 
   if (entry.cardinality) {
     if (_log) (*_log) << ": " << *entry.cardinality;
@@ -63,6 +57,14 @@ void CardinalityEstimationCache::put(const BaseJoinGraph& join_graph, const Card
   }
 
   entry.cardinality = cardinality;
+}
+
+std::optional<std::chrono::seconds> CardinalityEstimationCache::get_timeout(const BaseJoinGraph& join_graph) {
+  return get_entry(join_graph).timeout;
+}
+
+void CardinalityEstimationCache::set_timeout(const BaseJoinGraph& join_graph, const std::optional<std::chrono::seconds>& timeout) {
+  get_entry(join_graph).timeout = timeout;
 }
 
 size_t CardinalityEstimationCache::cache_hit_count() const {
@@ -131,76 +133,56 @@ BaseJoinGraph CardinalityEstimationCache::_normalize(const BaseJoinGraph& join_g
 }
 
 std::shared_ptr<CardinalityEstimationCache> CardinalityEstimationCache::load(const std::string& path) {
-  auto& file_lock = get_lock(path);
+  std::ifstream istream{path};
+  Assert(istream.is_open(), "Couldn't open persistent CardinalityEstimationCache");
 
-  std::shared_ptr<CardinalityEstimationCache> cache;
+  boost::interprocess::file_lock file_lock(path.c_str());
+  boost::interprocess::scoped_lock<boost::interprocess::file_lock> lock(file_lock);
 
-  {
-    boost::interprocess::scoped_lock<boost::interprocess::file_lock> lock(file_lock);
-    {
-      std::ifstream stream{path};
-      Assert(stream.is_open(), "Couldn't open persistent CardinalityEstimationCache");
+  return load(istream);
+}
 
-      stream.seekg(0, std::ios_base::end);
-      if (stream.tellg() == 0) return std::make_shared<CardinalityEstimationCache>();
-      stream.seekg(0, std::ios_base::beg);
+std::shared_ptr<CardinalityEstimationCache> CardinalityEstimationCache::load(std::istream& stream) {
+  stream.seekg(0, std::ios_base::end);
+  if (stream.tellg() == 0) return std::make_shared<CardinalityEstimationCache>();
+  stream.seekg(0, std::ios_base::beg);
 
-      nlohmann::json json;
-      stream >> json;
+  nlohmann::json json;
+  stream >> json;
 
-      cache = from_json(json);
-    }
-  }
-
-  return cache;
+  return from_json(json);
 }
 
 void CardinalityEstimationCache::store(const std::string& path) const {
   std::ofstream stream{path};
   stream << to_json();
-  stream.flush();
 }
 
 void CardinalityEstimationCache::update(const std::string& path) const {
+  std::ifstream istream;
+  std::ofstream ostream;
+
   // "Touch" the file
   if (!std::experimental::filesystem::exists(path)) {
+    std::cout << "Touch cardinality estimation cache '" << path << "'" << std::endl;
     std::ofstream{path, std::ios_base::app};
   }
 
-  auto& file_lock = get_lock(path);
-
-  // Extra block to ensure file lifetime < lock lifetime
   {
+    boost::interprocess::file_lock file_lock(path.c_str());
     boost::interprocess::scoped_lock<boost::interprocess::file_lock> lock(file_lock);
-    {
-      std::shared_ptr<CardinalityEstimationCache> persistent_cache;
 
-      if (std::experimental::filesystem::exists(path)) {
-        std::ifstream stream{path};
-        Assert(stream.is_open(), "Couldn't open persistent CardinalityEstimationCache");
+    istream.open(path);
 
-        stream.seekg(0, std::ios_base::end);
-        if (stream.tellg() != 0) {
-          stream.clear();
-          stream.seekg(0, std::ios_base::beg);
-
-          nlohmann::json json;
-          stream >> json;
-
-          persistent_cache = from_json(json);
-        } else {
-          persistent_cache = std::make_shared<CardinalityEstimationCache>();
-        }
-      } else {
-        persistent_cache = std::make_shared<CardinalityEstimationCache>();
-      }
-
-      for (const auto &pair : _cache) {
-        persistent_cache->_cache[pair.first] = pair.second;
-      }
-
-      persistent_cache->store(path);
+    auto persistent_cache = load(istream);
+    for (const auto &pair : _cache) {
+      persistent_cache->_cache[pair.first] = pair.second;
     }
+
+    ostream.open(path);
+    ostream << persistent_cache->to_json();
+
+    ostream.flush(); // Make sure write-to-disk happened before unlocking
   }
 }
 
@@ -210,12 +192,11 @@ nlohmann::json CardinalityEstimationCache::to_json() const {
   json = nlohmann::json::array();
 
   for (const auto& pair : _cache) {
-    if (!pair.second.cardinality) continue;
-
     auto entry_json = nlohmann::json();
 
     entry_json["key"] = pair.first.to_json();
-    entry_json["value"] = *pair.second.cardinality;
+    if (pair.second.cardinality) entry_json["value"] = *pair.second.cardinality;
+    if (pair.second.timeout) entry_json["timeout"] = pair.second.timeout->count();
 
     json.push_back(entry_json);
   }
@@ -228,11 +209,18 @@ std::shared_ptr<CardinalityEstimationCache> CardinalityEstimationCache::from_jso
 
   for (const auto& pair : json) {
     const auto key = BaseJoinGraph::from_json(pair["key"]);
-    const auto value = pair["value"].get<Cardinality>();
-    cache->put(key, value);
+    auto& entry = cache->get_entry(key);
+
+    if (pair.count("timeout")) entry.timeout = std::chrono::seconds{pair["timeout"].get<int>()};
+    if (pair.count("value")) entry.cardinality = pair["value"].get<Cardinality>();
   }
 
   return cache;
+}
+
+CardinalityEstimationCache::Entry& CardinalityEstimationCache::get_entry(const BaseJoinGraph& join_graph) {
+  auto normalized_join_graph = _normalize(join_graph);
+  return _cache[normalized_join_graph];
 }
 
 std::shared_ptr<const AbstractJoinPlanPredicate> CardinalityEstimationCache::_normalize(const std::shared_ptr<const AbstractJoinPlanPredicate>& predicate) {

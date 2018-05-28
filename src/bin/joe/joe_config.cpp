@@ -292,6 +292,7 @@ void JoeConfig::setup() {
       std::experimental::filesystem::exists(cardinality_estimation_cache_path)) {
     out() << "-- Loading CardinalityEstimationCache from file '" << cardinality_estimation_cache_path << "'..." << std::endl;
     cardinality_estimation_cache = CardinalityEstimationCache::load(cardinality_estimation_cache_path);
+    out() << "-- Done!" << std::endl;
   } else {
     out() << "-- Using a fresh CardinalityEstimationCache" << std::endl;
     cardinality_estimation_cache = std::make_shared<CardinalityEstimationCache>();

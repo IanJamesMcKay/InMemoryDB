@@ -62,12 +62,13 @@ class CardinalityEstimationCacheTest : public ::testing::Test {
   std::shared_ptr<CardinalityEstimationCache> cache;
 };
 
-TEST_F(CardinalityEstimationCacheTest, Json_0) {
+TEST_F(CardinalityEstimationCacheTest, Json) {
   cache->put(BaseJoinGraph{{int_float}, {int_float_a_eq_int_float_b}}, 13);
   cache->put(BaseJoinGraph{{int_float2, int_float}, {int_float_a_eq_int_float_b, int_float_a_gt_int_float2_b}}, 12);
   cache->put(BaseJoinGraph{{int_float2, int_float}, {int_float_a_eq_five, int_float_a_eq_int_float_b, int_float_a_gt_int_float2_b}}, 11);
   cache->put(BaseJoinGraph{{int_float2, int_float}, {p1_and_p2_or_p3}}, 19);
   cache->put(BaseJoinGraph{{int_float2, int_float}, {p1_and_p2_or_p3, int_float_b_eq_hello}}, 15);
+  cache->set_timeout(BaseJoinGraph{{int_float2, int_float}, {p1_and_p2_or_p3, int_float_a_eq_int_float_b}}, std::chrono::seconds{25});
 
   const auto json = cache->to_json();
   const auto cache_b = CardinalityEstimationCache::from_json(json);
@@ -80,6 +81,9 @@ TEST_F(CardinalityEstimationCacheTest, Json_0) {
   EXPECT_EQ(cache_b->get(BaseJoinGraph{{int_float2, int_float}, {int_float_a_eq_int_float_b, int_float_a_eq_five, int_float_a_gt_int_float2_b}}), 11);
   EXPECT_EQ(cache_b->get(BaseJoinGraph{{int_float2, int_float}, {p1_and_p2_or_p3}}), 19);
   EXPECT_EQ(cache_b->get(BaseJoinGraph{{int_float2, int_float}, {p1_and_p2_or_p3, int_float_b_eq_hello}}), 15);
+  EXPECT_EQ(cache_b->get_timeout(BaseJoinGraph{{int_float2, int_float}, {p1_and_p2_or_p3, int_float_b_eq_hello}}), std::nullopt);
+  EXPECT_EQ(cache_b->get(BaseJoinGraph{{int_float2, int_float}, {p1_and_p2_or_p3, int_float_a_eq_int_float_b}}), std::nullopt);
+  EXPECT_EQ(cache_b->get_timeout(BaseJoinGraph{{int_float2, int_float}, {p1_and_p2_or_p3, int_float_a_eq_int_float_b}}), std::chrono::seconds{25});
 }
 
 
