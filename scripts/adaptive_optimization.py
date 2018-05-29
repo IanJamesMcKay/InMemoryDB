@@ -82,7 +82,7 @@ if __name__ == "__main__":
             if normalized_duration > 0:
                 count, accumulated = normalized_duration_matrix[idx]
                 count += 1
-                accumulated += normalized_duration
+                accumulated += max(normalized_duration, 1)
                 normalized_duration_matrix[idx] = count, accumulated
 
             if hash == last_hash and plot:
@@ -103,7 +103,7 @@ if __name__ == "__main__":
 
     plt.xlabel("Query Iteration")
     plt.ylabel("Performance relative to reference")
-    plt.ylim(ymin=-0.1, ymax=2)
+    plt.ylim(ymin=-0.1, ymax=2.5)
     plt.legend()
     plt.axhline(y=1)
     #plt.show()

@@ -32,6 +32,7 @@ def read_runtimes(out_data, root_dir):
             continue
 
         durations = c["RankZeroPlanExecutionDuration"]
+        durations = durations
         non_zero_durations = np.extract(durations > 0, durations)
 
         if len(non_zero_durations) == 0:
