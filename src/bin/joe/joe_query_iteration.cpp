@@ -82,7 +82,7 @@ void JoeQueryIteration::run() {
       parent_relation.output->set_input(parent_relation.input_side, join_ordered_sub_lqp);
     }
 
-    plans.emplace_back(std::make_shared<JoePlan>(*this, lqp_root->left_input()->deep_copy(), join_plan_idx));
+    plans.emplace_back(std::make_shared<JoePlan>(*this, join_plan.plan_cost, lqp_root->left_input()->deep_copy(), join_plan_idx));
   }
 
   if (!plans.empty()) {
@@ -102,6 +102,9 @@ void JoeQueryIteration::run() {
       std::shuffle(plan_indices.begin() + *query.config->plan_order_shuffling, plan_indices.end(), g);
     }
   }
+
+  // Make sure this happens even if we're not executing plans
+  write_plans_csv();
 
   /** 
    * Evaluate the plans
@@ -139,14 +142,8 @@ void JoeQueryIteration::run() {
       sample.best_plan = plan;
     }
 
-    /**
-     * Write samples
-     */
-    if (config->save_plan_results) {
-      write_csv(plans,
-                "ExecutionDuration,EstCost,ReEstCost,AimCost,AbsEstCostError,AbsReEstCostError,Hash",
-                config->evaluation_prefix + name + ".Plans.csv");
-    }
+    // Update with timings
+    write_plans_csv();
 
     /**
      * Timeout query
@@ -175,6 +172,15 @@ void JoeQueryIteration::dump_cardinality_estimation_cache() {
 
   std::ofstream stream{query.config->evaluation_prefix + "CardinalityEstimationCache-" + query.sample.name + ".dump.log"};
   query.config->cardinality_estimation_cache->print(stream);
+}
+
+void JoeQueryIteration::write_plans_csv() {
+  const auto config = query.config;
+  if (config->save_plan_results) {
+    write_csv(plans,
+              "ExecutionDuration,EstCost,ReEstCost,AimCost,AbsEstCostError,AbsReEstCostError,Hash",
+              config->evaluation_prefix + name + ".Plans.csv");
+  }
 }
 
 }  // namespace opossum

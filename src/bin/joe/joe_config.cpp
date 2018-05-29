@@ -27,8 +27,8 @@ void JoeConfig::add_options(cxxopts::Options& cli_options_description) {
   ("timeout-plan", "Timeout per plan, in seconds. Default: 120", cxxopts::value<long>(*plan_timeout_seconds)->default_value("120"))  // NOLINT
   ("dynamic-timeout-plan", "If active, lower timeout to current fastest plan.", cxxopts::value<bool>(dynamic_plan_timeout_enabled)->default_value("true"))  // NOLINT
   ("timeout-query", "Timeout per plan, in seconds. Default: 1800", cxxopts::value<long>(*query_timeout_seconds)->default_value("1800"))  // NOLINT
-  ("max-plan-execution-count", "Maximum number of plans per query to execute. Default: 100", cxxopts::value<size_t>(*max_plan_execution_count)->default_value("100"))  // NOLINT
-  ("max-plan-generation-count", "Maximum number of plans to generate. Default: 100", cxxopts::value<size_t>(*max_plan_generation_count)->default_value("100"))  // NOLINT
+  ("max-plan-execution-count", "Maximum number of plans per query to execute or all", cxxopts::value(max_plan_execution_count_str)->default_value("1"))  // NOLINT
+  ("max-plan-generation-count", "Maximum number of plans to generate or all", cxxopts::value(max_plan_generation_count_str)->default_value("1"))  // NOLINT
   ("visualize", "Visualize every query plan", cxxopts::value<bool>(visualize)->default_value("false"))  // NOLINT
   ("workload", "Workload to run (tpch, job). Default: tpch", cxxopts::value(workload_str)->default_value(workload_str))  // NOLINT
   ("imdb-dir", "Location of the JOB data", cxxopts::value(imdb_dir)->default_value(imdb_dir))  // NOLINT
@@ -106,18 +106,20 @@ void JoeConfig::parse(const cxxopts::ParseResult& cli_parse_result) {
   }
 
   // Process "max-plan-count" parameter
-  if (*max_plan_execution_count <= 0) {
+  if (max_plan_execution_count_str == "all") {
     max_plan_execution_count.reset();
     out() << "-- Executing all plans of a query" << std::endl;
   } else {
+    max_plan_execution_count = std::stoi(max_plan_execution_count_str);
     out() << "-- Executing a maximum of " << *max_plan_execution_count << " plans per query" << std::endl;
   }
 
-  if (*max_plan_generation_count <= 0) {
+  if (max_plan_generation_count_str == "all") {
     max_plan_generation_count.reset();
     out() << "-- Generating all plans" << std::endl;
   } else {
     if (max_plan_execution_count) {
+      max_plan_execution_count = std::stoi(max_plan_generation_count_str);
       max_plan_generation_count = std::max(*max_plan_generation_count, *max_plan_generation_count);
     }
     out() << "-- Generating at max " << *max_plan_generation_count << " plans" << std::endl;

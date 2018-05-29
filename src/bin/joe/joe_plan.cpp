@@ -23,11 +23,12 @@ std::ostream &operator<<(std::ostream &stream, const JoePlanSample &sample) {
   return stream;
 }
 
-JoePlan::JoePlan(JoeQueryIteration& query_iteration, const std::shared_ptr<AbstractLQPNode>& lqp, const size_t idx):
+JoePlan::JoePlan(JoeQueryIteration& query_iteration, const Cost estimated_cost, const std::shared_ptr<AbstractLQPNode>& lqp, const size_t idx):
   query_iteration(query_iteration), lqp(lqp), idx(idx)
 {
   name = query_iteration.name + "-" + std::to_string(idx);
   sample.hash = lqp->hash();
+  sample.est_cost = estimated_cost;
 }
 
 void JoePlan::run() {
@@ -65,8 +66,9 @@ void JoePlan::run() {
    * Evaluate plan execution
    */
   sample.execution_duration = timer.lap();
-  const auto operators = flatten_pqp(pqp);
-  create_cost_sample(operators);
+  // Don't do this until I fixed it
+//  const auto operators = flatten_pqp(pqp);
+//  create_cost_sample(operators);
 
   SQLQueryPlan plan;
   plan.add_tree_by_root(pqp);

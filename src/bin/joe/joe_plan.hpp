@@ -55,7 +55,7 @@ std::ostream &operator<<(std::ostream &stream, const JoePlanSample &sample);
 
 class JoePlan final {
  public:
-  JoePlan(JoeQueryIteration& query_iteration, const std::shared_ptr<AbstractLQPNode>& lqp, const size_t idx);
+  JoePlan(JoeQueryIteration& query_iteration, const Cost estimated_cost, const std::shared_ptr<AbstractLQPNode>& lqp, const size_t idx);
 
   void run();
 

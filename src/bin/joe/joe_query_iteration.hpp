@@ -25,7 +25,7 @@ class JoeQueryIteration final {
   JoeQueryIteration(JoeQuery& query, const size_t idx);
 
   void run();
-
+  void write_plans_csv();
   void dump_cardinality_estimation_cache();
 
   JoeQuery& query;

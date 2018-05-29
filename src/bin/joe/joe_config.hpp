@@ -67,6 +67,12 @@ struct JoeConfig final {
   std::string evaluation_prefix;
   std::string tmp_dot_file_path;
 
+  /**
+   * tmps
+   */
+  std::string max_plan_generation_count_str;
+  std::string max_plan_execution_count_str;
+
   void add_options(cxxopts::Options& cli_options_description);
   void parse(const cxxopts::ParseResult& parse_result);
   void setup();
