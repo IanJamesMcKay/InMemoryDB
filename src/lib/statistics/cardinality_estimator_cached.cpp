@@ -40,7 +40,12 @@ std::optional<Cardinality> CardinalityEstimatorCached::estimate(const std::vecto
     }
 
   } else {
-    std::cout << "CardinalityEstimatorCached: Cardinality for " << join_graph.description() << " not in cache - and no fallback estimator specified" << std::endl;
+    const auto timeout = _cache->get_timeout(join_graph);
+    if (timeout) {
+      std::cout << "CardinalityEstimatorCached: Entry " << join_graph.description() << " has timeout of " << timeout->count() << " - and no fallback estimator specified" << std::endl;
+    } else {
+      std::cout << "CardinalityEstimatorCached: Cardinality for " << join_graph.description() << " not in cache - and no fallback estimator specified" << std::endl;
+    }
   }
 
   if (fallback_cardinality && _cache_mode == CardinalityEstimationCacheMode::ReadAndUpdate) {
