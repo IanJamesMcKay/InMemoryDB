@@ -119,7 +119,7 @@ void SQLQueryPlanVisualizer::_add_operator(const std::shared_ptr<const AbstractO
       node_cost_info.add_label("Node Cost");
 
       if (op->lqp_node()->optimizer_info) {
-        node_cost_info.add_label(format_integer(static_cast<int>(op->lqp_node()->optimizer_info->estimated_node_cost)) + " est");
+        node_cost_info.add_label(format_integer(static_cast<size_t>(op->lqp_node()->optimizer_info->estimated_node_cost)) + " est");
       } else {
         node_cost_info.add_label("-");
       }
@@ -127,7 +127,7 @@ void SQLQueryPlanVisualizer::_add_operator(const std::shared_ptr<const AbstractO
       const auto target_cost = _cost_model->get_reference_operator_cost(
       std::const_pointer_cast<AbstractOperator>(op));
       if (target_cost > 0) {
-        node_cost_info.add_label(format_integer(static_cast<int>(target_cost)) + " aim");
+        node_cost_info.add_label(format_integer(static_cast<size_t>(target_cost)) + " aim");
       } else {
         node_cost_info.add_label("-");
       }

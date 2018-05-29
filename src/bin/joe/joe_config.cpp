@@ -118,8 +118,8 @@ void JoeConfig::parse(const cxxopts::ParseResult& cli_parse_result) {
     max_plan_generation_count.reset();
     out() << "-- Generating all plans" << std::endl;
   } else {
+    max_plan_generation_count = std::stoi(max_plan_generation_count_str);
     if (max_plan_execution_count) {
-      max_plan_execution_count = std::stoi(max_plan_generation_count_str);
       max_plan_generation_count = std::max(*max_plan_generation_count, *max_plan_generation_count);
     }
     out() << "-- Generating at max " << *max_plan_generation_count << " plans" << std::endl;
