@@ -83,10 +83,23 @@ std::shared_ptr<ChunkColumnStatistics> ChunkColumnStatistics::build_statistics(D
   table->append_chunk({column});
 
   resolve_data_and_column_type(*column, [&statistics, &table](auto type, auto& typed_column) {
+    using ColumnType = typename std::decay<decltype(typed_column)>::type;
     using DataTypeT = typename decltype(type)::type;
 
+    /**
+     * Derive the number of buckets from the number of distinct elements iff we have a DictColumn.
+     * This number is currently arbitrarily chosen.
+     * TODO(tim): benchmark
+     * Otherwise, take the default of 100 buckets.
+     */
+    size_t num_buckets = 100u;
+    if constexpr(std::is_same_v<ColumnType, DictionaryColumn<DataTypeT>>) {
+      const size_t proposed_buckets = typed_column.dictionary()->size() / 25;
+      num_buckets = std::max(num_buckets, proposed_buckets);
+    }
+
     auto hist = std::make_shared<EqualNumElementsHistogram<DataTypeT>>(table);
-    hist->generate(ColumnID{0}, 3u);
+    hist->generate(ColumnID{0}, num_buckets);
 
     statistics->add_filter(hist);
   });
