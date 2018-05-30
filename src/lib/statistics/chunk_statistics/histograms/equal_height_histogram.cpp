@@ -111,10 +111,6 @@ void EqualHeightHistogram<T>::_generate(const ColumnID column_id, const size_t m
   // TODO(tim): fix
   DebugAssert(result->chunk_count() == 1, "Multiple chunks are currently not supported.");
 
-  // If there are fewer distinct values than the number of desired buckets use that instead.
-  const auto distinct_count = result->row_count();
-  const auto num_buckets = distinct_count < max_num_buckets ? static_cast<size_t>(distinct_count) : max_num_buckets;
-
   const auto distinct_column =
       std::static_pointer_cast<const ValueColumn<T>>(result->get_chunk(ChunkID{0})->get_column(ColumnID{0}));
   const auto count_column =
@@ -126,9 +122,9 @@ void EqualHeightHistogram<T>::_generate(const ColumnID column_id, const size_t m
   DebugAssert(table != nullptr, "Corresponding table of histogram is deleted.");
 
   // Buckets shall have (approximately) the same height.
-  _count_per_bucket = table->row_count() / num_buckets;
+  _count_per_bucket = table->row_count() / max_num_buckets;
 
-  if (table->row_count() % num_buckets > 0u) {
+  if (table->row_count() % max_num_buckets > 0u) {
     // Add 1 so that we never create more buckets than requested.
     _count_per_bucket++;
   }

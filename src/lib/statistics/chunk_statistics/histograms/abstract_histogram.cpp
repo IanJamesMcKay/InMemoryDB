@@ -202,7 +202,7 @@ bool AbstractHistogram<T>::can_prune(const AllTypeVariant& value, const Predicat
     //          (bucket_for_value(t_value) == INVALID_BUCKET_ID && bucket_for_value(t_value2) == INVALID_BUCKET_ID &&
     //           upper_bound_for_value(t_value) == upper_bound_for_value(t_value2));
     default:
-      // Rather than failing we simply do not prune for things we cannot yet handle.
+      // Rather than failing we simply do not prune for things we cannot (yet) handle.
       return false;
   }
 }

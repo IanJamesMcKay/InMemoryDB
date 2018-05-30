@@ -139,11 +139,6 @@ void EqualWidthHistogram<T>::_generate(const ColumnID column_id, const size_t ma
   // TODO(tim): fix
   DebugAssert(result->chunk_count() == 1, "Multiple chunks are currently not supported.");
 
-  // If there are fewer distinct values than the number of desired buckets use that instead.
-  const auto total_distinct_count = result->row_count();
-  const auto num_buckets =
-      total_distinct_count < max_num_buckets ? static_cast<size_t>(total_distinct_count) : max_num_buckets;
-
   const auto distinct_column =
       std::static_pointer_cast<const ValueColumn<T>>(result->get_chunk(ChunkID{0})->get_column(ColumnID{0}));
   const auto count_column =
@@ -156,10 +151,10 @@ void EqualWidthHistogram<T>::_generate(const ColumnID column_id, const size_t ma
   const T base_width = _max - _min;
   T bucket_width;
   if constexpr (std::is_integral_v<T>) {
-    bucket_width = (base_width + 1) / num_buckets;
-    _num_buckets_with_larger_range = (base_width + 1) % num_buckets;
+    bucket_width = (base_width + 1) / max_num_buckets;
+    _num_buckets_with_larger_range = (base_width + 1) % max_num_buckets;
   } else if constexpr (std::is_floating_point_v<T>) {  // NOLINT
-    bucket_width = std::nextafter(base_width, base_width + 1) / num_buckets;
+    bucket_width = std::nextafter(base_width, base_width + 1) / max_num_buckets;
     _num_buckets_with_larger_range = 0u;
   } else {
     // TODO(tim): support strings
@@ -169,7 +164,7 @@ void EqualWidthHistogram<T>::_generate(const ColumnID column_id, const size_t ma
   T current_begin_value = _min;
   auto current_begin_it = distinct_column->values().begin();
   auto current_begin_index = 0l;
-  for (auto current_bucket_id = 0u; current_bucket_id < num_buckets; current_bucket_id++) {
+  for (auto current_bucket_id = 0u; current_bucket_id < max_num_buckets; current_bucket_id++) {
     T next_begin_value;
     T current_end_value;
     if constexpr (std::is_integral_v<T>) {
