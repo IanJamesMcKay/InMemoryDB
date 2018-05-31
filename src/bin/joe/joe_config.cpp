@@ -296,7 +296,7 @@ void JoeConfig::setup() {
     cardinality_estimation_cache = CardinalityEstimationCache::load(cardinality_estimation_cache_path);
     out() << "-- Done!" << std::endl;
   } else {
-    out() << "-- Using a fresh CardinalityEstimationCache" << std::endl;
+    out() << "-- Not using the persistent CardinalityEstimationCache" << std::endl;
     cardinality_estimation_cache = std::make_shared<CardinalityEstimationCache>();
   }
 
@@ -306,7 +306,19 @@ void JoeConfig::setup() {
     main_cardinality_estimator = std::make_shared<CardinalityEstimatorCached>(cardinality_estimation_cache,
                                                                               CardinalityEstimationCacheMode::ReadOnly, fallback_cardinality_estimator);
   } else if (cardinality_estimation_mode == CardinalityEstimationMode::Execution) {
-    const auto cardinaltiy_estimator_execution = std::make_shared<CardinalityEstimatorExecution>();
+    // Build the optimizer that the CardinalityEstimatorExecution uses
+    // It uses the same cache that the CardinalityEstimatorExecution populates
+    const auto execution_optimizer = std::make_shared<Optimizer>(1);
+    RuleBatch final_batch(RuleBatchExecutionPolicy::Once);
+    auto execution_optimizer_cost_model = std::make_shared<CostModelLinear>();
+    const auto execution_cardinality_estimator_fallback = std::make_shared<CardinalityEstimatorColumnStatistics>();
+    const auto execution_cardinality_estimator = std::make_shared<CardinalityEstimatorCached>(cardinality_estimation_cache,
+                                                                              CardinalityEstimationCacheMode::ReadOnly, execution_cardinality_estimator_fallback);
+    auto execution_optimizer_dp_ccp = std::make_shared<DpCcp>(cost_model, execution_cardinality_estimator);
+    final_batch.add_rule(std::make_shared<JoinOrderingRule>(execution_optimizer_dp_ccp));
+    execution_optimizer->add_rule_batch(final_batch);
+
+    const auto cardinaltiy_estimator_execution = std::make_shared<CardinalityEstimatorExecution>(execution_optimizer);
     if (cardinality_estimator_execution_timeout) {
       cardinaltiy_estimator_execution->timeout = std::chrono::seconds{*cardinality_estimator_execution_timeout};
     }

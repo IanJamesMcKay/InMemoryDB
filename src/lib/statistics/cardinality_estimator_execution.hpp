@@ -4,6 +4,7 @@
 #include <unordered_set>
 #include <optional>
 
+#include "optimizer/optimizer.hpp"
 #include "abstract_cardinality_estimator.hpp"
 
 namespace opossum {
@@ -16,7 +17,7 @@ class Optimizer;
  */
 class CardinalityEstimatorExecution : public AbstractCardinalityEstimator {
  public:
-  CardinalityEstimatorExecution();
+  explicit CardinalityEstimatorExecution(const std::shared_ptr<Optimizer>& optimizer = std::make_shared<Optimizer>());
 
   std::optional<Cardinality> estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices,
                        const std::vector<std::shared_ptr<const AbstractJoinPlanPredicate>>& predicates) const override;

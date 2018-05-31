@@ -16,7 +16,7 @@
 
 namespace opossum {
 
-CardinalityEstimatorExecution::CardinalityEstimatorExecution() {
+CardinalityEstimatorExecution::CardinalityEstimatorExecution(const std::shared_ptr<Optimizer>& optimizer): _optimizer(optimizer) {
   _optimizer = std::make_shared<Optimizer>();
 
   const auto cost_model = std::make_shared<CostModelNaive>();
