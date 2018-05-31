@@ -6,13 +6,16 @@
 
 namespace opossum {
 
+/**
+ * Represents a single outer Join
+ */
 class OuterJoinBlock : public AbstractQueryBlock {
  public:
-  OuterJoinBlock(const std::shared_ptr<JoinNode>& join_node,
+  OuterJoinBlock(const std::shared_ptr<JoinNode>& outer_join_node,
                  const std::shared_ptr<AbstractQueryBlock>& left_input,
                  const std::shared_ptr<AbstractQueryBlock>& right_input);
 
-  const std::shared_ptr<JoinNode> join_node;
+  const std::shared_ptr<JoinNode> outer_join_node;
 
  protected:
   size_t _shallow_hash_impl() const override;

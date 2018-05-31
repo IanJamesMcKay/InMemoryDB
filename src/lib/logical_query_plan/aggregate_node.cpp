@@ -99,8 +99,6 @@ std::string AggregateNode::description() const {
 }
 
 std::string AggregateNode::get_verbose_column_name(ColumnID column_id) const {
-  DebugAssert(left_input(), "Need input to generate name");
-
   if (column_id < _groupby_column_references.size()) {
     return _groupby_column_references[column_id].description();
   }
@@ -114,11 +112,7 @@ std::string AggregateNode::get_verbose_column_name(ColumnID column_id) const {
     return *aggregate_expression->alias();
   }
 
-  if (left_input()) {
-    return aggregate_expression->to_string(left_input()->get_verbose_column_names());
-  } else {
-    return aggregate_expression->to_string();
-  }
+  return aggregate_expression->to_string();
 }
 
 void AggregateNode::_on_input_changed() {

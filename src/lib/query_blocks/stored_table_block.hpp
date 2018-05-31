@@ -8,7 +8,7 @@
 namespace opossum {
 
 /**
- * Simply wraps a StoredTableNode
+ * Simply wraps a StoredTableNode (or a MockNode for Tests)
  */
 class StoredTableBlock : public AbstractQueryBlock {
  public:

@@ -6,11 +6,14 @@
 namespace opossum {
 
 /**
- * Pseudo "Block" encapsulating a part of the Query that has already been planned.
- * The Optimizer will replace other Blocks with PlanBlocks when it is done optimizing them.
+ * Encapsulates a part of the Query that has already been planned as the Blocks are translated back to an LQP after
+ * optimization
+ *  OR
+ * A chain of nodes (Aggregates, Projections, Sorts, Limits) that belong in no other Block type
  */
 class PlanBlock : public AbstractQueryBlock {
  public:
+  explicit PlanBlock(const std::shared_ptr<AbstractLQPNode>& lqp);
   PlanBlock(const std::shared_ptr<AbstractLQPNode>& lqp, const std::shared_ptr<AbstractQueryBlock>& input);
 
   std::shared_ptr<AbstractLQPNode> lqp;

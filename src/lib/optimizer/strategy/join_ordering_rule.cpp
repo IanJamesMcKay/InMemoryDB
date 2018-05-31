@@ -6,7 +6,7 @@
 #include "optimizer/join_ordering/join_graph_builder.hpp"
 #include "query_blocks/abstract_query_block.hpp"
 #include "query_blocks/query_blocks_from_lqp.hpp"
-#include "query_blocks/predicates_block.hpp"
+#include "query_blocks/predicate_join_block.hpp"
 #include "query_blocks/stored_table_block.hpp"
 
 namespace opossum {

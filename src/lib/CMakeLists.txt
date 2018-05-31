@@ -52,8 +52,8 @@ set(
     query_blocks/outer_join_block.hpp
     query_blocks/plan_block.cpp
     query_blocks/plan_block.hpp
-    query_blocks/predicates_block.cpp
-    query_blocks/predicates_block.hpp
+    query_blocks/predicate_join_block.cpp
+    query_blocks/predicate_join_block.hpp
     query_blocks/stored_table_block.cpp
     query_blocks/stored_table_block.hpp
     logical_query_plan/abstract_lqp_node.cpp

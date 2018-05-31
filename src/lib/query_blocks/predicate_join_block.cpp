@@ -1,13 +1,13 @@
-#include "predicates_block.hpp"
+#include "predicate_join_block.hpp"
 
 #include <algorithm>
 
 namespace opossum {
 
-PredicateBlock::PredicateBlock():
-  PredicateBlock({}, {}) {}
+PredicateJoinBlock::PredicateJoinBlock():
+  PredicateJoinBlock({}, {}) {}
 
-PredicateBlock::PredicateBlock(const std::vector<std::shared_ptr<AbstractQueryBlock>>& sub_blocks,
+PredicateJoinBlock::PredicateJoinBlock(const std::vector<std::shared_ptr<AbstractQueryBlock>>& sub_blocks,
                const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates):
   AbstractQueryBlock(QueryBlockType::Predicates, sub_blocks), predicates(predicates) {
 
@@ -18,7 +18,7 @@ PredicateBlock::PredicateBlock(const std::vector<std::shared_ptr<AbstractQueryBl
   });
 }
 
-size_t PredicateBlock::_shallow_hash_impl() const {
+size_t PredicateJoinBlock::_shallow_hash_impl() const {
   auto hash = size_t{0};
   for (const auto& predicate : predicates) {
     boost::hash_combine(hash, predicate->hash());
@@ -26,8 +26,8 @@ size_t PredicateBlock::_shallow_hash_impl() const {
   return hash;
 }
 
-bool PredicateBlock::_shallow_deep_equals_impl(const AbstractQueryBlock& rhs) const {
-  const auto& predicate_block_rhs = static_cast<const PredicateBlock&>(rhs);
+bool PredicateJoinBlock::_shallow_deep_equals_impl(const AbstractQueryBlock& rhs) const {
+  const auto& predicate_block_rhs = static_cast<const PredicateJoinBlock&>(rhs);
   return std::equal(predicates.begin(), predicates.end(),
                     predicate_block_rhs.predicates.begin(), predicate_block_rhs.predicates.end(),
                     [](const auto& predicate_lhs, const auto& predicate_rhs) {

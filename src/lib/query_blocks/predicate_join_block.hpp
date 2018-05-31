@@ -9,10 +9,10 @@ namespace opossum {
  * Represents a set of Predicates that operate on a set of SubBlocks. The predicates can be either local (only
  * referencing one SubBlock) or connect multiple SubBlocks with InnerJoin semantics.
  */
-class PredicateBlock : public AbstractQueryBlock {
+class PredicateJoinBlock : public AbstractQueryBlock {
  public:
-  PredicateBlock();
-  PredicateBlock(const std::vector<std::shared_ptr<AbstractQueryBlock>>& sub_blocks,
+  PredicateJoinBlock();
+  PredicateJoinBlock(const std::vector<std::shared_ptr<AbstractQueryBlock>>& sub_blocks,
                  const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates);
 
   const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>> predicates;

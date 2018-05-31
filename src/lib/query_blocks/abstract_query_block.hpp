@@ -8,9 +8,10 @@ namespace opossum {
 enum class QueryBlockType { Aggregate, Finalizing, OuterJoin, Plan, Predicates, StoredTable };
 
 /**
- * While the LogicalQueryPLAN is a ordered representation of a query, a LogicalQueryBLOCK defines a part of the query
- * without imposing any order the operations it represents.
- * It can be seen as a more general representation of the query than the LQP
+ * While the LogicalQuery**Plan** is a ordered representation of a query, a LogicalQuery**Block** defines a part of the
+ * query without imposing any order the operations it represents.
+ *
+ * Typically QueryBlocks represent a part of a query that is optimised in isolation from the other blocks
  */
 class AbstractQueryBlock {
  public:
