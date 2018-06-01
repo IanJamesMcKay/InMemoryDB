@@ -4,6 +4,7 @@ import sys
 import pandas
 import matplotlib.pyplot as plt
 import re
+import numpy as np
 
 reference_duration_type = "baseline"
 
@@ -41,7 +42,7 @@ if __name__ == "__main__":
 
     print("Iteration Count: {}".format(iteration_count))
 
-    normalized_duration_matrix = [(0, 0)] * iteration_count
+    normalized_duration_matrix = [[] for idx in range(iteration_count)]
     valid_measurement_count = 0
 
     for name, df in data_frames:
@@ -62,7 +63,11 @@ if __name__ == "__main__":
         last_hash = hashes[iteration_count - 1]
         fastest_baseline_warning = 1.0
         convergence_marker = None
-        plot=True
+        plot = True
+
+        if hashes[0] == hashes[iteration_count - 1] and durations[0] > 0:
+            print("Skipping, plan converged to early")
+            continue
 
         for idx, (duration, hash) in enumerate(zip(durations, hashes)):
             normalized_duration = duration / reference_duration
@@ -80,16 +85,13 @@ if __name__ == "__main__":
                 indices.append(idx)
 
             if normalized_duration > 0:
-                count, accumulated = normalized_duration_matrix[idx]
-                count += 1
-                accumulated += max(normalized_duration, 1)
-                normalized_duration_matrix[idx] = count, accumulated
+                normalized_duration_matrix[idx].append(normalized_duration)
 
             if hash == last_hash and plot:
-                print("{} converged at {}".format(name, normalized_duration))
+                print("{} converged at {} @ {}".format(name, normalized_duration, idx))
                 if normalized_duration != 0:
-                   convergence_marker = (idx, normalized_duration)
-                plot=Fals
+                    convergence_marker = (idx, normalized_duration)
+                plot = False
 
         lines = plt.plot(indices, normalized_durations, linewidth=0.2, zorder=0)
         color = lines[0].get_color()
@@ -97,15 +99,17 @@ if __name__ == "__main__":
             plt.scatter(x=convergence_marker[0], y=convergence_marker[1], zorder=1, s=1, color=color)
         valid_measurement_count += 1
 
-    average = [accumulated / count for count, accumulated in normalized_duration_matrix]
+    average = [np.average(normalized_durations) for normalized_durations in normalized_duration_matrix]
+    median = [np.median(normalized_durations) for normalized_durations in normalized_duration_matrix]
 
-    plt.plot(average, label="Average")
+    plt.plot(average, label="Average", linewidth=0.9)
+    plt.plot(median, label="Median", linewidth=0.9)
 
     plt.xlabel("Query Iteration")
-    plt.ylabel("Performance relative to reference")
+    plt.ylabel("Performance relative to {}".format(reference_duration_type))
     plt.ylim(ymin=-0.1, ymax=2.5)
     plt.legend()
     plt.axhline(y=1)
     #plt.show()
-    plt.savefig("{}{}.svg".format("query_iterations-", os.path.split(os.path.split(root_directory)[0])[1]), format="svg")
+    plt.savefig("iterations-relative-to-{}.svg".format(reference_duration_type), format="svg")
 

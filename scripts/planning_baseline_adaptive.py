@@ -81,31 +81,37 @@ for file_name in planning_iteration_files:
     data[name].append(np.average(c["PlanningDuration"]))
 
 read_runtimes(data, baseline_dir)
-read_runtimes(data, adaptive_dir, 25)
 
-avg_planning_durations = []
-avg_baseline_execution_durations = []
-avg_adaptive_execution_durations = []
+for iteration_limit in [1, 2, 3, 5, 7, 9, 11]:
+    read_runtimes(data, adaptive_dir, iteration_limit)
 
-for name in names:
-    avg_planning_durations.append(data[name][0])
-    avg_baseline_execution_durations.append(data[name][1])
-    avg_adaptive_execution_durations.append(data[name][2])
+    avg_planning_durations = []
+    avg_baseline_execution_durations = []
+    avg_adaptive_execution_durations = []
 
-avg_planning_durations = [d / 1000 for d in avg_planning_durations]
-avg_baseline_execution_durations = [d / 1000 for d in avg_baseline_execution_durations]
-avg_adaptive_execution_durations = [d / 1000 for d in avg_adaptive_execution_durations]
+    for name in names:
+        avg_planning_durations.append(data[name][0])
+        avg_baseline_execution_durations.append(data[name][1])
+        avg_adaptive_execution_durations.append(data[name][2])
 
-index = np.arange(len(names))
+    avg_planning_durations = [d / 1000 for d in avg_planning_durations]
+    avg_baseline_execution_durations = [d / 1000 for d in avg_baseline_execution_durations]
+    avg_adaptive_execution_durations = [d / 1000 for d in avg_adaptive_execution_durations]
 
-fig, ax = plt.subplots()
+    index = np.arange(len(names))
 
-ax.set_ylabel('Time in ms')
-ax.bar(index - 0.2, avg_planning_durations, 0.2, label="Generating 10 plans (avg)")
-ax.bar(index, avg_baseline_execution_durations, 0.2, label="Execution - Baseline (min)")
-ax.bar(index + 0.2, avg_adaptive_execution_durations, 0.2, label="Execution - Adaptive (min)")
-ax.set_xticks(index)
-ax.set_xticklabels(names, fontsize=3)
-plt.legend()
-plt.savefig("planning-baseline-adaptive.svg", format="svg")
-#plt.show()
+    fig, ax = plt.subplots()
+
+    ax.set_ylabel('Time in ms')
+    ax.bar(index - 0.2, avg_planning_durations, 0.2, label="Generating 10 plans (avg)")
+    ax.bar(index, avg_baseline_execution_durations, 0.2, label="Execution - Baseline (min)")
+    ax.bar(index + 0.2, avg_adaptive_execution_durations, 0.2, label="Execution - Adaptive (min)")
+    ax.set_xticks(index)
+    ax.set_xticklabels(names, fontsize=3)
+    plt.legend()
+    plt.savefig("planning-baseline-adaptive--{}-iterations.svg".format(iteration_limit), format="svg")
+    #plt.show()
+
+    # Clear adaptive data for next iteration
+    for name in names:
+        data[name] = data[name][:-1]
