@@ -8,7 +8,7 @@
 #include "optimizer/join_ordering/join_plan_join_node.hpp"
 #include "optimizer/join_ordering/join_plan_vertex_node.hpp"
 #include "storage/storage_manager.hpp"
-#include "statistics/cardinality_estimator_column_statistics.hpp"
+#include "statistics/cardinality_estimator_statistics.hpp"
 #include "statistics/column_statistics.hpp"
 #include "statistics/table_statistics.hpp"
 #include "utils/load_table.hpp"

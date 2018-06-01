@@ -239,7 +239,7 @@ void JoeConfig::setup() {
    */
   cardinality_estimation_cache = std::make_shared<CardinalityEstimationCache>();
   if (cardinality_estimation_mode == CardinalityEstimationMode::ColumnStatistics) {
-    fallback_cardinality_estimator = std::make_shared<CardinalityEstimatorColumnStatistics>();
+    fallback_cardinality_estimator = std::make_shared<CardinalityEstimatorStatistics>();
     main_cardinality_estimator = std::make_shared<CardinalityEstimatorCached>(cardinality_estimation_cache,
                                                                               CardinalityEstimationCacheMode::ReadOnly, fallback_cardinality_estimator);
   } else {

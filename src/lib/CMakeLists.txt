@@ -207,23 +207,23 @@ set(
     #optimizer/join_ordering/build_join_plan.cpp
     #optimizer/join_ordering/build_join_plan.hpp
     #optimizer/join_ordering/dp_subplan_cache_top_k.hpp
-    cost_model/cost.hpp
-    cost_model/cost_lqp.cpp
-    cost_model/cost_lqp.hpp
-    cost_model/cost_feature.cpp
-    cost_model/cost_feature.hpp
-    cost_model/cost_feature_join_plan_proxy.cpp
-    cost_model/cost_feature_join_plan_proxy.hpp
-    cost_model/cost_feature_lqp_node_proxy.cpp
-    cost_model/cost_feature_lqp_node_proxy.hpp
-    cost_model/cost_feature_operator_proxy.cpp
-    cost_model/cost_feature_operator_proxy.hpp
-    cost_model/cost_model_naive.cpp
-    cost_model/cost_model_naive.hpp
-    cost_model/cost_model_linear.cpp
-    cost_model/cost_model_linear.hpp
-    cost_model/cost_model_segmented_sampler.cpp
-    cost_model/cost_model_segmented_sampler.hpp
+    #cost_model/cost.hpp
+    #cost_model/cost_lqp.cpp
+    #cost_model/cost_lqp.hpp
+    #cost_model/cost_feature.cpp
+    #cost_model/cost_feature.hpp
+    #cost_model/cost_feature_join_plan_proxy.cpp
+    #cost_model/cost_feature_join_plan_proxy.hpp
+    #cost_model/cost_feature_lqp_node_proxy.cpp
+    #cost_model/cost_feature_lqp_node_proxy.hpp
+    #cost_model/cost_feature_operator_proxy.cpp
+    #cost_model/cost_feature_operator_proxy.hpp
+    #cost_model/cost_model_naive.cpp
+    #cost_model/cost_model_naive.hpp
+    #cost_model/cost_model_linear.cpp
+    #cost_model/cost_model_linear.hpp
+    #cost_model/cost_model_segmented_sampler.cpp
+    #cost_model/cost_model_segmented_sampler.hpp
     optimizer/join_ordering/base_join_graph.cpp
     optimizer/join_ordering/base_join_graph.hpp
     optimizer/join_ordering/build_lqp_for_predicate.cpp
@@ -294,7 +294,7 @@ set(
     statistics/chunk_statistics/min_max_filter.hpp
     statistics/chunk_statistics/range_filter.hpp
     statistics/chunk_statistics/range_filter.hpp
-    #statistics/abstract_cardinality_estimator.hpp
+    statistics/abstract_cardinality_estimator.hpp
     statistics/table_statistics.cpp
     statistics/table_statistics.hpp
     statistics/column_statistics.cpp
@@ -307,8 +307,8 @@ set(
     #statistics/cardinality_estimation_cache.hpp
     #statistics/cardinality_estimator_cached.cpp
     #statistics/cardinality_estimator_cached.hpp
-    #statistics/cardinality_estimator_column_statistics.cpp
-    #statistics/cardinality_estimator_column_statistics.hpp
+    statistics/cardinality_estimator_statistics.cpp
+    statistics/cardinality_estimator_statistics.hpp
     #statistics/cardinality_estimator_execution.cpp
     #statistics/cardinality_estimator_execution.hpp
     statistics/generate_column_statistics.cpp

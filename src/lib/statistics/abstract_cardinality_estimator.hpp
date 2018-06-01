@@ -5,7 +5,7 @@
 
 namespace opossum {
 
-class AbstractJoinPlanPredicate;
+class AbstractQueryBlock;
 class AbstractLQPNode;
 
 using Cardinality = float;
@@ -17,8 +17,12 @@ class AbstractCardinalityEstimator {
  public:
   virtual ~AbstractCardinalityEstimator() = default;
 
-  virtual Cardinality estimate(const std::vector<std::shared_ptr<AbstractLQPNode>>& relations,
-                               const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates) const = 0;
+  /**
+   * Estimate the cardinality of an LQP.
+   * Optionally the root of a logically equivalent QueryBlock structure can be passed in to facilitate Cache lookups.
+   */
+  virtual Cardinality estimate(const std::shared_ptr<AbstractLQPNode>& lqp,
+                               const std::shared_ptr<AbstractQueryBlock>& query_blocks_root = {}) const = 0;
 };
 
 }  // namespace opossum

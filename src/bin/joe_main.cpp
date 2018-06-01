@@ -42,7 +42,7 @@
 #include "planviz/sql_query_plan_visualizer.hpp"
 #include "scheduler/current_scheduler.hpp"
 #include "statistics/cardinality_estimator_execution.hpp"
-#include "statistics/cardinality_estimator_column_statistics.hpp"
+#include "statistics/cardinality_estimator_statistics.hpp"
 #include "statistics/cardinality_estimation_cache.hpp"
 #include "statistics/cardinality_estimator_cached.hpp"
 #include "statistics/statistics_import_export.hpp"

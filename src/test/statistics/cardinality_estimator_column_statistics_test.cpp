@@ -2,7 +2,7 @@
 
 #include "logical_query_plan/mock_node.hpp"
 #include "optimizer/join_ordering/join_plan_predicate.hpp"
-#include "statistics/cardinality_estimator_column_statistics.hpp"
+#include "statistics/cardinality_estimator_statistics.hpp"
 #include "statistics/column_statistics.hpp"
 #include "statistics/table_statistics.hpp"
 
