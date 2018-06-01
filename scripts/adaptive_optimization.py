@@ -89,7 +89,7 @@ if __name__ == "__main__":
                 print("{} converged at {}".format(name, normalized_duration))
                 if normalized_duration != 0:
                    convergence_marker = (idx, normalized_duration)
-                plot=False
+                plot=Fals
 
         lines = plt.plot(indices, normalized_durations, linewidth=0.2, zorder=0)
         color = lines[0].get_color()

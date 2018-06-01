@@ -13,7 +13,7 @@ def name_from_file_name(file_name):
     return None
 
 
-def read_runtimes(out_data, root_dir):
+def read_runtimes(out_data, root_dir, iteration_limit = None):
     iteration_files = [file_name for file_name in os.listdir(root_dir) if file_name.endswith(".Iterations.csv")]
 
     for file_name in iteration_files:
@@ -32,7 +32,8 @@ def read_runtimes(out_data, root_dir):
             continue
 
         durations = c["RankZeroPlanExecutionDuration"]
-        durations = durations
+        if iteration_limit is not None:
+            durations = durations[:iteration_limit]
         non_zero_durations = np.extract(durations > 0, durations)
 
         if len(non_zero_durations) == 0:
@@ -80,7 +81,7 @@ for file_name in planning_iteration_files:
     data[name].append(np.average(c["PlanningDuration"]))
 
 read_runtimes(data, baseline_dir)
-read_runtimes(data, adaptive_dir)
+read_runtimes(data, adaptive_dir, 25)
 
 avg_planning_durations = []
 avg_baseline_execution_durations = []
