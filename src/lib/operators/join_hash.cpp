@@ -764,12 +764,20 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
             // Get the row ids that are referenced
             auto new_pos_list = std::make_shared<PosList>(pos_list.size());
             auto new_pos_list_iter = new_pos_list->begin();
+
+            // Cache the referenced PosList
+            std::shared_ptr<const PosList> referenced_pos_list;
+            ChunkID cached_chunk_id = INVALID_CHUNK_ID;
+
             for (const auto& row : pos_list) {
               if (row.chunk_offset == INVALID_CHUNK_OFFSET) {
                 *new_pos_list_iter = row;
               } else {
-                const auto& referenced_pos_list = *(*input_table_pos_lists)[row.chunk_id];
-                *new_pos_list_iter = referenced_pos_list[row.chunk_offset];
+                if (cached_chunk_id != row.chunk_id) {
+                  referenced_pos_list = (*input_table_pos_lists)[row.chunk_id];
+                  cached_chunk_id = row.chunk_id;
+                }
+                *new_pos_list_iter = referenced_pos_list->operator[](row.chunk_offset);
               }
               ++new_pos_list_iter;
             }
