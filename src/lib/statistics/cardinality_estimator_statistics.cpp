@@ -25,7 +25,7 @@
 namespace opossum {
 
 Cardinality CardinalityEstimatorStatistics::estimate(const std::shared_ptr<AbstractLQPNode>& lqp,
-                                                           const std::shared_ptr<AbstractQueryBlock>& query_blocks_root) const {
+                                                     const std::shared_ptr<AbstractQueryBlock>& query_blocks_root) const {
   return _compute_node_statistics(lqp)->row_count();
 }
 

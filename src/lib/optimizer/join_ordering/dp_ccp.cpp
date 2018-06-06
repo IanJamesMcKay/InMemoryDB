@@ -11,8 +11,6 @@
 #include "join_plan_join_node.hpp"
 #include "join_plan_vertex_node.hpp"
 
-#define VERBOSE 0
-
 namespace opossum {
 
 DpCcp::DpCcp(const std::shared_ptr<const AbstractCostModel>& cost_model,
@@ -37,10 +35,6 @@ void DpCcp::_on_execute() {
    */
   const auto csg_cmp_pairs = EnumerateCcp{_join_graph->vertices.size(), enumerate_ccp_edges}();
   for (const auto& csg_cmp_pair : csg_cmp_pairs) {
-#if VERBOSE
-    std::cout << "Considering plan for " << (csg_cmp_pair.first | csg_cmp_pair.second) << ": " << csg_cmp_pair.first
-              << " + " << csg_cmp_pair.second << std::endl;
-#endif
     const auto predicates = _join_graph->find_predicates(csg_cmp_pair.first, csg_cmp_pair.second);
 
     const auto best_plan_left = _subplan_cache->get_best_plan(csg_cmp_pair.first);
@@ -48,12 +42,6 @@ void DpCcp::_on_execute() {
     DebugAssert(best_plan_left && best_plan_right, "Subplan missing");
 
     auto current_plan = build_join_plan_join_node(*_cost_model, *best_plan_left, *best_plan_right, predicates, *_cardinality_estimator);
-
-#if VERBOSE
-    std::cout << "Cost=" << current_plan->cost() << std::endl;
-    current_plan->print();
-    std::cout << std::endl;
-#endif
 
     _subplan_cache->cache_plan(csg_cmp_pair.first | csg_cmp_pair.second, current_plan);
   }

@@ -5,7 +5,6 @@
 #include "logical_query_plan/predicate_node.hpp"
 #include "logical_query_plan/union_node.hpp"
 #include "query_blocks/predicate_join_block.hpp"
-#include "query_blocks/stored_table_block.hpp"
 #include "query_blocks/outer_join_block.hpp"
 #include "query_blocks/plan_block.hpp"
 #include "utils/assert.hpp"
@@ -217,6 +216,7 @@ std::shared_ptr<PlanBlock> build_plan_block(const std::shared_ptr<AbstractLQPNod
 
     switch (current_node->left_input()->type()) {
       case LQPNodeType::Aggregate: case LQPNodeType::Projection: case LQPNodeType::Sort: case LQPNodeType::Limit:
+      case LQPNodeType::StoredTable: case LQPNodeType::Mock:
         break;
       default:
         const auto left_input = current_node->left_input();
@@ -226,10 +226,6 @@ std::shared_ptr<PlanBlock> build_plan_block(const std::shared_ptr<AbstractLQPNod
 
     current_node = current_node->left_input();
   }
-}
-
-std::shared_ptr<StoredTableBlock> build_stored_table_block(const std::shared_ptr<AbstractLQPNode>& lqp) {
-  return std::make_shared<StoredTableBlock>(lqp);
 }
 
 }  // namespace
@@ -253,10 +249,8 @@ std::shared_ptr<AbstractQueryBlock> query_blocks_from_lqp(const std::shared_ptr<
     }
 
     case LQPNodeType::Sort: case LQPNodeType::Projection: case LQPNodeType::Limit: case LQPNodeType::Aggregate:
-      return build_plan_block(lqp);
-
     case LQPNodeType::StoredTable: case LQPNodeType::Mock:
-      return build_stored_table_block(lqp);
+      return build_plan_block(lqp);
 
     case LQPNodeType::Validate:
       Assert(lqp->left_input() && !lqp->right_input(), "Validate is expected to have a left input")

@@ -5,7 +5,7 @@
 
 namespace opossum {
 
-enum class QueryBlockType { Aggregate, Finalizing, OuterJoin, Plan, Predicates, StoredTable };
+enum class QueryBlockType { OuterJoin, Plan, PredicateJoin };
 
 /**
  * While the LogicalQuery**Plan** is a ordered representation of a query, a LogicalQuery**Block** defines a part of the

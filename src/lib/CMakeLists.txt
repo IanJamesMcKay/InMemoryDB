@@ -198,10 +198,10 @@ set(
     cost_model/abstract_cost_model.hpp
     cost_model/abstract_cost_model_sampler.cpp
     cost_model/abstract_cost_model_sampler.hpp
-    #optimizer/join_ordering/abstract_dp_algorithm.cpp
-    #optimizer/join_ordering/abstract_dp_algorithm.hpp
-    #optimizer/join_ordering/abstract_dp_subplan_cache.hpp
-    #optimizer/join_ordering/abstract_join_ordering_algorithm.hpp
+    optimizer/join_ordering/abstract_dp_algorithm.cpp
+    optimizer/join_ordering/abstract_dp_algorithm.hpp
+    optimizer/join_ordering/abstract_dp_subplan_cache.hpp
+    optimizer/join_ordering/abstract_join_ordering_algorithm.hpp
     #optimizer/join_ordering/abstract_join_plan_node.cpp
     #optimizer/join_ordering/abstract_join_plan_node.hpp
     #optimizer/join_ordering/build_join_plan.cpp
