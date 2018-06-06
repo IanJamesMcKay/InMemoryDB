@@ -40,6 +40,7 @@ void JoeConfig::add_options(cxxopts::Options& cli_options_description) {
   ("save-plan-results", "Save measurements per plan", cxxopts::value(save_plan_results)->default_value("true"))  // NOLINT
   ("save-query-iterations-results", "Save measurements per query iterations", cxxopts::value(save_query_iterations_results)->default_value("true"))  // NOLINT
   ("cardinality-estimation", "Mode for cardinality estimation. Values: cache-only, statistics, executed", cxxopts::value(cardinality_estimation_str)->default_value("statistics"))  // NOLINT
+  ("cardinality-estimator-statistics-penalty", "Penaltize cardinalities derived from statistics", cxxopts::value<float>(cardinality_estimator_statistics_penalty)->default_value("1.0"))
   ("cardinality-estimator-execution-timeout", "If the CardinalityEstimatorExecution is used, this specifies its timeout. 0 to disable", cxxopts::value(*cardinality_estimator_execution_timeout)->default_value("120"))
   ("cardinality-estimation-cache-log", "Create logfiles for accesses to the CardinalityEstimationCache", cxxopts::value(cardinality_estimation_cache_log)->default_value("true"))  // NOLINT
   ("cardinality-estimation-cache-dump", "Store the state of the cardinality estimation Cache", cxxopts::value(cardinality_estimation_cache_dump)->default_value("true"))  // NOLINT
@@ -233,6 +234,9 @@ void JoeConfig::parse(const cxxopts::ParseResult& cli_parse_result) {
     out() << "-- CardinalityEstimationCache dumping disabled" << std::endl;
   }
 
+  // Process "cardinality_estimator_statistics_penalty" parameter
+  out() << "-- CardinalityEstimatorStatisticsPenalty: " << cardinality_estimator_statistics_penalty << std::endl;
+
   // Process "unique_plans" parameter
   if (unique_plans) {
     out() << "-- Executing only unique plans is enabled" << std::endl;
@@ -302,7 +306,9 @@ void JoeConfig::setup() {
 
 
   if (cardinality_estimation_mode == CardinalityEstimationMode::Statistics) {
-    fallback_cardinality_estimator = std::make_shared<CardinalityEstimatorColumnStatistics>();
+    const auto cardinality_estimator_statistics = std::make_shared<CardinalityEstimatorColumnStatistics>();
+    cardinality_estimator_statistics->set_penalty(cardinality_estimator_statistics_penalty);
+    fallback_cardinality_estimator = cardinality_estimator_statistics;
     main_cardinality_estimator = std::make_shared<CardinalityEstimatorCached>(cardinality_estimation_cache,
                                                                               CardinalityEstimationCacheMode::ReadOnly, fallback_cardinality_estimator);
   } else if (cardinality_estimation_mode == CardinalityEstimationMode::Execution) {

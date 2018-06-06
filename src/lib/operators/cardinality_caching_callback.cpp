@@ -16,7 +16,7 @@ void CardinalityCachingCallback::operator()(const std::shared_ptr<AbstractOperat
 
   const auto lqp = op->lqp_node();
 
-  if (lqp->type() != LQPNodeType::Predicate && lqp->type() != LQPNodeType::Join) return;
+  if (lqp->type() != LQPNodeType::Predicate && lqp->type() != LQPNodeType::Join && lqp->type() != LQPNodeType::StoredTable) return;
 
   auto join_graph_builder = JoinGraphBuilder{};
   join_graph_builder.traverse(lqp);

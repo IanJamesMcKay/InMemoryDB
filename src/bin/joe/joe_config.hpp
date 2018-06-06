@@ -27,6 +27,7 @@ struct JoeConfig final {
   std::string imdb_dir = "";
   std::string job_dir = "";
   float scale_factor = 0.1f;
+  float cardinality_estimator_statistics_penalty = 1.0f;
   bool visualize = false;
   std::optional<long> plan_timeout_seconds = std::optional<long>{0};
   std::optional<long> query_timeout_seconds = std::optional<long>{0};

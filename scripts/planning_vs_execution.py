@@ -84,6 +84,7 @@ planning_execution_ratios = []
 
 for name in names:
     planning_time, execution_time = data[name]
+    print("{}: {} VS {}".format(name, planning_time, execution_time))
     planning_execution_ratios.append(planning_time/execution_time)
 
 index = np.arange(len(names))

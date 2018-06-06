@@ -48,8 +48,10 @@ std::optional<Cardinality> CardinalityEstimatorCached::estimate(const std::vecto
     }
   }
 
-  if (fallback_cardinality && _cache_mode == CardinalityEstimationCacheMode::ReadAndUpdate) {
-    _cache->put({relations, predicates}, fallback_cardinality.value());
+  if (fallback_cardinality) {
+    if (_cache_mode == CardinalityEstimationCacheMode::ReadAndUpdate) {
+      _cache->put({relations, predicates}, fallback_cardinality.value());
+    }
   } else if (auto estimator_execution = std::dynamic_pointer_cast<CardinalityEstimatorExecution>(_fallback_estimator);
              estimator_execution) {
     _cache->set_timeout(join_graph, estimator_execution->timeout);

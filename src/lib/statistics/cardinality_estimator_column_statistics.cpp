@@ -49,7 +49,11 @@ std::optional<Cardinality> CardinalityEstimatorColumnStatistics::estimate(const 
     estimation_state.current_cardinality *= vertex->get_statistics()->row_count();
   }
 
-  return estimation_state.current_cardinality;
+  return estimation_state.current_cardinality * _penalty;
+}
+
+void CardinalityEstimatorColumnStatistics::set_penalty(const float penalty) {
+  _penalty = penalty;
 }
 
 void CardinalityEstimatorColumnStatistics::_init_estimation_state(const AbstractJoinPlanPredicate& predicate, const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices, EstimationState& estimation_state) {
