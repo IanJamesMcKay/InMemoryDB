@@ -227,12 +227,12 @@ make_bimap<AggregateFunction, std::string>({
 
 const boost::bimap<DataType, std::string> data_type_to_string =
 make_bimap<DataType, std::string>({
-                                           {DataType::Int,           "Int"},
-                                           {DataType::Long,           "Long"},
-                                           {DataType::Float,           "Float"},
-                                           {DataType::Double,           "Double"},
-                                           {DataType::String,         "String"},
-                                           {DataType::Null, "Null"},
+                                           {DataType::Int,           "int"},
+                                           {DataType::Long,           "long"},
+                                           {DataType::Float,           "float"},
+                                           {DataType::Double,           "double"},
+                                           {DataType::String,         "string"},
+                                           {DataType::Null, "null"},
                                            });
 
 
