@@ -6,6 +6,8 @@
 #include "sql/SelectStatement.h"
 
 #include "all_type_variant.hpp"
+#include "cost_model/cost_feature.hpp"
+#include "operators/abstract_operator.hpp"
 #include "operators/jit_operator/jit_types.hpp"
 #include "types.hpp"
 
@@ -15,6 +17,8 @@ enum class EncodingType : uint8_t;
 enum class VectorCompressionType : uint8_t;
 
 extern const boost::bimap<PredicateCondition, std::string> predicate_condition_to_string;
+extern const boost::bimap<OperatorType, std::string> operator_type_to_string;
+extern const boost::bimap<CostFeature, std::string> cost_feature_to_string;
 extern const std::unordered_map<PredicateCondition, ExpressionType> predicate_condition_to_expression_type;
 extern const std::unordered_map<ExpressionType, std::string> expression_type_to_string;
 extern const std::unordered_map<OrderByMode, std::string> order_by_mode_to_string;

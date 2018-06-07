@@ -50,6 +50,7 @@ struct JoeConfig final {
   bool force_plan_zero{false};
   bool join_graph_log{true};
   std::string evaluation_name;
+  std::optional<std::string> cost_sample_dir{""};
 
   /**
    * Objects intitialised from CLI options

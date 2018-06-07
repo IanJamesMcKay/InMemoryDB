@@ -49,6 +49,7 @@ void JoeConfig::add_options(cxxopts::Options& cli_options_description) {
   ("join-graph-log", "For each query, create a logfile with the join graph", cxxopts::value(join_graph_log)->default_value("true"))  // NOLINT
   ("unique-plans", "For each query, execute only plans that were not executed before", cxxopts::value(unique_plans)->default_value("false"))  // NOLINT
   ("force-plan-zero", "Independently of shuffling, always executed the plan the optimizer labeled as best", cxxopts::value(force_plan_zero)->default_value("false"))  // NOLINT
+  ("cost-sample-dir", "Directory to store cost samples in", cxxopts::value(*cost_sample_dir)->default_value(*cost_sample_dir))  // NOLINT
   ("queries", "Specify queries to run, default is all of the workload that are supported", cxxopts::value<std::vector<std::string>>()); // NOLINT
   ;
   // clang-format on
@@ -270,6 +271,14 @@ void JoeConfig::parse(const cxxopts::ParseResult& cli_parse_result) {
   }
 
 
+  // Process "cost_sample_dir" param
+  if (cost_sample_dir->empty()) {
+    cost_sample_dir.reset();
+    out() << "-- No cost sampling" << std::endl;
+  } else {
+    out() << "-- Cost sample directory '" << *cost_sample_dir << "'" << std::endl;
+  }
+
   Assert(cardinality_estimation_mode != CardinalityEstimationMode::CacheOnly || !isolate_queries, "Isolating queries in cache only mode is not intended");
 }
 
@@ -283,6 +292,10 @@ void JoeConfig::setup() {
   std::experimental::filesystem::create_directories(evaluation_dir);
   std::experimental::filesystem::create_directory(evaluation_dir + "/viz");
   evaluation_prefix = evaluation_dir + "/" + cost_model->name() + "-" + std::string(IS_DEBUG ? "d" : "r") + "-";
+
+  if (cost_sample_dir) {
+    std::experimental::filesystem::create_directories(*cost_sample_dir);
+  }
 
   /**
    * Load workload

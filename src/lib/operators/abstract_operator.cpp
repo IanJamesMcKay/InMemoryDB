@@ -83,9 +83,9 @@ std::shared_ptr<AbstractOperator> AbstractOperator::recreate(const std::vector<A
   return _recreate_impl(recreated_ops, args);
 }
 
-std::shared_ptr<const Table> AbstractOperator::input_table_left() const { return _input_left->get_output(); }
+std::shared_ptr<const Table> AbstractOperator::input_table_left() const { return _input_left ? _input_left->get_output() : nullptr; }
 
-std::shared_ptr<const Table> AbstractOperator::input_table_right() const { return _input_right->get_output(); }
+std::shared_ptr<const Table> AbstractOperator::input_table_right() const { return _input_right ? _input_right->get_output() : nullptr; }
 
 bool AbstractOperator::transaction_context_is_set() const { return _transaction_context.has_value(); }
 

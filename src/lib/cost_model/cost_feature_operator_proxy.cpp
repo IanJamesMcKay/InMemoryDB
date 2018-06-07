@@ -19,16 +19,16 @@ CostFeatureOperatorProxy::CostFeatureOperatorProxy(const std::shared_ptr<Abstrac
 CostFeatureVariant CostFeatureOperatorProxy::_extract_feature_impl(const CostFeature cost_feature) const {
   switch (cost_feature) {
     case CostFeature::LeftInputRowCount:
-      Assert(_op->input_table_left(), "Can't extract CostFeature since the input table is not available");
+      if (!_op->input_table_left()) return 0.0f;
       return static_cast<float>(_op->input_table_left()->row_count());
     case CostFeature::RightInputRowCount:
-      Assert(_op->input_table_right(), "Can't extract CostFeature since the input table is not available");
+      if (!_op->input_table_right()) return 0.0f;
       return static_cast<float>(_op->input_table_right()->row_count());
     case CostFeature::LeftInputIsReferences:
-      Assert(_op->input_table_left(), "Can't extract CostFeature since the input table is not available");
+      if (!_op->input_table_left()) return false;
       return _op->input_table_left()->type() == TableType::References;
     case CostFeature::RightInputIsReferences:
-      Assert(_op->input_table_right(), "Can't extract CostFeature since the input table is not available");
+      if (!_op->input_table_right()) return false;
       return _op->input_table_right()->type() == TableType::References;
     case CostFeature::OutputRowCount:
       Assert(_op->get_output(), "Can't extract CostFeature since the output table is not available");
@@ -63,7 +63,7 @@ CostFeatureVariant CostFeatureOperatorProxy::_extract_feature_impl(const CostFea
         }
 
       } else {
-        Fail("This CostFeature is not defined for this LQPNodeType");
+        return DataType::Null;
       }
     }
 
@@ -73,14 +73,14 @@ CostFeatureVariant CostFeatureOperatorProxy::_extract_feature_impl(const CostFea
       } else if (_op->type() == OperatorType::TableScan) {
         return std::static_pointer_cast<TableScan>(_op)->predicate_condition();
       } else {
-        Fail("This CostFeature is not defined for this LQPNodeType");
+        return PredicateCondition::Equals;
       }
 
     case CostFeature::RightOperandIsColumn:
       if (_op->type() == OperatorType::TableScan) {
         return is_column_id(std::static_pointer_cast<TableScan>(_op)->right_parameter());
       } else {
-        Fail("CostFeature not defined for LQPNodeType");
+        return false;
       }
 
     case CostFeature::OperatorType:

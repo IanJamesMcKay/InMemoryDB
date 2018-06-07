@@ -1,9 +1,15 @@
 #include "joe_plan.hpp"
 
+#include <experimental/filesystem>
+
 #include "cost_model/cost_feature_lqp_node_proxy.hpp"
 #include "cost_model/cost_feature_operator_proxy.hpp"
 #include "logical_query_plan/lqp_translator.hpp"
 #include "utils/execute_with_timeout.hpp"
+
+#include "boost/interprocess/sync/file_lock.hpp"
+#include "boost/interprocess/sync/sharable_lock.hpp"
+#include "boost/interprocess/sync/scoped_lock.hpp"
 
 #include "out.hpp"
 #include "joe_query_iteration.hpp"
@@ -67,8 +73,8 @@ void JoePlan::run() {
    */
   sample.execution_duration = timer.lap();
   // Don't do this until I fixed it
-//  const auto operators = flatten_pqp(pqp);
-//  create_cost_sample(operators);
+  const auto operators = flatten_pqp(pqp);
+  sample_cost_features(operators);
 
   SQLQueryPlan plan;
   plan.add_tree_by_root(pqp);
@@ -90,30 +96,63 @@ void JoePlan::run() {
   if (query_iteration.query.save_plan_results) save_plan_result_table(plan);
 }
 
-void JoePlan::create_cost_sample(const std::vector<std::shared_ptr<AbstractOperator>> &operators) {
+void JoePlan::sample_cost_features(const std::vector<std::shared_ptr<AbstractOperator>> &operators) {
   auto& config = query_iteration.query.config;
 
-  for (const auto &op : operators) {
-    const auto aim_cost = config->cost_model->get_reference_operator_cost(op);
-    sample.aim_cost += aim_cost;
+  if (!config->cost_sample_dir) return;
 
-    if (op->lqp_node()) {
-      const auto est_cost = config->cost_model->estimate_cost(CostFeatureLQPNodeProxy(op->lqp_node()));
-      sample.est_cost += est_cost;
-      if (aim_cost) {
-        sample.abs_est_cost_error += std::fabs(est_cost - aim_cost);
-      }
+  const auto path = *config->cost_sample_dir + "/" + "CostFeatureSamples" + (IS_DEBUG ? "-Debug" : "-Release") + ".json";
+
+  nlohmann::json json;
+
+  std::ifstream istream;
+  std::ofstream ostream;
+
+  // "Touch" the file
+  if (!std::experimental::filesystem::exists(path)) {
+    std::cout << "Touch CostFeatureSamples '" << path << "'" << std::endl;
+    std::ofstream{path, std::ios_base::app};
+  }
+
+  {
+    boost::interprocess::file_lock file_lock(path.c_str());
+    boost::interprocess::scoped_lock<boost::interprocess::file_lock> lock(file_lock);
+
+    istream.open(path);
+
+    istream.seekg(0, std::ios_base::end);
+    if (istream.tellg() != 0) {
+      istream.seekg(0, std::ios_base::beg);
+
+      istream >> json;
     }
 
-    const auto re_est_cost = config->cost_model->estimate_cost(CostFeatureOperatorProxy(op));
-    sample.re_est_cost += re_est_cost;
-    sample.abs_re_est_cost_error += std::fabs(re_est_cost - aim_cost);
+    for (const auto& op: operators) {
+      const auto operator_type = operator_type_to_string.left.at(op->type());
+      if (!json.count(operator_type)) {
+        json[operator_type] = nlohmann::json::array();
+      }
+
+      nlohmann::json sample;
+      for (const auto& cost_feature_pair : cost_feature_to_string.left) {
+        const auto cost_feature_sample = CostFeatureOperatorProxy{op}.extract_feature(cost_feature_pair.first);
+
+        sample[cost_feature_pair.second] = cost_feature_sample.to_string();
+      }
+      sample["Runtime"] = op->base_performance_data().total.count();
+
+      json[operator_type].push_back(sample);
+    }
+
+    ostream.open(path);
+    ostream << json;
+
+    ostream.flush(); // Make sure write-to-disk happened before unlocking
   }
 }
 
 void JoePlan::visualize(const SQLQueryPlan& plan) {
   auto& config = query_iteration.query.config;
-
 
   try {
     SQLQueryPlanVisualizer visualizer{{}, {}, {}, {}};

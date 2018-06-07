@@ -59,6 +59,8 @@ struct CostFeatureVariant {
   PredicateCondition predicate_condition() const;
   OperatorType operator_type() const;
 
+  std::string to_string() const;
+
   boost::variant<float, DataType, PredicateCondition, OperatorType, bool> value;
 };
 

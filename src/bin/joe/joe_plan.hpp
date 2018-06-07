@@ -66,7 +66,7 @@ class JoePlan final {
   std::string name;
   JoePlanSample sample;
 
-  void create_cost_sample(const std::vector<std::shared_ptr<AbstractOperator>> &operators);
+  void sample_cost_features(const std::vector<std::shared_ptr<AbstractOperator>> &operators);
   void visualize(const SQLQueryPlan& plan);
   void save_plan_result_table(const SQLQueryPlan& plan);
 };
