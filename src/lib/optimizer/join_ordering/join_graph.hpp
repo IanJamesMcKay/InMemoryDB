@@ -37,7 +37,7 @@ class JoinGraph final {
   static std::shared_ptr<JoinGraph> from_query_block(const std::shared_ptr<PredicateJoinBlock>& predicate_join_block);
 
   JoinGraph() = default;
-  JoinGraph(std::vector<std::shared_ptr<AbstractLQPNode>> vertices, std::vector<LQPOutputRelation> output_relations,
+  JoinGraph(std::vector<std::shared_ptr<AbstractLQPNode>> vertices,
             std::vector<std::shared_ptr<JoinEdge>> edges);
 
   /**
@@ -59,7 +59,6 @@ class JoinGraph final {
   void print(std::ostream& stream = std::cout) const;
 
   std::vector<std::shared_ptr<AbstractLQPNode>> vertices;
-  std::vector<LQPOutputRelation> output_relations;
   std::vector<std::shared_ptr<JoinEdge>> edges;
 };
 

@@ -5,24 +5,30 @@
 #include "operators/abstract_operator.hpp"
 #include "logical_query_plan/abstract_lqp_node.hpp"
 #include "logical_query_plan/join_node.hpp"
+#include "logical_query_plan/mock_node.hpp"
 #include "logical_query_plan/predicate_node.hpp"
 #include "logical_query_plan/sort_node.hpp"
+#include "logical_query_plan/stored_table_node.hpp"
+#include "statistics/abstract_cardinality_estimator.hpp"
 #include "statistics/column_statistics.hpp"
 #include "statistics/table_statistics.hpp"
+#include "storage/table.hpp"
+#include "storage/storage_manager.hpp"
 #include "resolve_type.hpp"
 
 namespace opossum {
 
-CostFeatureLQPNodeProxy::CostFeatureLQPNodeProxy(const std::shared_ptr<AbstractLQPNode>& node) : _node(node) {}
+CostFeatureLQPNodeProxy::CostFeatureLQPNodeProxy(const std::shared_ptr<AbstractLQPNode>& node,
+                                                 const std::shared_ptr<AbstractCardinalityEstimator>& cardinality_estimator) : _node(node), _cardinality_estimator(cardinality_estimator) {}
 
 CostFeatureVariant CostFeatureLQPNodeProxy::_extract_feature_impl(const CostFeature cost_feature) const {
   switch (cost_feature) {
     case CostFeature::LeftInputRowCount:
       Assert(_node->left_input(), "Node doesn't have left input");
-      return _node->left_input()->get_statistics()->row_count();
+      return _cardinality_estimator->estimate(_node->left_input());
     case CostFeature::RightInputRowCount:
       Assert(_node->right_input(), "Node doesn't have left input");
-      return _node->right_input()->get_statistics()->row_count();
+      return _cardinality_estimator->estimate(_node->right_input());
     case CostFeature::LeftInputIsReferences:
       Assert(_node->left_input(), "Node doesn't have left input");
       return _node->left_input()->get_statistics()->table_type() == TableType::References;
@@ -30,7 +36,7 @@ CostFeatureVariant CostFeatureLQPNodeProxy::_extract_feature_impl(const CostFeat
       Assert(_node->right_input(), "Node doesn't have left input");
       return _node->right_input()->get_statistics()->table_type() == TableType::References;
     case CostFeature::OutputRowCount:
-      return _node->get_statistics()->row_count();
+      return _cardinality_estimator->estimate(_node);
 
     case CostFeature::OperatorType: {
       /**
@@ -90,8 +96,21 @@ CostFeatureVariant CostFeatureLQPNodeProxy::_extract_feature_impl(const CostFeat
         Fail("CostFeature not defined for LQPNodeType");
       }
 
-      auto column_id = _node->get_output_column_id(column_reference);
-      return _node->get_statistics()->column_statistics().at(column_id)->data_type();
+      /**
+       * Awkwardly obtain the column's DataType. When #882 is in, this will be much simpler.
+       * TODO(moritz) clean up once #882 is in
+       */
+      if (column_reference.original_node()->type() == LQPNodeType::StoredTable) {
+        const auto table_name = std::static_pointer_cast<const StoredTableNode>(column_reference.original_node())->table_name();
+        return StorageManager::get().get_table(table_name)->column_data_type(column_reference.original_column_id());
+
+      } else if (column_reference.original_node()->type() == LQPNodeType::Mock) {
+        const auto constructor_arguments = std::static_pointer_cast<const MockNode>(column_reference.original_node())->constructor_arguments();
+        return boost::get<std::shared_ptr<TableStatistics>>(constructor_arguments)->column_statistics().at(column_reference.original_column_id())->data_type();
+
+      } else {
+        Fail("Until #882, the data type can only be obtained from non-derived columns");
+      }
     }
 
     case CostFeature::PredicateCondition:

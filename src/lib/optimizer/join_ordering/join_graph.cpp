@@ -28,9 +28,8 @@ std::shared_ptr<JoinGraph> JoinGraph::from_query_block(const std::shared_ptr<Pre
   return JoinGraphBuilder{}(vertices, predicate_join_block->predicates);
 }
 
-JoinGraph::JoinGraph(std::vector<std::shared_ptr<AbstractLQPNode>> vertices,
-                     std::vector<LQPOutputRelation> output_relations, std::vector<std::shared_ptr<JoinEdge>> edges)
-    : vertices(std::move(vertices)), output_relations(std::move(output_relations)), edges(std::move(edges)) {}
+JoinGraph::JoinGraph(std::vector<std::shared_ptr<AbstractLQPNode>> vertices, std::vector<std::shared_ptr<JoinEdge>> edges)
+    : vertices(std::move(vertices)), edges(std::move(edges)) {}
 
 std::vector<std::shared_ptr<AbstractJoinPlanPredicate>> JoinGraph::find_predicates(
     const JoinVertexSet& vertex_set) const {

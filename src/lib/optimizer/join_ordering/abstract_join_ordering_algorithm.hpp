@@ -4,7 +4,7 @@
 
 namespace opossum {
 
-class PlanBlock;
+class AbstractLQPNode;
 class PredicateJoinBlock;
 
 /**
@@ -17,7 +17,7 @@ class AbstractJoinOrderingAlgorithm {
   /**
    * @param input_block     All subblocks have to be PlanBlocks, so perform optimization bottom up
    */
-  virtual std::shared_ptr<PlanBlock> operator()(const std::shared_ptr<PredicateJoinBlock>& input_block) = 0;
+  virtual std::shared_ptr<AbstractLQPNode> operator()(const std::shared_ptr<PredicateJoinBlock>& input_block) = 0;
 };
 
 }  // namespace opossum

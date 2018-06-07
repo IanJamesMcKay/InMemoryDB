@@ -3,19 +3,16 @@
 #include <queue>
 #include <unordered_map>
 
-#include "abstract_join_plan_node.hpp"
 #include "build_join_plan.hpp"
 #include "dp_subplan_cache_top_k.hpp"
 #include "enumerate_ccp.hpp"
 #include "join_edge.hpp"
-#include "join_plan_join_node.hpp"
-#include "join_plan_vertex_node.hpp"
 
 #define VERBOSE 0
 
 namespace opossum {
 
-DpCcpTopK::DpCcpTopK(const size_t max_entry_count_per_set, const std::shared_ptr<const AbstractCostModel>& cost_model,
+DpCcpTopK::DpCcpTopK(const size_t max_entry_count_per_set, const std::shared_ptr<AbstractCostModel>& cost_model,
                      const std::shared_ptr<AbstractCardinalityEstimator>& cardinality_estimator)
     : AbstractDpAlgorithm(std::make_shared<DpSubplanCacheTopK>(max_entry_count_per_set), cost_model, cardinality_estimator) {}
 

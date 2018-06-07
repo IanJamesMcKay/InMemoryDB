@@ -205,21 +205,21 @@ set(
     #optimizer/join_ordering/build_join_plan.cpp
     #optimizer/join_ordering/build_join_plan.hpp
     #optimizer/join_ordering/dp_subplan_cache_top_k.hpp
-    #cost_model/cost.hpp
+    cost_model/cost.hpp
     #cost_model/cost_lqp.cpp
     #cost_model/cost_lqp.hpp
     #cost_model/cost_feature.cpp
     #cost_model/cost_feature.hpp
     #cost_model/cost_feature_join_plan_proxy.cpp
     #cost_model/cost_feature_join_plan_proxy.hpp
-    #cost_model/cost_feature_lqp_node_proxy.cpp
-    #cost_model/cost_feature_lqp_node_proxy.hpp
+    cost_model/cost_feature_lqp_node_proxy.cpp
+    cost_model/cost_feature_lqp_node_proxy.hpp
     #cost_model/cost_feature_operator_proxy.cpp
     #cost_model/cost_feature_operator_proxy.hpp
-    #cost_model/cost_model_naive.cpp
-    #cost_model/cost_model_naive.hpp
-    #cost_model/cost_model_linear.cpp
-    #cost_model/cost_model_linear.hpp
+    cost_model/cost_model_naive.cpp
+    cost_model/cost_model_naive.hpp
+    cost_model/cost_model_linear.cpp
+    cost_model/cost_model_linear.hpp
     #cost_model/cost_model_segmented_sampler.cpp
     #cost_model/cost_model_segmented_sampler.hpp
     optimizer/join_ordering/build_lqp_for_predicate.cpp
@@ -241,10 +241,6 @@ set(
     optimizer/join_ordering/join_graph_builder.hpp
     optimizer/join_ordering/join_graph.cpp
     optimizer/join_ordering/join_graph.hpp
-    #optimizer/join_ordering/join_plan_join_node.cpp
-    #optimizer/join_ordering/join_plan_join_node.hpp
-    #optimizer/join_ordering/join_plan_vertex_node.cpp
-    #optimizer/join_ordering/join_plan_vertex_node.hpp
     optimizer/join_ordering/join_plan_predicate.cpp
     optimizer/join_ordering/join_plan_predicate.hpp
     optimizer/join_ordering/join_vertex_set.hpp
@@ -275,8 +271,6 @@ set(
     planviz/sql_query_plan_visualizer.hpp
     planviz/join_graph_visualizer.cpp
     planviz/join_graph_visualizer.hpp
-    planviz/join_plan_visualizer.cpp
-    planviz/join_plan_visualizer.hpp
     planviz/sql_pipeline_report.cpp
     planviz/sql_pipeline_report.hpp
     planviz/viz_record_layout.cpp

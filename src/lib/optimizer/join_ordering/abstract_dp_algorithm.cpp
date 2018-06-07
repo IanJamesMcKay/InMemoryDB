@@ -15,7 +15,7 @@ AbstractDpAlgorithm::AbstractDpAlgorithm(const std::shared_ptr<AbstractDpSubplan
                                          const std::shared_ptr<AbstractCardinalityEstimator>& cardinality_estimator)
     : _subplan_cache(subplan_cache), _cost_model(cost_model), _cardinality_estimator(cardinality_estimator) {}
 
-std::shared_ptr<PlanBlock> AbstractDpAlgorithm::operator()(const std::shared_ptr<PredicateJoinBlock>& input_block) {
+std::shared_ptr<AbstractLQPNode> AbstractDpAlgorithm::operator()(const std::shared_ptr<PredicateJoinBlock>& input_block) {
   _subplan_cache->clear();
   _input_block = input_block;
   _join_graph = JoinGraph::from_query_block(_input_block);
@@ -44,7 +44,7 @@ std::shared_ptr<PlanBlock> AbstractDpAlgorithm::operator()(const std::shared_ptr
   const auto best_plan = _subplan_cache->get_best_plan(all_vertices_set);
   Assert(best_plan, "No plan for all vertices generated. Maybe JoinGraph isn't connected?");
 
-  return *best_plan;
+  return best_plan->lqp;
 }
 
 
@@ -55,7 +55,11 @@ const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>> &predicates) const
   const auto plan_block = std::dynamic_pointer_cast<PlanBlock>(vertex_block);
   Assert(plan_block, "Dynamic programming needs plans as vertices");
 
-  auto join_plan = JoinPlan{plan_block->lqp, {vertex_block}, 0.0f};
+  const auto query_block = std::make_shared<PredicateJoinBlock>(
+    std::vector<std::shared_ptr<AbstractQueryBlock>>{vertex_block},
+    std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>{});
+
+  auto join_plan = JoinPlan{plan_block->lqp, query_block, 0.0f};
 
   for (const auto& predicate : predicates) {
     _add_join_plan_predicate(join_plan, predicate);
@@ -65,9 +69,14 @@ const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>> &predicates) const
 }
 
 void AbstractDpAlgorithm::_add_join_plan_predicate(JoinPlan& join_plan, const std::shared_ptr<AbstractJoinPlanPredicate>& predicate) const {
-  const auto base_node = join_plan.lqp;
-  join_plan.lqp = build_lqp_for_predicate(*predicate, join_plan.lqp);
-  join_plan.plan_cost += _cost_plan(join_plan.lqp, base_node);
+  const auto predicate_nodes = std::make_shared<std::vector<std::shared_ptr<AbstractLQPNode>>>();
+
+  join_plan.lqp = build_lqp_for_predicate(*predicate, join_plan.lqp, predicate_nodes);
+
+  // Add the cost from all new nodes to the plan cost
+  for (const auto& node : *predicate_nodes) {
+    join_plan.plan_cost += _cost_model->estimate_cost(CostFeatureLQPNodeProxy{node, _cardinality_estimator});
+  }
 
   join_plan.query_block->predicates.emplace_back(predicate);
 }
@@ -82,7 +91,7 @@ JoinPlan AbstractDpAlgorithm::_create_join_plan(const JoinPlan& left_input, cons
                           PredicateJoinBlock::merge_blocks(*left_input.query_block, *right_input.query_block),
                           left_input.plan_cost + right_input.plan_cost};
 
-  auto primary_join_predicate = std::shared_ptr<JoinPlanAtomicPredicate>{};
+  auto primary_join_predicate = std::shared_ptr<const JoinPlanAtomicPredicate>{};
   auto secondary_predicates = predicates;
 
   /**
@@ -132,21 +141,20 @@ JoinPlan AbstractDpAlgorithm::_create_join_plan(const JoinPlan& left_input, cons
   auto lqp = std::shared_ptr<AbstractLQPNode>();
 
   // Add primary join predicate as inner JoinNode, or cross product JoinNode if no such predicate exists
-  if (!primary_join_predicate) {
-    join_plan.lqp = JoinNode::make(JoinMode::Cross, left_input.lqp, right_input.lqp);
-  } else {
+  if (primary_join_predicate) {
     const auto right_operand_column_reference = boost::get<LQPColumnReference>(primary_join_predicate->right_operand);
 
     join_plan.lqp = JoinNode::make(JoinMode::Inner,
-                                        std::make_pair(primary_join_predicate->left_operand,
-                                                       right_operand_column_reference),
-                                        primary_join_predicate->predicate_condition, left_input.lqp, right_input.lqp);
+                                   std::make_pair(primary_join_predicate->left_operand,
+                                                  right_operand_column_reference),
+                                   primary_join_predicate->predicate_condition, left_input.lqp, right_input.lqp);
 
     join_plan.query_block->predicates.emplace_back(primary_join_predicate);
+  } else {
+    join_plan.lqp = JoinNode::make(JoinMode::Cross, left_input.lqp, right_input.lqp);
   }
 
   join_plan.plan_cost += _cost_model->estimate_cost(CostFeatureLQPNodeProxy{join_plan.lqp, _cardinality_estimator});
-
 
   // Apply remaining predicates
   for (const auto& predicate : secondary_predicates) {

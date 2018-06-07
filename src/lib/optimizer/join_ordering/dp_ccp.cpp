@@ -7,12 +7,10 @@
 #include "dp_subplan_cache_best.hpp"
 #include "enumerate_ccp.hpp"
 #include "join_edge.hpp"
-#include "join_plan_join_node.hpp"
-#include "join_plan_vertex_node.hpp"
 
 namespace opossum {
 
-DpCcp::DpCcp(const std::shared_ptr<const AbstractCostModel>& cost_model,
+DpCcp::DpCcp(const std::shared_ptr<AbstractCostModel>& cost_model,
              const std::shared_ptr<AbstractCardinalityEstimator>& cardinality_estimator) :
   AbstractDpAlgorithm(std::make_shared<DpSubplanCacheBest>(), cost_model, cardinality_estimator) {}
 

@@ -26,7 +26,7 @@ class AbstractDpAlgorithm : public AbstractJoinOrderingAlgorithm {
                                const std::shared_ptr<AbstractCostModel>& cost_model,
                                const std::shared_ptr<AbstractCardinalityEstimator>& cardinality_estimator);
 
-  std::shared_ptr<PlanBlock> operator()(const std::shared_ptr<PredicateJoinBlock>& input_block) final;
+  std::shared_ptr<AbstractLQPNode> operator()(const std::shared_ptr<PredicateJoinBlock>& input_block) final;
 
  protected:
   virtual void _on_execute() = 0;

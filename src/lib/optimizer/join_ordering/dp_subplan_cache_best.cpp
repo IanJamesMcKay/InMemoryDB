@@ -1,7 +1,5 @@
 #include "dp_subplan_cache_best.hpp"
 
-#include "abstract_join_plan_node.hpp"
-
 namespace opossum {
 
 void DpSubplanCacheBest::clear() { _plan_by_vertex_set.clear(); }

@@ -1,7 +1,5 @@
 #include "dp_subplan_cache_top_k.hpp"
 
-#include "abstract_join_plan_node.hpp"
-
 #include "utils/assert.hpp"
 
 namespace opossum {
