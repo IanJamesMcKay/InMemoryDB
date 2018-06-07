@@ -194,34 +194,22 @@ set(
     cost_model/abstract_cost_feature_proxy.hpp
     cost_model/abstract_cost_model.cpp
     cost_model/abstract_cost_model.hpp
-    cost_model/abstract_cost_model_sampler.cpp
-    cost_model/abstract_cost_model_sampler.hpp
     optimizer/join_ordering/abstract_dp_algorithm.cpp
     optimizer/join_ordering/abstract_dp_algorithm.hpp
     optimizer/join_ordering/abstract_dp_subplan_cache.hpp
     optimizer/join_ordering/abstract_join_ordering_algorithm.hpp
-    #optimizer/join_ordering/abstract_join_plan_node.cpp
-    #optimizer/join_ordering/abstract_join_plan_node.hpp
-    #optimizer/join_ordering/build_join_plan.cpp
-    #optimizer/join_ordering/build_join_plan.hpp
-    #optimizer/join_ordering/dp_subplan_cache_top_k.hpp
+    optimizer/join_ordering/dp_subplan_cache_top_k.hpp
     cost_model/cost.hpp
-    #cost_model/cost_lqp.cpp
-    #cost_model/cost_lqp.hpp
-    #cost_model/cost_feature.cpp
-    #cost_model/cost_feature.hpp
-    #cost_model/cost_feature_join_plan_proxy.cpp
-    #cost_model/cost_feature_join_plan_proxy.hpp
+    cost_model/cost_feature.cpp
+    cost_model/cost_feature.hpp
     cost_model/cost_feature_lqp_node_proxy.cpp
     cost_model/cost_feature_lqp_node_proxy.hpp
-    #cost_model/cost_feature_operator_proxy.cpp
-    #cost_model/cost_feature_operator_proxy.hpp
+    cost_model/cost_feature_operator_proxy.cpp
+    cost_model/cost_feature_operator_proxy.hpp
     cost_model/cost_model_naive.cpp
     cost_model/cost_model_naive.hpp
     cost_model/cost_model_linear.cpp
     cost_model/cost_model_linear.hpp
-    #cost_model/cost_model_segmented_sampler.cpp
-    #cost_model/cost_model_segmented_sampler.hpp
     optimizer/join_ordering/build_lqp_for_predicate.cpp
     optimizer/join_ordering/build_lqp_for_predicate.hpp
     optimizer/join_ordering/dp_ccp.cpp
@@ -244,8 +232,8 @@ set(
     optimizer/join_ordering/join_plan_predicate.cpp
     optimizer/join_ordering/join_plan_predicate.hpp
     optimizer/join_ordering/join_vertex_set.hpp
-    #optimizer/optimizer.cpp
-    #optimizer/optimizer.hpp
+    optimizer/optimizer.cpp
+    optimizer/optimizer.hpp
     optimizer/strategy/abstract_rule.cpp
     optimizer/strategy/abstract_rule.hpp
     optimizer/strategy/chunk_pruning_rule.cpp
@@ -256,8 +244,8 @@ set(
     optimizer/strategy/index_scan_rule.hpp
     optimizer/strategy/join_detection_rule.cpp
     optimizer/strategy/join_detection_rule.hpp
-    #optimizer/strategy/join_ordering_rule.cpp
-    #optimizer/strategy/join_ordering_rule.hpp
+    optimizer/strategy/join_ordering_rule.cpp
+    optimizer/strategy/join_ordering_rule.hpp
     optimizer/strategy/predicate_reordering_rule.cpp
     optimizer/strategy/predicate_reordering_rule.hpp
     optimizer/strategy/rule_batch.cpp
