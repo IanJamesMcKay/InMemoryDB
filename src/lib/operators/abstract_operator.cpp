@@ -14,6 +14,8 @@
 #include "utils/print_directed_acyclic_graph.hpp"
 #include "utils/timer.hpp"
 
+using namespace std::string_literals;
+
 namespace opossum {
 
 AbstractOperator::AbstractOperator(const OperatorType type, const std::shared_ptr<const AbstractOperator> left,
@@ -180,6 +182,12 @@ bool AbstractOperator::aborted() const {
     return transaction_context ? transaction_context->aborted() : false;
   }
   return false;
+}
+
+std::string AbstractOperator::qualified_column_name(const ColumnID column_id) const {
+  Assert(!input_right(), "");
+  if (!input_left()) return "#"s + std::to_string(column_id);
+  return input_left()->qualified_column_name(column_id);
 }
 
 }  // namespace opossum

@@ -114,13 +114,9 @@ void JoePlan::create_cost_sample(const std::vector<std::shared_ptr<AbstractOpera
 void JoePlan::visualize(const SQLQueryPlan& plan) {
   auto& config = query_iteration.query.config;
 
-  GraphvizConfig graphviz_config;
-  graphviz_config.format = "svg";
-  VizGraphInfo viz_graph_info;
-  viz_graph_info.bg_color = "black";
 
   try {
-    SQLQueryPlanVisualizer visualizer{graphviz_config, viz_graph_info, {}, {}};
+    SQLQueryPlanVisualizer visualizer{{}, {}, {}, {}};
     visualizer.set_cost_model(config->cost_model);
     visualizer.visualize(plan, config->tmp_dot_file_path,
                          std::string(config->evaluation_dir + "/viz/") + name +

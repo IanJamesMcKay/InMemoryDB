@@ -23,6 +23,7 @@ class Product : public AbstractReadOnlyOperator {
   std::shared_ptr<AbstractOperator> recreate(const std::vector<AllParameterVariant>& args) const override;
 
   const std::string name() const override;
+  std::string qualified_column_name(const ColumnID column_id) const override;
 
  protected:
   void add_product_of_two_chunks(std::shared_ptr<Table> output, ChunkID chunk_id_left, ChunkID chunk_id_right);

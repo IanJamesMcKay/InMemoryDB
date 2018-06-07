@@ -17,27 +17,27 @@ namespace opossum {
 // defined by graphviz.
 struct GraphvizConfig {
   std::string renderer = "dot";
-  std::string format = "png";
+  std::string format = "svg";
 };
 
 struct VizGraphInfo {
-  std::string bg_color = "transparent";
+  std::string bg_color = "white";
   std::string rankdir = "BT";
   double ratio = 0.5;
 };
 
 struct VizVertexInfo {
   std::string label;
-  std::string color = "white";
-  std::string font_color = "white";
+  std::string color = "black";
+  std::string font_color = "black";
   std::string shape = "rectangle";
   double pen_width = 1.0;
 };
 
 struct VizEdgeInfo {
   std::string label;
-  std::string color = "white";
-  std::string font_color = "white";
+  std::string color = "black";
+  std::string font_color = "black";
   std::string dir = "forward";
   double pen_width = 1.0;
 };

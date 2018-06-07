@@ -25,13 +25,13 @@ const std::string Projection::name() const { return "Projection"; }
 
 const std::string Projection::description(DescriptionMode description_mode) const {
   std::stringstream desc;
-  desc << "[Projection] ";
-  for (size_t expression_idx = 0; expression_idx < _column_expressions.size(); ++expression_idx) {
-    desc << _column_expressions[expression_idx]->description();
-    if (expression_idx + 1 < _column_expressions.size()) {
-      desc << ", ";
-    }
-  }
+  desc << "[Projection of " << _column_expressions.size() << " columns]";
+//  for (size_t expression_idx = 0; expression_idx < _column_expressions.size(); ++expression_idx) {
+//    desc << _column_expressions[expression_idx]->description();
+//    if (expression_idx + 1 < _column_expressions.size()) {
+//      desc << ", ";
+//    }
+//  }
   return desc.str();
 }
 

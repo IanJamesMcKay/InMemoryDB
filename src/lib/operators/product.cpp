@@ -8,6 +8,8 @@
 
 #include "storage/reference_column.hpp"
 
+using namespace std::string_literals;
+
 namespace opossum {
 Product::Product(const std::shared_ptr<const AbstractOperator> left,
                  const std::shared_ptr<const AbstractOperator> right)
@@ -118,4 +120,18 @@ std::shared_ptr<AbstractOperator> Product::_on_recreate(
     const std::shared_ptr<AbstractOperator>& recreated_input_right) const {
   return std::make_shared<Product>(recreated_input_left, recreated_input_right);
 }
+
+std::string Product::qualified_column_name(const ColumnID column_id) const {
+  if (!input_left() || !input_right()) return "#"s + std::to_string(column_id);
+  if (!input_left()->get_output() || !input_right()->get_output()) return "#"s + std::to_string(column_id);
+
+  if (column_id < input_left()->get_output()->column_count()) {
+    return input_left()->qualified_column_name(column_id);
+  } else {
+    const auto right_column_id = static_cast<ColumnID>(column_id - input_left()->get_output()->column_count());
+    Assert(right_column_id < input_right()->get_output()->column_count(), "");
+    return input_right()->qualified_column_name(right_column_id);
+  }
+}
+
 }  // namespace opossum

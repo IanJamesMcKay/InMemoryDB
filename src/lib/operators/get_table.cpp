@@ -64,4 +64,10 @@ std::shared_ptr<AbstractOperator> GetTable::_on_recreate(
 void GetTable::set_excluded_chunk_ids(const std::vector<ChunkID>& excluded_chunk_ids) {
   _excluded_chunk_ids = excluded_chunk_ids;
 }
+
+std::string GetTable::qualified_column_name(const ColumnID column_id) const {
+  auto original_table = StorageManager::get().get_table(_name);
+  return _name + "." + original_table->column_name(column_id);
+}
+
 }  // namespace opossum

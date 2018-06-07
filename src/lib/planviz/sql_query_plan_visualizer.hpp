@@ -30,6 +30,7 @@ class SQLQueryPlanVisualizer : public AbstractVisualizer<SQLQueryPlan> {
                        const std::shared_ptr<const AbstractOperator>& to);
 
   void _add_operator(const std::shared_ptr<const AbstractOperator>& op);
+  std::chrono::microseconds _plan_duration(const std::shared_ptr<const AbstractOperator>& op) const;
 
  private:
   std::shared_ptr<AbstractCostModel> _cost_model;

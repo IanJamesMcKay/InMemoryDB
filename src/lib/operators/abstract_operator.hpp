@@ -123,6 +123,7 @@ class AbstractOperator : public std::enable_shared_from_this<AbstractOperator>, 
   void set_lqp_node(const std::shared_ptr<AbstractLQPNode>& node);
 
   bool aborted() const;
+  virtual std::string qualified_column_name(const ColumnID column_id) const;
 
  protected:
   // abstract method to actually execute the operator
@@ -146,6 +147,7 @@ class AbstractOperator : public std::enable_shared_from_this<AbstractOperator>, 
   virtual std::shared_ptr<AbstractOperator> _on_recreate(
       const std::vector<AllParameterVariant>& args, const std::shared_ptr<AbstractOperator>& recreated_input_left,
       const std::shared_ptr<AbstractOperator>& recreated_input_right) const = 0;
+
 
   const OperatorType _type;
 

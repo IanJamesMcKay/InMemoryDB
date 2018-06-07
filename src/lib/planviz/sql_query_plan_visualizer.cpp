@@ -113,7 +113,7 @@ void SQLQueryPlanVisualizer::_add_operator(const std::shared_ptr<const AbstractO
       } else {
         row_count_info.add_label("-");
       }
-      if (op->get_output()) row_count_info.add_label(format_integer(op->get_output()->row_count()) + " aim");
+      if (op->get_output()) row_count_info.add_label(format_integer(op->get_output()->row_count()) + " real");
 
       auto &node_cost_info = comparisons.add_sublayout();
       node_cost_info.add_label("Node Cost");
@@ -132,19 +132,30 @@ void SQLQueryPlanVisualizer::_add_operator(const std::shared_ptr<const AbstractO
         node_cost_info.add_label("-");
       }
 
+      node_cost_info.add_label(format_integer(static_cast<size_t>(op->base_performance_data().total.count())) + " real");
+
       auto &plan_cost_info = comparisons.add_sublayout();
       plan_cost_info.add_label("Plan Cost");
 
       if (op->lqp_node()->optimizer_info) {
-        plan_cost_info.add_label(format_integer(static_cast<int>(op->lqp_node()->optimizer_info->estimated_plan_cost)) + " est");
+        plan_cost_info.add_label(format_integer(static_cast<size_t>(op->lqp_node()->optimizer_info->estimated_plan_cost)) + " est");
       } else {
         plan_cost_info.add_label("-");
       }
+
+      plan_cost_info.add_label(format_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(_plan_duration(op))) + " real");
     }
 
     info.label = layout.to_label_string();
   }
   _add_vertex(op, info);
+}
+
+std::chrono::microseconds SQLQueryPlanVisualizer::_plan_duration(const std::shared_ptr<const AbstractOperator>& op) const {
+  auto duration = op->base_performance_data().total;
+  if (op->input_left()) duration += _plan_duration(op->input_left());
+  if (op->input_right()) duration += _plan_duration(op->input_right());
+  return duration;
 }
 
 }  // namespace opossum

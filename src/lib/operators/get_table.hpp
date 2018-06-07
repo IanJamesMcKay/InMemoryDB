@@ -26,6 +26,8 @@ class GetTable : public AbstractReadOnlyOperator {
       const std::vector<AllParameterVariant>& args, const std::shared_ptr<AbstractOperator>& recreated_input_left,
       const std::shared_ptr<AbstractOperator>& recreated_input_right) const override;
 
+  std::string qualified_column_name(const ColumnID column_id) const override;
+
  protected:
   std::shared_ptr<const Table> _on_execute() override;
 

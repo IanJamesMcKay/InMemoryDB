@@ -33,6 +33,8 @@ class AbstractJoinOperator : public AbstractReadOnlyOperator {
   PredicateCondition predicate_condition() const;
   const std::string description(DescriptionMode description_mode) const override;
 
+  std::string qualified_column_name(const ColumnID column_id) const override;
+
  protected:
   const JoinMode _mode;
   const ColumnIDPair _column_ids;

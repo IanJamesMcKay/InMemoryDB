@@ -53,18 +53,14 @@ const std::string TableScan::description(DescriptionMode description_mode) const
   std::string column_name;
 
   if (input_table_left()) {
-    column_name = "'" + input_table_left()->column_name(_left_column_id) + "' (#";
-    column_name += std::to_string(_left_column_id) + ")";
-  } else {
-    column_name = std::string("Col #") + std::to_string(_left_column_id);
+    column_name = qualified_column_name(left_column_id());
   }
 
   std::string right_parameter_str;
 
   if (is_column_id(_right_parameter) && input_table_left()) {
     const auto right_column_id = boost::get<ColumnID>(_right_parameter);
-    right_parameter_str = "'" + input_table_left()->column_name(right_column_id) + "' (#";
-    right_parameter_str += std::to_string(right_column_id) + ")";
+    column_name = qualified_column_name(right_column_id);
   } else  {
     right_parameter_str = to_string(_right_parameter);
   }
