@@ -26,7 +26,7 @@ Cost cost_predicate(const std::shared_ptr<AbstractJoinPlanPredicate>& predicate,
                                                 const AbstractCardinalityEstimator& cardinality_estimator) {
   switch (predicate->type()) {
     case JoinPlanPredicateType::Atomic: {
-      const auto atomic_predicate = std::static_pointer_cast<const JoinPlanAtomicPredicate>(predicate);
+      const auto atomic_predicate = std::static_pointer_cast<JoinPlanAtomicPredicate>(predicate);
 
       const auto cost_proxy = CostFeatureGenericProxy::from_join_plan_predicate(atomic_predicate, join_graph, cardinality_estimator);
       return cost_model.estimate_cost(cost_proxy);
@@ -125,7 +125,7 @@ JoinPlan build_join_plan_join_node(
    */
   const auto iter = std::find_if(secondary_predicates.begin(), secondary_predicates.end(), [&](const auto& predicate) {
     if (predicate->type() != JoinPlanPredicateType::Atomic) return false;
-    const auto atomic_predicate = std::static_pointer_cast<const JoinPlanAtomicPredicate>(predicate);
+    const auto atomic_predicate = std::static_pointer_cast<JoinPlanAtomicPredicate>(predicate);
     if (!is_lqp_column_reference(atomic_predicate->right_operand)) return false;
 
     const auto right_operand_column_reference = boost::get<LQPColumnReference>(atomic_predicate->right_operand);
@@ -140,7 +140,7 @@ JoinPlan build_join_plan_join_node(
   });
 
   if (iter != secondary_predicates.end()) {
-    primary_join_predicate = std::static_pointer_cast<const JoinPlanAtomicPredicate>(*iter);
+    primary_join_predicate = std::static_pointer_cast<JoinPlanAtomicPredicate>(*iter);
 
     auto left_operand = primary_join_predicate->left_operand;
     auto predicate_condition = primary_join_predicate->predicate_condition;

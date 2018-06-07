@@ -9,6 +9,7 @@
 
 #include "cost_model/abstract_cost_model.hpp"
 #include "cost_model/cost_feature_lqp_node_proxy.hpp"
+#include "statistics/cardinality_estimator_statistics.hpp"
 #include "planviz/viz_record_layout.hpp"
 
 namespace opossum {
@@ -46,7 +47,7 @@ void LQPVisualizer::_build_subtree(const std::shared_ptr<AbstractLQPNode>& node,
   record_layout.add_label(node->description());
 
   if (_cost_model) {
-    const auto cost = _cost_model->estimate_cost(CostFeatureLQPNodeProxy(node));
+    const auto cost = _cost_model->estimate_cost(CostFeatureLQPNodeProxy(node, std::make_shared<CardinalityEstimatorStatistics>()));
     if (cost) {
       std::stringstream stream;
       stream << "Cost: " << std::fixed << std::setprecision(1) << cost;

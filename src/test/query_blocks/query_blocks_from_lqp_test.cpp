@@ -10,7 +10,6 @@
 #include "query_blocks/abstract_query_block.hpp"
 #include "query_blocks/predicate_join_block.hpp"
 #include "query_blocks/outer_join_block.hpp"
-#include "query_blocks/stored_table_block.hpp"
 #include "query_blocks/plan_block.hpp"
 #include "query_blocks/query_blocks_from_lqp.hpp"
 #include "optimizer/join_ordering/join_plan_predicate.hpp"

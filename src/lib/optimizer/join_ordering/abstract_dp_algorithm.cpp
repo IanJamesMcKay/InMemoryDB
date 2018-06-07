@@ -91,7 +91,7 @@ JoinPlan AbstractDpAlgorithm::_create_join_plan(const JoinPlan& left_input, cons
                           PredicateJoinBlock::merge_blocks(*left_input.query_block, *right_input.query_block),
                           left_input.plan_cost + right_input.plan_cost};
 
-  auto primary_join_predicate = std::shared_ptr<const JoinPlanAtomicPredicate>{};
+  auto primary_join_predicate = std::shared_ptr<JoinPlanAtomicPredicate>{};
   auto secondary_predicates = predicates;
 
   /**
@@ -100,7 +100,7 @@ JoinPlan AbstractDpAlgorithm::_create_join_plan(const JoinPlan& left_input, cons
    */
   const auto iter = std::find_if(secondary_predicates.begin(), secondary_predicates.end(), [&](const auto& predicate) {
     if (predicate->type() != JoinPlanPredicateType::Atomic) return false;
-    const auto atomic_predicate = std::static_pointer_cast<const JoinPlanAtomicPredicate>(predicate);
+    const auto atomic_predicate = std::static_pointer_cast<JoinPlanAtomicPredicate>(predicate);
     if (!is_lqp_column_reference(atomic_predicate->right_operand)) return false;
 
     const auto right_operand_column_reference = boost::get<LQPColumnReference>(atomic_predicate->right_operand);
@@ -119,7 +119,7 @@ JoinPlan AbstractDpAlgorithm::_create_join_plan(const JoinPlan& left_input, cons
    * operand the right. If necessary, swap the arguments.
    */
   if (iter != secondary_predicates.end()) {
-    primary_join_predicate = std::static_pointer_cast<const JoinPlanAtomicPredicate>(*iter);
+    primary_join_predicate = std::static_pointer_cast<JoinPlanAtomicPredicate>(*iter);
 
     auto left_operand = primary_join_predicate->left_operand;
     auto predicate_condition = primary_join_predicate->predicate_condition;

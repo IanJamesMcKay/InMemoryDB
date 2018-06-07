@@ -101,7 +101,7 @@ BaseJoinGraph CardinalityEstimationCache::_normalize(const BaseJoinGraph& join_g
 
 std::shared_ptr<AbstractJoinPlanPredicate> CardinalityEstimationCache::_normalize(const std::shared_ptr<AbstractJoinPlanPredicate>& predicate) {
   if (predicate->type() == JoinPlanPredicateType::Atomic) {
-    const auto atomic_predicate = std::static_pointer_cast<const JoinPlanAtomicPredicate>(predicate);
+    const auto atomic_predicate = std::static_pointer_cast<JoinPlanAtomicPredicate>(predicate);
     if (is_lqp_column_reference(atomic_predicate->right_operand)) {
       const auto right_operand_column_reference = boost::get<LQPColumnReference>(atomic_predicate->right_operand);
 

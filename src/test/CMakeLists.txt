@@ -92,7 +92,7 @@ set(
 #    optimizer/strategy/strategy_base_test.hpp
 #    #optimizer/table_statistics_join_test.cpp
 #    #optimizer/table_statistics_test.cpp
-    query_blocks/query_blocks_from_lqp_test.cpp
+#    query_blocks/query_blocks_from_lqp_test.cpp
 #    scheduler/scheduler_test.cpp
 #    sql/sql_basic_cache_test.cpp
 #    sql/hsql_expression_translator_test.cpp

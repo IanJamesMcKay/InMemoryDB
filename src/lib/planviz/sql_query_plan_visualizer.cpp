@@ -10,6 +10,7 @@
 #include "planviz/sql_query_plan_visualizer.hpp"
 #include "logical_query_plan/abstract_lqp_node.hpp"
 #include "cost_model/abstract_cost_model.hpp"
+#include "statistics/cardinality_estimator_statistics.hpp"
 #include "statistics/table_statistics.hpp"
 #include "sql/sql_query_plan.hpp"
 #include "utils/format_duration.hpp"
@@ -112,7 +113,7 @@ void SQLQueryPlanVisualizer::_add_operator(const std::shared_ptr<const AbstractO
         auto &cost_info = comparisons.add_sublayout();
         cost_info.add_label("Cost");
 
-        const auto node_cost = _cost_model->estimate_cost(CostFeatureLQPNodeProxy{op->lqp_node()});
+        const auto node_cost = _cost_model->estimate_cost(CostFeatureLQPNodeProxy{op->lqp_node(), std::make_shared<CardinalityEstimatorStatistics>()});
         if (node_cost > 0) {
           cost_info.add_label(format_integer(static_cast<int>(node_cost)) + " est");
         } else {

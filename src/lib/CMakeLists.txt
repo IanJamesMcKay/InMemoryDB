@@ -271,8 +271,6 @@ set(
     planviz/sql_query_plan_visualizer.hpp
     planviz/join_graph_visualizer.cpp
     planviz/join_graph_visualizer.hpp
-    planviz/sql_pipeline_report.cpp
-    planviz/sql_pipeline_report.hpp
     planviz/viz_record_layout.cpp
     planviz/viz_record_layout.hpp
     resolve_type.hpp

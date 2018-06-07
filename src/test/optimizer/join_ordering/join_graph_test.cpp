@@ -18,8 +18,8 @@ class JoinGraphTest : public ::testing::Test {
 
       switch (predicate->type()) {
         case JoinPlanPredicateType::Atomic: {
-          const auto atomic_predicate = std::static_pointer_cast<const JoinPlanAtomicPredicate>(predicate);
-          const auto atomic_predicate2 = std::static_pointer_cast<const JoinPlanAtomicPredicate>(predicate2);
+          const auto atomic_predicate = std::static_pointer_cast<JoinPlanAtomicPredicate>(predicate);
+          const auto atomic_predicate2 = std::static_pointer_cast<JoinPlanAtomicPredicate>(predicate2);
           if (*atomic_predicate == *atomic_predicate2) return true;
         } break;
 
