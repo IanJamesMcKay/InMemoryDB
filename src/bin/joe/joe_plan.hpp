@@ -10,7 +10,7 @@ namespace opossum {
 //
 //struct JoinPlanState final {
 //  size_t idx{0};
-//  JoinPlanNode join_plan;
+//  JoinPlan join_plan;
 //};
 //
 //std::ostream &operator<<(std::ostream &stream, const PlanMeasurement &sample) {

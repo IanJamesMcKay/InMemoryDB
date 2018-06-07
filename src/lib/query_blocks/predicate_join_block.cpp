@@ -4,6 +4,19 @@
 
 namespace opossum {
 
+
+std::shared_ptr<PredicateJoinBlock> PredicateJoinBlock::merge_blocks(const PredicateJoinBlock& lhs, const PredicateJoinBlock& rhs) {
+  auto joined_sub_blocks = lhs.sub_blocks;
+  joined_sub_blocks.reserve(joined_sub_blocks.size() + rhs.sub_blocks.size());
+  joined_sub_blocks.insert(joined_sub_blocks.end(), rhs.sub_blocks.begin(), rhs.sub_blocks.end());
+
+  auto joined_predicates = lhs.predicates;
+  joined_predicates.reserve(joined_predicates.size() + rhs.predicates.size());
+  joined_predicates.insert(joined_predicates.end(), rhs.predicates.begin(), rhs.predicates.end());
+
+  return std::make_shared<PredicateJoinBlock>(std::move(joined_sub_blocks), std::move(joined_predicates));
+}
+
 PredicateJoinBlock::PredicateJoinBlock():
   PredicateJoinBlock({}, {}) {}
 

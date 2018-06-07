@@ -54,8 +54,6 @@ set(
     query_blocks/plan_block.hpp
     query_blocks/predicate_join_block.cpp
     query_blocks/predicate_join_block.hpp
-    query_blocks/stored_table_block.cpp
-    query_blocks/stored_table_block.hpp
     logical_query_plan/abstract_lqp_node.cpp
     logical_query_plan/abstract_lqp_node.hpp
     logical_query_plan/aggregate_node.cpp
@@ -224,8 +222,6 @@ set(
     #cost_model/cost_model_linear.hpp
     #cost_model/cost_model_segmented_sampler.cpp
     #cost_model/cost_model_segmented_sampler.hpp
-    optimizer/join_ordering/base_join_graph.cpp
-    optimizer/join_ordering/base_join_graph.hpp
     optimizer/join_ordering/build_lqp_for_predicate.cpp
     optimizer/join_ordering/build_lqp_for_predicate.hpp
     optimizer/join_ordering/dp_ccp.cpp
@@ -237,14 +233,14 @@ set(
     optimizer/join_ordering/dp_subplan_cache_top_k.cpp
     optimizer/join_ordering/enumerate_ccp.cpp
     optimizer/join_ordering/enumerate_ccp.hpp
-    #optimizer/join_ordering/join_plan_node.cpp
-    #optimizer/join_ordering/join_plan_node.hpp
-    #optimizer/join_ordering/join_edge.cpp
-    #optimizer/join_ordering/join_edge.hpp
-    #optimizer/join_ordering/join_graph_builder.cpp
-    #optimizer/join_ordering/join_graph_builder.hpp
-    #optimizer/join_ordering/join_graph.cpp
-    #optimizer/join_ordering/join_graph.hpp
+    optimizer/join_ordering/join_plan.cpp
+    optimizer/join_ordering/join_plan.hpp
+    optimizer/join_ordering/join_edge.cpp
+    optimizer/join_ordering/join_edge.hpp
+    optimizer/join_ordering/join_graph_builder.cpp
+    optimizer/join_ordering/join_graph_builder.hpp
+    optimizer/join_ordering/join_graph.cpp
+    optimizer/join_ordering/join_graph.hpp
     #optimizer/join_ordering/join_plan_join_node.cpp
     #optimizer/join_ordering/join_plan_join_node.hpp
     #optimizer/join_ordering/join_plan_vertex_node.cpp

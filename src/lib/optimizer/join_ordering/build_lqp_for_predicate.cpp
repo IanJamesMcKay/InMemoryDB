@@ -4,7 +4,7 @@
 #include "logical_query_plan/predicate_node.hpp"
 #include "logical_query_plan/union_node.hpp"
 #include "join_plan_predicate.hpp"
-#include "join_plan_node.hpp"
+#include "join_plan.hpp"
 
 namespace opossum {
 

@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include "join_plan_node.hpp"
+#include "join_plan.hpp"
 
 namespace opossum {
 
@@ -15,14 +15,14 @@ class AbstractJoinPlanPredicate;
 class JoinPlanJoinNode;
 class JoinPlanVertexNode;
 
-JoinPlanNode build_join_plan_join_node(
+JoinPlan build_join_plan_join_node(
     const AbstractCostModel& cost_model,
-    const JoinPlanNode& left_input,
-    const JoinPlanNode& right_input,
+    const JoinPlan& left_input,
+    const JoinPlan& right_input,
     const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates,
     const AbstractCardinalityEstimator& cardinality_estimator);
 
-JoinPlanNode build_join_plan_vertex_node(
+JoinPlan build_join_plan_vertex_node(
     const AbstractCostModel& cost_model,
     const std::shared_ptr<AbstractLQPNode>& vertex_node,
     const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates,

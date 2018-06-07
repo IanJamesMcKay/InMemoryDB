@@ -17,10 +17,9 @@
 namespace opossum {
 
 class JoinEdge;
+class PredicateJoinBlock;
 
-/**
- * Represents a connected subgraph of an LQP, with the LQPNodes "above" contained in the output_relations and the
- * subplans "below" it being the vertices.
+/**.
  * The JoinGraph clusters Predicates operating on the same set of vertices into JoinEdges.
  *
  * In opposition to the LQP, the `JoinGraph` has no notion of the order in which Predicates and Joins (which are really
@@ -35,8 +34,7 @@ class JoinGraph final {
   /**
    * Return the first JoinGraph found when recursively traversing the @param lqp
    */
-  static std::shared_ptr<JoinGraph> from_vertices_and_predicates(const std::vector<std::shared_ptr<AbstractLQPNode>>& vertices,
-                                                                 const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates);
+  static std::shared_ptr<JoinGraph> from_query_block(const std::shared_ptr<PredicateJoinBlock>& predicate_join_block);
 
   JoinGraph() = default;
   JoinGraph(std::vector<std::shared_ptr<AbstractLQPNode>> vertices, std::vector<LQPOutputRelation> output_relations,

@@ -11,11 +11,13 @@ namespace opossum {
  */
 class PredicateJoinBlock : public AbstractQueryBlock {
  public:
+  static std::shared_ptr<PredicateJoinBlock> merge_blocks(const PredicateJoinBlock& lhs, const PredicateJoinBlock& rhs);
+
   PredicateJoinBlock();
   PredicateJoinBlock(const std::vector<std::shared_ptr<AbstractQueryBlock>>& sub_blocks,
                  const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates);
 
-  const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>> predicates;
+  std::vector<std::shared_ptr<AbstractJoinPlanPredicate>> predicates;
 
  protected:
   size_t _shallow_hash_impl() const override;

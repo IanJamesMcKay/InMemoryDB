@@ -3,7 +3,6 @@
 #include <queue>
 #include <unordered_map>
 
-#include "abstract_join_plan_node.hpp"
 #include "build_join_plan.hpp"
 #include "dp_subplan_cache_best.hpp"
 #include "enumerate_ccp.hpp"
@@ -14,7 +13,8 @@
 namespace opossum {
 
 DpCcp::DpCcp(const std::shared_ptr<const AbstractCostModel>& cost_model,
-             const std::shared_ptr<AbstractCardinalityEstimator>& cardinality_estimator) : AbstractDpAlgorithm(std::make_shared<DpSubplanCacheBest>(), cost_model, cardinality_estimator) {}
+             const std::shared_ptr<AbstractCardinalityEstimator>& cardinality_estimator) :
+  AbstractDpAlgorithm(std::make_shared<DpSubplanCacheBest>(), cost_model, cardinality_estimator) {}
 
 void DpCcp::_on_execute() {
   /**
@@ -39,9 +39,9 @@ void DpCcp::_on_execute() {
 
     const auto best_plan_left = _subplan_cache->get_best_plan(csg_cmp_pair.first);
     const auto best_plan_right = _subplan_cache->get_best_plan(csg_cmp_pair.second);
-    DebugAssert(best_plan_left && best_plan_right, "Subplan missing");
+    DebugAssert(best_plan_left && best_plan_right, "Subplan missing. Bug in EnumerateCcp likely.");
 
-    auto current_plan = build_join_plan_join_node(*_cost_model, *best_plan_left, *best_plan_right, predicates, *_cardinality_estimator);
+    auto current_plan = _create_join_plan(*best_plan_left, *best_plan_right, predicates);
 
     _subplan_cache->cache_plan(csg_cmp_pair.first | csg_cmp_pair.second, current_plan);
   }

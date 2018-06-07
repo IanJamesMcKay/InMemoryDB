@@ -6,7 +6,7 @@ namespace opossum {
 
 void DpSubplanCacheBest::clear() { _plan_by_vertex_set.clear(); }
 
-std::optional<JoinPlanNode> DpSubplanCacheBest::get_best_plan(
+std::optional<JoinPlan> DpSubplanCacheBest::get_best_plan(
     const boost::dynamic_bitset<>& vertex_set) const {
   const auto iter = _plan_by_vertex_set.find(vertex_set);
   if (iter == _plan_by_vertex_set.end()) return std::nullopt;
@@ -14,7 +14,7 @@ std::optional<JoinPlanNode> DpSubplanCacheBest::get_best_plan(
 }
 
 void DpSubplanCacheBest::cache_plan(const boost::dynamic_bitset<>& vertex_set,
-                                    const JoinPlanNode& plan) {
+                                    const JoinPlan& plan) {
   const auto iter = _plan_by_vertex_set.find(vertex_set);
 
   if (iter == _plan_by_vertex_set.end() || iter->second.plan_cost) {

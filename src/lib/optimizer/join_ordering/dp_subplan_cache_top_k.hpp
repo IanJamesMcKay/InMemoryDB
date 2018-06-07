@@ -16,11 +16,11 @@ class DpSubplanCacheTopK : public AbstractDpSubplanCache {
   static constexpr auto NO_ENTRY_LIMIT = std::numeric_limits<size_t>::max();
 
   struct JoinPlanCostCompare {
-    bool operator()(const JoinPlanNode& lhs,
-                    const JoinPlanNode& rhs) const;
+    bool operator()(const JoinPlan& lhs,
+                    const JoinPlan& rhs) const;
   };
 
-  using JoinPlanSet = std::multiset<JoinPlanNode, JoinPlanCostCompare>;
+  using JoinPlanSet = std::multiset<JoinPlan, JoinPlanCostCompare>;
 
   explicit DpSubplanCacheTopK(const size_t max_entry_count_per_set);
 
@@ -28,9 +28,8 @@ class DpSubplanCacheTopK : public AbstractDpSubplanCache {
 
   void clear() override;
 
-  std::optional<JoinPlanNode> get_best_plan(const boost::dynamic_bitset<>& vertex_set) const override;
-  void cache_plan(const boost::dynamic_bitset<>& vertex_set,
-                  const JoinPlanNode& plan) override;
+  std::optional<JoinPlan> get_best_plan(const boost::dynamic_bitset<>& vertex_set) const override;
+  void cache_plan(const boost::dynamic_bitset<>& vertex_set, const JoinPlan& plan) override;
 
  private:
   const size_t _max_entry_count_per_set;

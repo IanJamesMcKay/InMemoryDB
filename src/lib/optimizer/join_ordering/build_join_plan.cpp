@@ -65,7 +65,7 @@ Cost cost_predicate(const std::shared_ptr<AbstractJoinPlanPredicate>& predicate,
 }
 
 void add_predicate(const std::shared_ptr<AbstractJoinPlanPredicate>& predicate,
-                   JoinPlanNode& join_plan_node,
+                   JoinPlan& join_plan_node,
                    const AbstractCostModel& cost_model,
                    const AbstractCardinalityEstimator& cardinality_estimator) {
 //  Assert(join_plan_node.lqp->get_statistics()->row_count() == cardinality_estimator.estimate(join_plan_node.join_graph.vertices, join_plan_node.join_graph.predicates), "Row counts are diverged");
@@ -90,7 +90,7 @@ void add_predicate(const std::shared_ptr<AbstractJoinPlanPredicate>& predicate,
 }
 
 //void order_predicates(std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates,
-//                      const JoinPlanNode& join_plan_node,
+//                      const JoinPlan& join_plan_node,
 //                      const AbstractCostModel& cost_model,
 //                      const AbstractCardinalityEstimator& cardinality_estimator) {
 //  const auto sort_predicate = [&](auto& left, auto& right) {
@@ -107,13 +107,13 @@ void add_predicate(const std::shared_ptr<AbstractJoinPlanPredicate>& predicate,
 
 namespace opossum {
 
-JoinPlanNode build_join_plan_join_node(
+JoinPlan build_join_plan_join_node(
     const AbstractCostModel& cost_model,
-    const JoinPlanNode& left_input,
-    const JoinPlanNode& right_input,
+    const JoinPlan& left_input,
+    const JoinPlan& right_input,
     const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates,
     const AbstractCardinalityEstimator& cardinality_estimator) {
-  JoinPlanNode join_plan_node{nullptr,
+  JoinPlan join_plan_node{nullptr,
                               left_input.plan_cost + right_input.plan_cost,
                               BaseJoinGraph::from_joined_graphs(left_input.join_graph, right_input.join_graph)};
 
@@ -201,12 +201,12 @@ JoinPlanNode build_join_plan_join_node(
   return join_plan_node;
 }
 
-JoinPlanNode build_join_plan_vertex_node(
+JoinPlan build_join_plan_vertex_node(
     const AbstractCostModel& cost_model,
     const std::shared_ptr<AbstractLQPNode>& vertex_node,
     const std::vector<std::shared_ptr<AbstractJoinPlanPredicate>>& predicates,
     const AbstractCardinalityEstimator& cardinality_estimator) {
-  auto join_plan_node = JoinPlanNode{vertex_node, 0.0f, {{vertex_node}, {}}};
+  auto join_plan_node = JoinPlan{vertex_node, 0.0f, {{vertex_node}, {}}};
 
 //  order_predicates(predicates, join_plan_node, cost_model, cardinality_estimator);
 
