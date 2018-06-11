@@ -60,7 +60,7 @@ const std::string TableScan::description(DescriptionMode description_mode) const
 
   if (is_column_id(_right_parameter) && input_table_left()) {
     const auto right_column_id = boost::get<ColumnID>(_right_parameter);
-    column_name = qualified_column_name(right_column_id);
+    right_parameter_str = qualified_column_name(right_column_id);
   } else  {
     right_parameter_str = to_string(_right_parameter);
   }
