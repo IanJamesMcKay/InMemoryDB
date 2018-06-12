@@ -32,3 +32,6 @@ compile_times.txt
 
 # CLion cmake directory
 cmake-build-*
+
+# Moritz personal
+**.svg

@@ -26,7 +26,7 @@ if __name__ == "__main__":
             print("  Skipping")
             continue
 
-        job_match = re.match(".*(JOB-[0-9]+[a-z]+)", file_name)
+        job_match = re.match(".*JOB-([0-9]+[a-z]+)", file_name)
         if job_match is None:
             print("  Skipping")
             continue
