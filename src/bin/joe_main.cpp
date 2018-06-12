@@ -11,6 +11,7 @@
 #include <cxxopts.hpp>
 #include <statistics/generate_table_statistics.hpp>
 #include <experimental/filesystem>
+#include <numa.h>
 #include <random>
 
 #include "constant_mappings.hpp"
@@ -78,6 +79,20 @@ using boost::uuids::random_generator;
 using namespace opossum;
 
 int main(int argc, char ** argv) {
+  // Pin to the current node
+  {
+    const auto cpu = sched_getcpu();
+    Assert(cpu >= 0, "Couldn't determine CPU");
+
+    const auto node = numa_node_of_cpu(cpu);
+    Assert(node >= 0, "Couldn't determine Node");
+
+    std::cout << "Binding process to CPU " << cpu << " on Node " << node << std::endl;
+    const auto success = numa_run_on_node(node) == 0;
+
+    Assert(success, "Failed to bind process to node");
+  }
+
   cxxopts::Options cli_options_description{"Joe, Hyrise's Join Ordering Evaluator", ""};
 
   const auto config = std::make_shared<JoeConfig>();
