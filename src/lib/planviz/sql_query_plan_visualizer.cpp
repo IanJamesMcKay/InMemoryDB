@@ -142,7 +142,6 @@ void SQLQueryPlanVisualizer::_add_operator(const std::shared_ptr<const AbstractO
       } else {
         plan_cost_info.add_label("-");
       }
-
       plan_cost_info.add_label(format_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(_plan_duration(op))) + " real");
     }
 

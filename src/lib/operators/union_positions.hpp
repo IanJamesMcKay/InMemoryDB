@@ -80,6 +80,7 @@ class UnionPositions : public AbstractReadOnlyOperator {
   const std::string name() const override;
 
   const UnionPositionsPerformanceData& union_positions_performance_data() const;
+  std::string qualified_column_name(const ColumnID column_id) const override;
 
  private:
   // See docs at the top of the cpp
