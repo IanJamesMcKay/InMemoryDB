@@ -12,7 +12,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         root_directory = sys.argv[1]
 
-    file_names = [file_name for file_name in listdir(root_directory) if file_name.endswith(".csv")]
+    file_names = [file_name for file_name in listdir(root_directory) if file_name.endswith("Iterations.csv")]
 
     result = []
 

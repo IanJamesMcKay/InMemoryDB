@@ -88,9 +88,13 @@ int main(int argc, char ** argv) {
     Assert(node >= 0, "Couldn't determine Node");
 
     std::cout << "Binding process to CPU " << cpu << " on Node " << node << std::endl;
-    const auto success = numa_run_on_node(node) == 0;
 
-    Assert(success, "Failed to bind process to node");
+    auto * node_mask = numa_allocate_nodemask();
+    numa_bitmask_setbit(node_mask, node);
+
+    numa_bind(node_mask);
+
+    numa_free_nodemask(node_mask);
   }
 
   cxxopts::Options cli_options_description{"Joe, Hyrise's Join Ordering Evaluator", ""};

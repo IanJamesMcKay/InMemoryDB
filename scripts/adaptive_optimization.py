@@ -9,10 +9,10 @@ import interesting_job_queries
 
 reference_duration_type = "baseline"
 use_whitelist = True
-root_directory = "/home/moritz/pella/hyrise/joe/adaptive"
+root_directory = "/home/moritz/pella/hyrise/joe/penalty"
 
 # normalized duration to assume if query timed out
-timeout_normalized_duration = 2
+timeout_normalized_duration = 10
 
 if __name__ == "__main__":
     plt.figure(figsize=(25, 13))
@@ -36,6 +36,9 @@ if __name__ == "__main__":
             continue
 
         name = job_match.group(1)
+        if query_whitelist is not None and name not in query_whitelist:
+            print("Skipping {} because of whitelist".format(name))
+            continue
 
         try:
             df = pandas.read_csv(os.path.join(root_directory, file_name), sep=",")
@@ -57,10 +60,6 @@ if __name__ == "__main__":
     valid_measurement_count = 0
 
     for name, df in data_frames:
-        if query_whitelist is not None and name not in query_whitelist:
-            print("Skipping {} because of whitelist".format(name))
-            continue
-
         durations = df["RankZeroPlanExecutionDuration"]
         hashes = df["RankZeroPlanHash"]
 
@@ -89,7 +88,7 @@ if __name__ == "__main__":
 
             if plot:
                 if duration == 0:
-                    normalized_durations.append(1)
+                    normalized_durations.append(None)
                 else:
                     normalized_durations.append(normalized_duration)
 
@@ -128,7 +127,7 @@ if __name__ == "__main__":
     plt.ylabel("Performance relative to {}".format(reference_duration_type))
     plt.legend()
     plt.axhline(y=1, linewidth=0.5)
-    plt.ylim(ymin=0.8, ymax=5)
+    plt.ylim(ymin=0.8)
     #plt.show()
     plt.savefig("iterations-relative-to-{}-{}.svg".format(reference_duration_type, evaluation_name), format="svg", dpi=900)
 

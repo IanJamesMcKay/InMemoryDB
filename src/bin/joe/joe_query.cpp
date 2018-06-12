@@ -64,13 +64,8 @@ void JoeQuery::run() {
 }
 
 void JoeQuery::visualize_join_graph(const std::shared_ptr<JoinGraph>& join_graph) {
-  GraphvizConfig graphviz_config;
-  graphviz_config.format = "svg";
-  VizGraphInfo viz_graph_info;
-  viz_graph_info.bg_color = "black";
-
   try {
-    JoinGraphVisualizer visualizer{graphviz_config, viz_graph_info, {}, {}};
+    JoinGraphVisualizer visualizer{{}, {}, {}, {}};
     visualizer.visualize(join_graph, config->tmp_dot_file_path,
                          std::string(config->evaluation_dir + "/viz/") + sample.name + "-JoinGraph.svg");
   } catch (const std::exception &e) {
