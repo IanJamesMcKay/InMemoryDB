@@ -14,6 +14,8 @@
 #include "utils/timer.hpp"
 #include "types.hpp"
 
+using namespace std::string_literals;
+
 /**
  * ### UnionPositions implementation
  * The UnionPositions Operator turns each input table into a ReferenceMatrix.
