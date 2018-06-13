@@ -17,7 +17,7 @@ namespace opossum {
 void NumaJobConfig::add_options(cxxopts::Options& cli_options_description) {
   // clang-format off
   cli_options_description.add_options()
-  ("help", "print this help message")
+  ("h,help", "print this help message")
   ("e,evaluation-name", "Specify a name for the evaluation. Leave empty and one will be generated based on the current time and date", cxxopts::value<std::string>(evaluation_name)->default_value(""))
   ("v,verbose", "Print log messages", cxxopts::value<bool>(verbose)->default_value("true"))
   ("s,scale", "Database scale factor (1.0 ~ 1GB). TPCH only", cxxopts::value<float>(scale_factor)->default_value("0.001"))
@@ -80,7 +80,7 @@ void NumaJobConfig::parse(const cxxopts::ParseResult& cli_parse_result) {
   if (use_scheduler) {
     out() << "-- Using Hyrise's NodeQueueScheduler with a NUMA topology using " << numa_cores << " cores" << std::endl;
   } else {
-    out() << "-- Not using any scheduler" << std::endl;
+    out() << "-- Scheduler NOT active" << std::endl;
   }
 
   // Process "workload" parameter
