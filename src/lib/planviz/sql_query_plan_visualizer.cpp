@@ -124,12 +124,16 @@ void SQLQueryPlanVisualizer::_add_operator(const std::shared_ptr<const AbstractO
         node_cost_info.add_label("-");
       }
 
-      const auto target_cost = _cost_model->get_reference_operator_cost(
-      std::const_pointer_cast<AbstractOperator>(op));
-      if (target_cost > 0) {
-        node_cost_info.add_label(format_integer(static_cast<size_t>(target_cost)) + " aim");
+      if (op->get_output()) {
+        const auto target_cost = _cost_model->get_reference_operator_cost(
+        std::const_pointer_cast<AbstractOperator>(op));
+        if (target_cost > 0) {
+          node_cost_info.add_label(format_integer(static_cast<size_t>(target_cost)) + " aim");
+        } else {
+          node_cost_info.add_label("-");
+        }
       } else {
-        node_cost_info.add_label("-");
+        node_cost_info.add_label("<ne>");
       }
 
       node_cost_info.add_label(format_integer(static_cast<size_t>(op->base_performance_data().total.count())) + " real");

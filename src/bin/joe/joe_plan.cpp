@@ -50,6 +50,7 @@ void JoePlan::run() {
   std::make_shared<CardinalityCachingCallback>(config->cardinality_estimation_cache));
   const auto pqp = lqp_translator.translate_node(lqp);
 
+
   /**
    * Execute plan
    */
@@ -60,6 +61,11 @@ void JoePlan::run() {
   } else {
     execute_with_timeout(pqp, std::nullopt);
   }
+
+  // Visualize after execution
+  SQLQueryPlan plan;
+  plan.add_tree_by_root(pqp);
+  if (config->visualize) visualize(plan);
 
   if (timed_out) {
     out() << "---- Query timed out" << std::endl;
@@ -72,12 +78,10 @@ void JoePlan::run() {
    * Evaluate plan execution
    */
   sample.execution_duration = timer.lap();
-  // Don't do this until I fixed it
+
   const auto operators = flatten_pqp(pqp);
   sample_cost_features(operators);
 
-  SQLQueryPlan plan;
-  plan.add_tree_by_root(pqp);
 
   /**
    * Adjust dynamic timeout
@@ -92,7 +96,6 @@ void JoePlan::run() {
     }
   }
 
-  if (config->visualize) visualize(plan);
   if (query_iteration.query.save_plan_results) save_plan_result_table(plan);
 }
 
@@ -158,8 +161,7 @@ void JoePlan::visualize(const SQLQueryPlan& plan) {
     SQLQueryPlanVisualizer visualizer{{}, {}, {}, {}};
     visualizer.set_cost_model(config->cost_model);
     visualizer.visualize(plan, config->tmp_dot_file_path,
-                         std::string(config->evaluation_dir + "/viz/") + name +
-                         "_" + std::to_string(sample.execution_duration.count()) + ".svg");
+                         std::string(config->evaluation_dir + "/viz/") + name + ".svg");
   } catch (const std::exception &e) {
     out() << "----- Error while visualizing: " << e.what() << std::endl;
   }
