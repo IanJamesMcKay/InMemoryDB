@@ -37,3 +37,6 @@ cmake-build-*
 # llvm coverage information
 default.profdata
 default.profraw
+
+# ignore generated result files from numa benchmarks
+numa_job/*
