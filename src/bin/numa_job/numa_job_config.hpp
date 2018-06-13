@@ -21,6 +21,8 @@ struct NumaJobConfig final {
   size_t iterations_per_query{1};
   bool isolate_queries{true};
   std::string evaluation_name;
+  bool use_scheduler = true;
+  size_t numa_cores{0};
 
   /**
    * Objects intitialised from CLI options

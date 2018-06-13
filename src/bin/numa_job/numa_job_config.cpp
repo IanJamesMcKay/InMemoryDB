@@ -5,8 +5,12 @@
 #include <cxxopts.hpp>
 #include <experimental/filesystem>
 
-#include "out.hpp"
+#include "scheduler/topology.hpp"
+#include "scheduler/current_scheduler.hpp"
+#include "scheduler/node_queue_scheduler.hpp"
 #include "utils/assert.hpp"
+
+#include "out.hpp"
 
 namespace opossum {
 
@@ -21,7 +25,9 @@ void NumaJobConfig::add_options(cxxopts::Options& cli_options_description) {
   ("save-results", "Save head of result tables.", cxxopts::value(save_results)->default_value("true"))  // NOLINT
   ("iterations-per-query", "Number of times to execute/optimize each query", cxxopts::value(iterations_per_query)->default_value("1"))  // NOLINT
   ("isolate-queries", "Reset all cached data for each query", cxxopts::value(isolate_queries)->default_value("true"))  // NOLINT
-  ("queries", "Specify queries to run, default is all of the workload that are supported", cxxopts::value<std::vector<std::string>>()); // NOLINT
+  ("queries", "Specify queries to run, default is all of the workload that are supported", cxxopts::value<std::vector<std::string>>()) // NOLINT
+  ("use-scheduler", "Use the NodeQueueScheduler", cxxopts::value(use_scheduler)->default_value("true")) // NOLINT
+  ("numa-cores", "Specify number of cores used by the scheduler", cxxopts::value(numa_cores)->default_value("0")); // NOLINT
   ;
   // clang-format on
 }
@@ -70,6 +76,13 @@ void NumaJobConfig::parse(const cxxopts::ParseResult& cli_parse_result) {
     out() << "-- Not isolating query evaluations from each other" << std::endl;
   }
 
+  // Process "use-scheduler" and "numa-cores" parameters
+  if (use_scheduler) {
+    out() << "-- Using Hyrise's NodeQueueScheduler with a NUMA topology using " << numa_cores << " cores" << std::endl;
+  } else {
+    out() << "-- Not using any scheduler" << std::endl;
+  }
+
   // Process "workload" parameter
   if (workload_str == "tpch") {
     out() << "-- Using TPCH workload" << std::endl;
@@ -97,6 +110,15 @@ void NumaJobConfig::setup() {
   out() << "-- Writing results to '" << evaluation_dir << "'" << std::endl;
   std::experimental::filesystem::create_directories(evaluation_dir);
   evaluation_prefix = evaluation_dir + "/" + "TODO" + "-" + std::string(IS_DEBUG ? "d" : "r") + "-";
+
+  /**
+   * Init Scheduler
+   */
+  if (use_scheduler) {
+    auto topology = Topology::create_numa_topology(numa_cores);
+    CurrentScheduler::set(std::make_shared<NodeQueueScheduler>(topology));
+    CurrentScheduler::get()->topology()->print();
+  }
 
   /**
    * Load workload
