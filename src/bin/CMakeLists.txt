@@ -30,6 +30,33 @@ target_link_libraries(
     hyriseBenchmarkLib
 )
 
+# Configure playground
+add_executable(
+    numaJOB
+
+    numa_job_main.cpp
+    numa_job/numa_job.cpp
+    numa_job/numa_job.hpp
+    numa_job/numa_job_config.cpp
+    numa_job/numa_job_config.hpp
+    numa_job/numa_job_query.cpp
+    numa_job/numa_job_query.hpp
+    numa_job/out.cpp
+    numa_job/out.hpp
+    numa_job/abstract_join_ordering_workload.hpp
+    numa_job/job_join_ordering_workload.cpp
+    numa_job/job_join_ordering_workload.hpp
+    numa_job/tpch_join_ordering_workload.cpp
+    numa_job/tpch_join_ordering_workload.hpp
+    numa_job/write_csv.hpp
+)
+target_link_libraries(
+    numaJOB
+    ${FILESYSTEM_LIBRARY}
+    hyrise
+    hyriseBenchmarkLib
+)
+
 # Configure tpchTableGenerator
 add_executable(tpchTableGenerator tpch_table_generator.cpp)
 target_link_libraries(tpchTableGenerator hyrise hyriseBenchmarkLib)
