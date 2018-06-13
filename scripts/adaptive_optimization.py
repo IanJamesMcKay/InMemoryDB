@@ -118,7 +118,7 @@ if __name__ == "__main__":
         valid_measurement_count += 1
 
     average = [np.average(normalized_durations) for normalized_durations in normalized_duration_matrix]
-    median = [np.median(normalized_durations) for normalized_durations in normalized_duration_matrix]
+    #median = [np.median(normalized_durations) for normalized_durations in normalized_duration_matrix]
 
     plt.plot(average, label="Average", linewidth=1.5)
     #plt.plot(median, label="Median", linewidth=0.9)
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     plt.ylabel("Performance relative to {}".format(reference_duration_type))
     plt.legend()
     plt.axhline(y=1, linewidth=0.5)
-    plt.ylim(ymin=0.8)
+    plt.ylim(ymin=0.8, ymax=10)
     #plt.show()
     plt.savefig("iterations-relative-to-{}-{}.svg".format(reference_duration_type, evaluation_name), format="svg", dpi=900)
 
