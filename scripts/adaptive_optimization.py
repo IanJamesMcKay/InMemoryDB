@@ -12,7 +12,7 @@ use_whitelist = True
 root_directory = "/home/moritz/pella/hyrise/joe/penalty"
 
 # normalized duration to assume if query timed out
-timeout_normalized_duration = 10
+timeout_normalized_duration = 1
 
 if __name__ == "__main__":
     plt.figure(figsize=(25, 13))
