@@ -1,65 +1,33 @@
 #include "sql_pipeline.hpp"
+
 #include <boost/algorithm/string.hpp>
+
+#include <algorithm>
 #include <utility>
+
 #include "SQLParser.h"
 
 namespace opossum {
 
-// No explicit transaction context constructors
-SQLPipeline::SQLPipeline(const std::string& sql, const UseMvcc use_mvcc)
-    : SQLPipeline(sql, Optimizer::create_default_optimizer(), nullptr, use_mvcc) {}
-
-SQLPipeline::SQLPipeline(const std::string& sql, const std::shared_ptr<Optimizer>& optimizer, const UseMvcc use_mvcc)
-    : SQLPipeline(sql, optimizer, nullptr, use_mvcc) {
-  DebugAssert(optimizer != nullptr, "Cannot pass nullptr as explicit optimizer.");
-}
-
-SQLPipeline::SQLPipeline(const std::string& sql, const PreparedStatementCache& prepared_statements,
-                         const UseMvcc use_mvcc)
-    : SQLPipeline(sql, Optimizer::create_default_optimizer(), prepared_statements, use_mvcc) {
-  DebugAssert(prepared_statements != nullptr, "Cannot pass nullptr as explicit prepared statement cache.");
-}
-
-SQLPipeline::SQLPipeline(const std::string& sql, const std::shared_ptr<Optimizer>& optimizer,
-                         const PreparedStatementCache& prepared_statements, const UseMvcc use_mvcc)
-    : SQLPipeline(sql, nullptr, use_mvcc, optimizer, prepared_statements) {}
-
-// Explicit transaction context constructors
-SQLPipeline::SQLPipeline(const std::string& sql, std::shared_ptr<opossum::TransactionContext> transaction_context)
-    : SQLPipeline(sql, Optimizer::create_default_optimizer(), nullptr, std::move(transaction_context)) {}
-
-SQLPipeline::SQLPipeline(const std::string& sql, const std::shared_ptr<Optimizer>& optimizer,
-                         std::shared_ptr<opossum::TransactionContext> transaction_context)
-    : SQLPipeline(sql, optimizer, nullptr, std::move(transaction_context)) {
-  DebugAssert(optimizer != nullptr, "Cannot pass nullptr as explicit optimizer.");
-}
-
-SQLPipeline::SQLPipeline(const std::string& sql, const PreparedStatementCache& prepared_statements,
-                         std::shared_ptr<opossum::TransactionContext> transaction_context)
-    : SQLPipeline(sql, Optimizer::create_default_optimizer(), prepared_statements, std::move(transaction_context)) {
-  DebugAssert(prepared_statements != nullptr, "Cannot pass nullptr as explicit prepared statement cache.");
-}
-
-SQLPipeline::SQLPipeline(const std::string& sql, const std::shared_ptr<Optimizer>& optimizer,
-                         const PreparedStatementCache& prepared_statements,
-                         std::shared_ptr<opossum::TransactionContext> transaction_context)
-    : SQLPipeline(sql, transaction_context, UseMvcc::Yes, optimizer, prepared_statements) {
-  DebugAssert(transaction_context != nullptr, "Cannot pass nullptr as explicit transaction context.");
-  DebugAssert(transaction_context->phase() == TransactionPhase::Active,
-              "The transaction context cannot have been committed already.");
-}
-
-// Private constructor
 SQLPipeline::SQLPipeline(const std::string& sql, std::shared_ptr<TransactionContext> transaction_context,
-                         const UseMvcc use_mvcc, const std::shared_ptr<Optimizer>& optimizer,
-                         const PreparedStatementCache& prepared_statements)
+                         const UseMvcc use_mvcc, const std::shared_ptr<LQPTranslator>& lqp_translator,
+                         const std::shared_ptr<Optimizer>& optimizer, const PreparedStatementCache& prepared_statements)
     : _transaction_context(transaction_context), _optimizer(optimizer) {
+  DebugAssert(!_transaction_context || _transaction_context->phase() == TransactionPhase::Active,
+              "The transaction context cannot have been committed already.");
+  DebugAssert(!_transaction_context || use_mvcc == UseMvcc::Yes,
+              "Transaction context without MVCC enabled makes no sense");
+
   hsql::SQLParserResult parse_result;
+  const auto start = std::chrono::high_resolution_clock::now();
   try {
     hsql::SQLParser::parse(sql, &parse_result);
   } catch (const std::exception& exception) {
     throw std::runtime_error("Error while parsing SQL query:\n  " + std::string(exception.what()));
   }
+
+  const auto done = std::chrono::high_resolution_clock::now();
+  _metrics.parse_time_micros = std::chrono::duration_cast<std::chrono::microseconds>(done - start);
 
   if (!parse_result.isValid()) {
     throw std::runtime_error(SQLPipelineStatement::create_parse_error_message(sql, parse_result));
@@ -105,8 +73,9 @@ SQLPipeline::SQLPipeline(const std::string& sql, std::shared_ptr<TransactionCont
     const auto statement_string = boost::trim_copy(sql.substr(sql_string_offset, statement_string_length));
     sql_string_offset += statement_string_length;
 
-    auto pipeline_statement = std::make_shared<SQLPipelineStatement>(
-        statement_string, std::move(parsed_statement), use_mvcc, transaction_context, optimizer, prepared_statements);
+    auto pipeline_statement =
+        std::make_shared<SQLPipelineStatement>(statement_string, std::move(parsed_statement), use_mvcc,
+                                               transaction_context, lqp_translator, optimizer, prepared_statements);
     _sql_pipeline_statements.push_back(std::move(pipeline_statement));
   }
 
@@ -135,19 +104,12 @@ const std::vector<std::shared_ptr<hsql::SQLParserResult>>& SQLPipeline::get_pars
 
   _parsed_sql_statements.reserve(statement_count());
   for (auto& pipeline_statement : _sql_pipeline_statements) {
-    try {
-      _parsed_sql_statements.push_back(pipeline_statement->get_parsed_sql_statement());
-    } catch (const std::exception& exception) {
-      _failed_pipeline_statement = pipeline_statement;
-
-      // Don't keep bad values
-      _parsed_sql_statements.clear();
-      throw;
-    }
+    _parsed_sql_statements.push_back(pipeline_statement->get_parsed_sql_statement());
   }
 
   return _parsed_sql_statements;
 }
+
 const std::vector<std::shared_ptr<AbstractLQPNode>>& SQLPipeline::get_unoptimized_logical_plans() {
   if (!_unoptimized_logical_plans.empty()) {
     return _unoptimized_logical_plans;
@@ -159,15 +121,7 @@ const std::vector<std::shared_ptr<AbstractLQPNode>>& SQLPipeline::get_unoptimize
 
   _unoptimized_logical_plans.reserve(statement_count());
   for (auto& pipeline_statement : _sql_pipeline_statements) {
-    try {
-      _unoptimized_logical_plans.push_back(pipeline_statement->get_unoptimized_logical_plan());
-    } catch (const std::exception& exception) {
-      _failed_pipeline_statement = pipeline_statement;
-
-      // Don't keep bad values
-      _unoptimized_logical_plans.clear();
-      throw;
-    }
+    _unoptimized_logical_plans.push_back(pipeline_statement->get_unoptimized_logical_plan());
   }
 
   return _unoptimized_logical_plans;
@@ -184,15 +138,7 @@ const std::vector<std::shared_ptr<AbstractLQPNode>>& SQLPipeline::get_optimized_
 
   _optimized_logical_plans.reserve(statement_count());
   for (auto& pipeline_statement : _sql_pipeline_statements) {
-    try {
-      _optimized_logical_plans.push_back(pipeline_statement->get_optimized_logical_plan());
-    } catch (const std::exception& exception) {
-      _failed_pipeline_statement = pipeline_statement;
-
-      // Don't keep bad values
-      _optimized_logical_plans.clear();
-      throw;
-    }
+    _optimized_logical_plans.push_back(pipeline_statement->get_optimized_logical_plan());
   }
 
   // The optimizer works on the original unoptimized LQP nodes. After optimizing, the unoptimized version is also
@@ -214,15 +160,7 @@ const std::vector<std::shared_ptr<SQLQueryPlan>>& SQLPipeline::get_query_plans()
 
   _query_plans.reserve(statement_count());
   for (auto& pipeline_statement : _sql_pipeline_statements) {
-    try {
-      _query_plans.push_back(pipeline_statement->get_query_plan());
-    } catch (const std::exception& exception) {
-      _failed_pipeline_statement = pipeline_statement;
-
-      // Don't keep bad values
-      _query_plans.clear();
-      throw;
-    }
+    _query_plans.push_back(pipeline_statement->get_query_plan());
   }
 
   return _query_plans;
@@ -239,31 +177,22 @@ const std::vector<std::vector<std::shared_ptr<OperatorTask>>>& SQLPipeline::get_
 
   _tasks.reserve(statement_count());
   for (auto& pipeline_statement : _sql_pipeline_statements) {
-    try {
-      _tasks.push_back(pipeline_statement->get_tasks());
-    } catch (const std::exception& exception) {
-      _failed_pipeline_statement = pipeline_statement;
-
-      // Don't keep bad values
-      _tasks.clear();
-      throw;
-    }
+    _tasks.push_back(pipeline_statement->get_tasks());
   }
 
   return _tasks;
 }
 
-const std::shared_ptr<const Table>& SQLPipeline::get_result_table() {
+std::shared_ptr<const Table> SQLPipeline::get_result_table() {
   if (_pipeline_was_executed) {
     return _result_table;
   }
 
   for (auto& pipeline_statement : _sql_pipeline_statements) {
-    try {
-      pipeline_statement->get_result_table();
-    } catch (const std::exception& exception) {
+    pipeline_statement->get_result_table();
+    if (_transaction_context && _transaction_context->aborted()) {
       _failed_pipeline_statement = pipeline_statement;
-      throw;
+      return nullptr;
     }
   }
 
@@ -273,9 +202,9 @@ const std::shared_ptr<const Table>& SQLPipeline::get_result_table() {
   return _result_table;
 }
 
-const std::shared_ptr<TransactionContext>& SQLPipeline::transaction_context() const { return _transaction_context; }
+std::shared_ptr<TransactionContext> SQLPipeline::transaction_context() const { return _transaction_context; }
 
-const std::shared_ptr<SQLPipelineStatement>& SQLPipeline::failed_pipeline_statement() const {
+std::shared_ptr<SQLPipelineStatement> SQLPipeline::failed_pipeline_statement() const {
   return _failed_pipeline_statement;
 }
 
@@ -283,32 +212,46 @@ size_t SQLPipeline::statement_count() const { return _sql_pipeline_statements.si
 
 bool SQLPipeline::requires_execution() const { return _requires_execution; }
 
-std::chrono::microseconds SQLPipeline::compile_time_microseconds() {
-  if (_compile_time_microseconds.count() > 0) {
-    return _compile_time_microseconds;
-  }
-
-  if (_requires_execution || _query_plans.empty()) {
-    Assert(_pipeline_was_executed,
-           "Cannot get compile time without having compiled or having executed a multi-statement query");
-  }
-
-  for (const auto& pipeline_statement : _sql_pipeline_statements) {
-    _compile_time_microseconds += pipeline_statement->compile_time_microseconds();
-  }
-
-  return _compile_time_microseconds;
-}
-std::chrono::microseconds SQLPipeline::execution_time_microseconds() {
-  Assert(_pipeline_was_executed, "Cannot return execution duration without having executed.");
-
-  if (_execution_time_microseconds.count() == 0) {
+const SQLPipelineMetrics& SQLPipeline::metrics() {
+  if (_metrics.statement_metrics.empty()) {
+    _metrics.statement_metrics.reserve(statement_count());
     for (const auto& pipeline_statement : _sql_pipeline_statements) {
-      _execution_time_microseconds += pipeline_statement->execution_time_microseconds();
+      _metrics.statement_metrics.push_back(pipeline_statement->metrics());
     }
   }
 
-  return _execution_time_microseconds;
+  return _metrics;
+}
+
+std::string SQLPipelineMetrics::to_string() const {
+  auto total_translate_micros = std::chrono::microseconds::zero();
+  auto total_optimize_micros = std::chrono::microseconds::zero();
+  auto total_compile_micros = std::chrono::microseconds::zero();
+  auto total_execute_micros = std::chrono::microseconds::zero();
+  std::vector<bool> query_plan_cache_hits;
+
+  for (const auto& statement_metric : statement_metrics) {
+    total_translate_micros += statement_metric->translate_time_micros;
+    total_optimize_micros += statement_metric->optimize_time_micros;
+    total_compile_micros += statement_metric->compile_time_micros;
+    total_execute_micros += statement_metric->execution_time_micros;
+
+    query_plan_cache_hits.push_back(statement_metric->query_plan_cache_hit);
+  }
+
+  const auto num_cache_hits = std::count(query_plan_cache_hits.begin(), query_plan_cache_hits.end(), true);
+
+  std::ostringstream info_string;
+  info_string << "Execution info: [";
+  info_string << "PARSE: " << parse_time_micros.count() << " µs, ";
+  info_string << "TRANSLATE: " << total_translate_micros.count() << " µs, ";
+  info_string << "OPTIMIZE: " << total_optimize_micros.count() << " µs, ";
+  info_string << "COMPILE: " << total_compile_micros.count() << " µs, ";
+  info_string << "EXECUTE: " << total_execute_micros.count() << " µs (wall time) | ";
+  info_string << "QUERY PLAN CACHE HITS: " << num_cache_hits << "/" << query_plan_cache_hits.size() << " statement(s)";
+  info_string << "]\n";
+
+  return info_string.str();
 }
 
 }  // namespace opossum

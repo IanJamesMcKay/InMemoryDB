@@ -67,7 +67,10 @@ class ReferenceColumnIterable : public ColumnIterable<ReferenceColumnIterable<T>
         : _column_id{column_id},
           _table{table},
           _pos_list{pos_list},
-          _chunk_offset{chunk_offset} {}
+          _chunk_offset{chunk_offset},
+        _cached_chunk_id{INVALID_CHUNK_ID},
+        _cached_column{nullptr}
+    {}
 
     // End Iterator
     explicit Iterator(const ChunkOffset chunk_offset) : Iterator(ColumnID{0u}, nullptr, nullptr, chunk_offset) {}
@@ -88,8 +91,13 @@ class ReferenceColumnIterable : public ColumnIterable<ReferenceColumnIterable<T>
 
       const auto [chunk_id, chunk_offset] = row_id;  // NOLINT
 
-      const auto column = _table->get_chunk(chunk_id)->get_column(_column_id);
-      const auto variant_value = (*column)[chunk_offset];
+      if (chunk_id != _cached_chunk_id) {
+        _cached_chunk_id = chunk_id;
+        const auto chunk = _table->get_chunk(chunk_id);
+        _cached_column = chunk->get_column(_column_id);
+      }
+
+      const auto variant_value = (*_cached_column)[chunk_offset];
 
       if (variant_is_null(variant_value)) {
         return {T{}, true, _chunk_offset};
@@ -103,8 +111,10 @@ class ReferenceColumnIterable : public ColumnIterable<ReferenceColumnIterable<T>
     const ColumnID _column_id;
     const Table* _table;
     const PosList* _pos_list;
-
     ChunkOffset _chunk_offset;
+
+    mutable ChunkID _cached_chunk_id;
+    mutable std::shared_ptr<const BaseColumn> _cached_column;
   };
 };
 

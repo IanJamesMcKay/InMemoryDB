@@ -12,6 +12,7 @@
 #include "optimizer/optimizer.hpp"
 #include "scheduler/operator_task.hpp"
 #include "sql/sql_pipeline.hpp"
+#include "sql/sql_pipeline_builder.hpp"
 #include "sql/sql_translator.hpp"
 #include "sql/sqlite_testrunner/sqlite_wrapper.hpp"
 #include "storage/storage_manager.hpp"
@@ -20,7 +21,7 @@
 
 namespace opossum {
 
-class TPCHTest : public BaseTestWithParam<size_t> {
+class TPCHTest : public BaseTestWithParam<std::pair<const size_t, const char*>> {
  protected:
   std::shared_ptr<SQLiteWrapper> _sqlite_wrapper;
 
@@ -42,14 +43,15 @@ class TPCHTest : public BaseTestWithParam<size_t> {
 };
 
 TEST_P(TPCHTest, TPCHQueryTest) {
-  const auto query_idx = GetParam();
+  size_t query_idx;
+  const char* query;
+  std::tie(query_idx, query) = GetParam();
 
-  SCOPED_TRACE("TPC-H " + std::to_string(query_idx + 1));
+  SCOPED_TRACE("TPC-H " + std::to_string(query_idx));
 
-  const auto query = tpch_queries[query_idx];
   const auto sqlite_result_table = _sqlite_wrapper->execute_query(query);
 
-  SQLPipeline sql_pipeline{query, UseMvcc::No};
+  auto sql_pipeline = SQLPipelineBuilder{query}.disable_mvcc().create_pipeline();
   const auto& result_table = sql_pipeline.get_result_table();
 
   EXPECT_TABLE_EQ(result_table, sqlite_result_table, OrderSensitivity::No, TypeCmpMode::Lenient,
@@ -57,29 +59,7 @@ TEST_P(TPCHTest, TPCHQueryTest) {
 }
 
 // clang-format off
-INSTANTIATE_TEST_CASE_P(TPCHTestInstances, TPCHTest, ::testing::Values(
-  0,
-  // 1, /* // Enable once we support Subselects in WHERE condition */
-  2,
-  // 3, /* Enable once we support Exists and Subselects in WHERE condition */
-  4,
-  5,
-  6,
-  // 7, /* Enable once CASE and arithmetic operations of Aggregations are supported */
-  8,
-  9
-  // 10, /* Enable once we support Subselects in Having clause */
-  // 11, /* Enable once we support IN */
-  // 12, /* Enable once we support nested expressions in Join Condition */
-  // 13, /* Enable once we support Case */
-  // 14, /* Enable once we support Subselects in WHERE condition */
-  // 15, /* Enable once we support Subselects in WHERE condition */
-  // 16, /* Enable once we support Subselects in WHERE condition */
-  // 17, /* Enable once we support Subselects in WHERE condition */
-  // 18, /* Enable once we support OR in WHERE condition */
-  // 19, /* Enable once we support Subselects in WHERE condition */
-  // 20 /* Enable once we support Exists and Subselect in WHERE condition */
-), );  // NOLINT
+INSTANTIATE_TEST_CASE_P(TPCHTestInstances, TPCHTest, ::testing::ValuesIn(tpch_queries), );  // NOLINT
 // clang-format on
 
 }  // namespace opossum

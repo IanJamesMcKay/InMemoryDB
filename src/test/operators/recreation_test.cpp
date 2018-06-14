@@ -14,7 +14,7 @@
 #include "operators/table_scan.hpp"
 #include "operators/table_wrapper.hpp"
 #include "operators/union_positions.hpp"
-#include "sql/sql_pipeline_statement.hpp"
+#include "sql/sql_pipeline_builder.hpp"
 #include "storage/storage_manager.hpp"
 #include "storage/table.hpp"
 #include "types.hpp"
@@ -39,11 +39,11 @@ class RecreationTest : public BaseTest {
     _table_wrapper_c->execute();
     _table_wrapper_d->execute();
 
-    _test_get_table = std::make_shared<Table>(TableColumnDefinitions{}, TableType::Data, 2);
-    StorageManager::get().add_table("aNiceTestTable", _test_get_table);
+    _test_table = load_table("src/test/tables/int_float.tbl", 2);
+    StorageManager::get().add_table("aNiceTestTable", _test_table);
   }
 
-  std::shared_ptr<Table> _test_get_table;
+  std::shared_ptr<Table> _test_table;
   std::shared_ptr<TableWrapper> _table_wrapper_a, _table_wrapper_b, _table_wrapper_c, _table_wrapper_d;
 };
 
@@ -99,14 +99,14 @@ TEST_F(RecreationTest, RecreationGetTable) {
   // build and execute get table
   auto get_table = std::make_shared<GetTable>("aNiceTestTable");
   get_table->execute();
-  EXPECT_TABLE_EQ_UNORDERED(get_table->get_output(), _test_get_table);
+  EXPECT_TABLE_EQ_UNORDERED(get_table->get_output(), _test_table);
 
   // recreate and execute recreated get table
   auto recreated_get_table = get_table->recreate();
   EXPECT_NE(recreated_get_table, nullptr) << "Could not recreate GetTable";
 
   recreated_get_table->execute();
-  EXPECT_TABLE_EQ_UNORDERED(recreated_get_table->get_output(), _test_get_table);
+  EXPECT_TABLE_EQ_UNORDERED(recreated_get_table->get_output(), _test_table);
 }
 
 TEST_F(RecreationTest, RecreationLimit) {
@@ -184,7 +184,7 @@ TEST_F(RecreationTest, Subselect) {
   const std::string subselect_query = "SELECT * FROM table_3int WHERE a = (SELECT MAX(b) FROM table_3int)";
   const TableColumnDefinitions column_definitions = {{"a", DataType::Int}, {"b", DataType::Int}, {"c", DataType::Int}};
 
-  SQLPipelineStatement sql_pipeline{subselect_query, UseMvcc::No};
+  auto sql_pipeline = SQLPipelineBuilder{subselect_query}.disable_mvcc().create_pipeline_statement();
   const auto first_result = sql_pipeline.get_result_table();
 
   // Quick sanity check to see that the original query is correct
@@ -192,7 +192,7 @@ TEST_F(RecreationTest, Subselect) {
   expected_first->append({10, 10, 10});
   EXPECT_TABLE_EQ_UNORDERED(first_result, expected_first);
 
-  SQLPipelineStatement{"INSERT INTO table_3int VALUES (11, 11, 11)"}.get_result_table();
+  SQLPipelineBuilder{"INSERT INTO table_3int VALUES (11, 11, 11)"}.create_pipeline_statement().get_result_table();
 
   const auto recreated_plan = sql_pipeline.get_query_plan()->recreate();
   const auto tasks = recreated_plan.create_tasks();

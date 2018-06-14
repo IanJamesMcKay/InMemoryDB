@@ -7,6 +7,15 @@ add_executable(
 target_link_libraries(
     hyriseServer
     hyrise
+    ${Boost_SYSTEM_LIBRARY}
+    ${Boost_THREAD_LIBRARY}
+    boost_program_options
+)
+target_include_directories(
+    hyriseServer
+
+    PUBLIC
+    ${Boost_INCLUDE_DIRS}
 )
 
 # Configure playground
@@ -20,10 +29,6 @@ target_link_libraries(
     hyrise
     hyriseBenchmarkLib
 )
-
-# Configure tpccTableGenerator
-add_executable(tpccTableGenerator tpcc_table_generator.cpp)
-target_link_libraries(tpccTableGenerator hyrise hyriseBenchmarkLib)
 
 # Configure tpchTableGenerator
 add_executable(tpchTableGenerator tpch_table_generator.cpp)
@@ -55,6 +60,7 @@ target_link_libraries(
     hyriseBenchmarkLib
     ncurses
     ${READLINE_LIBRARY}
+    ${FILESYSTEM_LIBRARY}
 )
 target_include_directories(
     hyriseConsole

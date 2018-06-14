@@ -5,6 +5,7 @@
 #include "SQLParser.h"
 #include "benchmark/benchmark.h"
 #include "logical_query_plan/lqp_translator.hpp"
+#include "sql/sql_pipeline_builder.hpp"
 #include "sql/sql_pipeline_statement.hpp"
 #include "sql/sql_translator.hpp"
 #include "storage/storage_manager.hpp"
@@ -64,32 +65,12 @@ class SQLBenchmark : public BenchmarkBasicFixture {
     SQLQueryCache<SQLQueryPlan>::get().resize(16);
 
     while (st.KeepRunning()) {
-      SQLPipelineStatement pipeline_statement{query};
+      auto pipeline_statement = SQLPipelineBuilder{query}.create_pipeline_statement();
       pipeline_statement.get_query_plan();
     }
   }
 
-  // List of the queries used in benchmarks.
-
-  const std::string QExec = "EXECUTE cached_query;";
-
-  const std::string QExecParam = "EXECUTE cached_query(50);";
-
-  const std::string Q1 = "SELECT * FROM customer;";
-
-  const std::string Q2 =
-      "SELECT c_name, c_custkey"
-      "  FROM (SELECT * FROM customer WHERE c_custkey < 100 AND c_nationkey=0) t1"
-      "  WHERE c_custkey > 10 AND c_nationkey < 10;";
-
-  const std::string Q3 =
-      "SELECT c_custkey, c_name, COUNT(o_orderkey)"
-      "  FROM customer"
-      "  JOIN orders ON c_custkey = o_custkey"
-      "  GROUP BY c_custkey, c_name"
-      "  HAVING COUNT(o_orderkey) >= 100;";
-
-  const std::string Q4 =
+  const std::string Query =
       R"(SELECT customer.c_custkey, customer.c_name, COUNT(orderitems.o_orderkey)
         FROM customer
         JOIN (SELECT * FROM
@@ -98,40 +79,11 @@ class SQLBenchmark : public BenchmarkBasicFixture {
         ) AS orderitems ON c_custkey = orderitems.o_custkey
         GROUP BY customer.c_custkey, customer.c_name
         HAVING COUNT(orderitems.o_orderkey) >= 100;)";
-
-  const std::string Q4Param =
-      R"(SELECT customer.c_custkey, customer.c_name, COUNT(orderitems.o_orderkey)
-        FROM customer
-        JOIN (SELECT * FROM
-          orders
-          JOIN lineitem ON o_orderkey = l_orderkey
-        ) AS orderitems ON c_custkey = orderitems.o_custkey
-        GROUP BY customer.c_custkey, customer.c_name
-        HAVING COUNT(orderitems.o_orderkey) >= ?;)";
 };
 
-// Run all benchmarks for Q1.
-BENCHMARK_F(SQLBenchmark, BM_CompileQ1)(benchmark::State& st) { BM_CompileQuery(st, Q1); }
-BENCHMARK_F(SQLBenchmark, BM_ParseQ1)(benchmark::State& st) { BM_ParseQuery(st, Q1); }
-BENCHMARK_F(SQLBenchmark, BM_PlanQ1)(benchmark::State& st) { BM_PlanQuery(st, Q1); }
-BENCHMARK_F(SQLBenchmark, BM_QueryPlanCacheQ1)(benchmark::State& st) { BM_QueryPlanCache(st, Q1); }
-
-// Run all benchmarks for Q2.
-BENCHMARK_F(SQLBenchmark, BM_CompileQ2)(benchmark::State& st) { BM_CompileQuery(st, Q2); }
-BENCHMARK_F(SQLBenchmark, BM_ParseQ2)(benchmark::State& st) { BM_ParseQuery(st, Q2); }
-BENCHMARK_F(SQLBenchmark, BM_PlanQ2)(benchmark::State& st) { BM_PlanQuery(st, Q2); }
-BENCHMARK_F(SQLBenchmark, BM_QueryPlanCacheQ2)(benchmark::State& st) { BM_QueryPlanCache(st, Q2); }
-
-// Run all benchmarks for Q3.
-BENCHMARK_F(SQLBenchmark, BM_CompileQ3)(benchmark::State& st) { BM_CompileQuery(st, Q3); }
-BENCHMARK_F(SQLBenchmark, BM_ParseQ3)(benchmark::State& st) { BM_ParseQuery(st, Q3); }
-BENCHMARK_F(SQLBenchmark, BM_PlanQ3)(benchmark::State& st) { BM_PlanQuery(st, Q3); }
-BENCHMARK_F(SQLBenchmark, BM_QueryPlanCacheQ3)(benchmark::State& st) { BM_QueryPlanCache(st, Q3); }
-
-// Run all benchmarks for Q4.
-BENCHMARK_F(SQLBenchmark, BM_CompileQ4)(benchmark::State& st) { BM_CompileQuery(st, Q4); }
-BENCHMARK_F(SQLBenchmark, BM_ParseQ4)(benchmark::State& st) { BM_ParseQuery(st, Q4); }
-BENCHMARK_F(SQLBenchmark, BM_PlanQ4)(benchmark::State& st) { BM_PlanQuery(st, Q4); }
-BENCHMARK_F(SQLBenchmark, BM_QueryPlanCacheQ4)(benchmark::State& st) { BM_QueryPlanCache(st, Q4); }
+BENCHMARK_F(SQLBenchmark, BM_CompileQuery)(benchmark::State& st) { BM_CompileQuery(st, Query); }
+BENCHMARK_F(SQLBenchmark, BM_ParseQuery)(benchmark::State& st) { BM_ParseQuery(st, Query); }
+BENCHMARK_F(SQLBenchmark, BM_PlanQuery)(benchmark::State& st) { BM_PlanQuery(st, Query); }
+BENCHMARK_F(SQLBenchmark, BM_QueryPlanCacheQuery)(benchmark::State& st) { BM_QueryPlanCache(st, Query); }
 
 }  // namespace opossum
