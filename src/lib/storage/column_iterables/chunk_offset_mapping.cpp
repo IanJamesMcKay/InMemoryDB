@@ -26,8 +26,8 @@ std::optional<std::pair<ChunkID, ChunkOffsetsList>> to_chunk_id_and_chunk_offset
   chunk_offsets_list.reserve(pos_list.size());
 
   // Find first row ID that is not NULL
-  const auto first_not_null_it = std::find_if(pos_list.cbegin(), pos_list.cend(),
-                                              [](const auto& row_id) { return !row_id.is_null(); });
+  const auto first_not_null_it =
+      std::find_if(pos_list.cbegin(), pos_list.cend(), [](const auto& row_id) { return !row_id.is_null(); });
 
   // If none was found, return empty list
   if (first_not_null_it == pos_list.cend()) return std::nullopt;

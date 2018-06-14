@@ -21,7 +21,7 @@ class ReferenceColumnIterable : public ColumnIterable<ReferenceColumnIterable<T>
     if (chunk_id_and_chunk_offsets_list) {
       const auto& [referenced_chunk_id, chunk_offsets_list] = *chunk_id_and_chunk_offsets_list;
 
-      _referenced_with_iterators(referenced_chunk_id, chunk_offsets_list, functor);
+      _with_iterators_of_referenced(referenced_chunk_id, chunk_offsets_list, functor);
       return;
     }
 
@@ -38,12 +38,12 @@ class ReferenceColumnIterable : public ColumnIterable<ReferenceColumnIterable<T>
 
  private:
   template <typename Functor>
-  void _referenced_with_iterators(const ChunkID chunk_id, const ChunkOffsetsList& chunk_offsets_list,
-                                  const Functor& functor) const {
-    const auto column_id = _column.referenced_column_id();
-    const auto table = _column.referenced_table();
+  void _with_iterators_of_referenced(const ChunkID chunk_id, const ChunkOffsetsList& chunk_offsets_list,
+                                     const Functor& functor) const {
+    const auto referenced_column_id = _column.referenced_column_id();
+    const auto referenced_table = _column.referenced_table();
 
-    const auto base_column = table->get_chunk(chunk_id)->get_column(column_id);
+    const auto base_column = referenced_table->get_chunk(chunk_id)->get_column(referenced_column_id);
 
     resolve_column_type<T>(*base_column, [&functor, &chunk_offsets_list](const auto& referenced_column) {
       using ColumnT = std::decay_t<decltype(referenced_column)>;
