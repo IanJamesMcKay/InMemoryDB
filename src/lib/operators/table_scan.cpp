@@ -170,6 +170,8 @@ void TableScan::_init_scan() {
     auto estimated_table_statistics_for_predicate =
         _in_table->table_statistics()->estimate_predicate(_left_column_id, _predicate_condition, _right_parameter);
     estimated_selectivity = estimated_table_statistics_for_predicate.row_count() / _in_table->row_count();
+    // Trust me
+    estimated_selectivity *= 1.2f;
   }
   if (_predicate_condition == PredicateCondition::Like || _predicate_condition == PredicateCondition::NotLike) {
     const auto left_column_type = _in_table->column_data_type(_left_column_id);
