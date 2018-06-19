@@ -18,8 +18,10 @@ namespace opossum {
 ColumnComparisonTableScanImpl::ColumnComparisonTableScanImpl(std::shared_ptr<const Table> in_table,
                                                              const ColumnID left_column_id,
                                                              const PredicateCondition& predicate_condition,
+                                                             float estimated_selectivity,
                                                              const ColumnID right_column_id)
-    : BaseTableScanImpl{in_table, left_column_id, predicate_condition}, _right_column_id{right_column_id} {}
+    : BaseTableScanImpl{in_table, left_column_id, predicate_condition, estimated_selectivity},
+      _right_column_id{right_column_id} {}
 
 std::shared_ptr<PosList> ColumnComparisonTableScanImpl::scan_chunk(ChunkID chunk_id) {
   const auto chunk = _in_table->get_chunk(chunk_id);
@@ -27,7 +29,10 @@ std::shared_ptr<PosList> ColumnComparisonTableScanImpl::scan_chunk(ChunkID chunk
   const auto left_column = chunk->get_column(_left_column_id);
   const auto right_column = chunk->get_column(_right_column_id);
 
-  auto matches_out = std::make_shared<PosList>();
+  const auto estimated_row_count = static_cast<size_t>(_estimated_selectivity * chunk->size());
+
+  auto matches_out = std::make_shared<PosList>(estimated_row_count);
+  matches_out->reserve(estimated_row_count);
 
   resolve_data_and_column_type(*left_column, [&](auto left_type, auto& typed_left_column) {
     resolve_data_and_column_type(*right_column, [&](auto right_type, auto& typed_right_column) {

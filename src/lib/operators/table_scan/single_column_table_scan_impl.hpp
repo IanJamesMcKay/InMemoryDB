@@ -24,7 +24,8 @@ namespace opossum {
 class SingleColumnTableScanImpl : public BaseSingleColumnTableScanImpl {
  public:
   SingleColumnTableScanImpl(std::shared_ptr<const Table> in_table, const ColumnID left_column_id,
-                            const PredicateCondition& predicate_condition, const AllTypeVariant& right_value);
+                            const PredicateCondition& predicate_condition, float estimated_selectivity,
+                            const AllTypeVariant& right_value);
 
   std::shared_ptr<PosList> scan_chunk(ChunkID) override;
 

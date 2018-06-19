@@ -3,6 +3,7 @@
 #include <functional>
 #include <memory>
 
+#include "statistics/table_statistics.hpp"
 #include "types.hpp"
 #include "utils/assert.hpp"
 
@@ -16,8 +17,11 @@ class Table;
 class BaseTableScanImpl {
  public:
   BaseTableScanImpl(std::shared_ptr<const Table> in_table, const ColumnID left_column_id,
-                    const PredicateCondition predicate_condition)
-      : _in_table{in_table}, _left_column_id{left_column_id}, _predicate_condition{predicate_condition} {}
+                    const PredicateCondition predicate_condition, float estimated_selectivity)
+      : _in_table{in_table},
+        _left_column_id{left_column_id},
+        _predicate_condition{predicate_condition},
+        _estimated_selectivity{estimated_selectivity} {}
 
   virtual ~BaseTableScanImpl() = default;
 
@@ -64,6 +68,7 @@ class BaseTableScanImpl {
   const std::shared_ptr<const Table> _in_table;
   const ColumnID _left_column_id;
   const PredicateCondition _predicate_condition;
+  const float _estimated_selectivity;
 };
 
 }  // namespace opossum

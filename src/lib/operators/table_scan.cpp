@@ -164,6 +164,13 @@ std::shared_ptr<const Table> TableScan::_on_execute() {
 void TableScan::_on_cleanup() { _impl.reset(); }
 
 void TableScan::_init_scan() {
+  auto table_statistics = _in_table->table_statistics();
+  float estimated_selectivity = 0.f;
+  if (table_statistics) {
+    auto estimated_table_statistics_for_predicate =
+        _in_table->table_statistics()->estimate_predicate(_left_column_id, _predicate_condition, _right_parameter);
+    estimated_selectivity = estimated_table_statistics_for_predicate.row_count() / _in_table->row_count();
+  }
   if (_predicate_condition == PredicateCondition::Like || _predicate_condition == PredicateCondition::NotLike) {
     const auto left_column_type = _in_table->column_data_type(_left_column_id);
     Assert((left_column_type == DataType::String), "LIKE operator only applicable on string columns.");
@@ -176,25 +183,28 @@ void TableScan::_init_scan() {
 
     const auto right_wildcard = type_cast<std::string>(right_value);
 
-    _impl = std::make_unique<LikeTableScanImpl>(_in_table, _left_column_id, _predicate_condition, right_wildcard);
+    _impl = std::make_unique<LikeTableScanImpl>(_in_table, _left_column_id, _predicate_condition, estimated_selectivity,
+                                                right_wildcard);
 
     return;
   }
 
   if (_predicate_condition == PredicateCondition::IsNull || _predicate_condition == PredicateCondition::IsNotNull) {
-    _impl = std::make_unique<IsNullTableScanImpl>(_in_table, _left_column_id, _predicate_condition);
+    _impl =
+        std::make_unique<IsNullTableScanImpl>(_in_table, _left_column_id, _predicate_condition, estimated_selectivity);
     return;
   }
 
   if (is_variant(_right_parameter)) {
     const auto right_value = boost::get<AllTypeVariant>(_right_parameter);
 
-    _impl = std::make_unique<SingleColumnTableScanImpl>(_in_table, _left_column_id, _predicate_condition, right_value);
+    _impl = std::make_unique<SingleColumnTableScanImpl>(_in_table, _left_column_id, _predicate_condition,
+                                                        estimated_selectivity, right_value);
   } else /* is_column_name(_right_parameter) */ {
     const auto right_column_id = boost::get<ColumnID>(_right_parameter);
 
     _impl = std::make_unique<ColumnComparisonTableScanImpl>(_in_table, _left_column_id, _predicate_condition,
-                                                            right_column_id);
+                                                            estimated_selectivity, right_column_id);
   }
 }
 

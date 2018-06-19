@@ -15,17 +15,25 @@ namespace opossum {
 
 BaseSingleColumnTableScanImpl::BaseSingleColumnTableScanImpl(std::shared_ptr<const Table> in_table,
                                                              const ColumnID left_column_id,
-                                                             const PredicateCondition predicate_condition)
-    : BaseTableScanImpl{in_table, left_column_id, predicate_condition} {}
+                                                             const PredicateCondition predicate_condition,
+                                                             float estimated_selectivity)
+    : BaseTableScanImpl{in_table, left_column_id, predicate_condition, estimated_selectivity} {}
 
 std::shared_ptr<PosList> BaseSingleColumnTableScanImpl::scan_chunk(ChunkID chunk_id) {
   const auto chunk = _in_table->get_chunk(chunk_id);
   const auto left_column = chunk->get_column(_left_column_id);
 
+  const auto estimated_row_count = static_cast<size_t>(_estimated_selectivity * chunk->size());
+
   auto matches_out = std::make_shared<PosList>();
+  matches_out->reserve(estimated_row_count);
+
   auto context = std::make_shared<Context>(chunk_id, *matches_out);
 
   left_column->visit(*this, context);
+
+  std::cout << "Chunk " << chunk_id << " estimated result size: " << estimated_row_count
+            << " actual result size: " << matches_out->size() << "\n";
 
   return matches_out;
 }
