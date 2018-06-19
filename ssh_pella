@@ -1,0 +1,8 @@
+# Open Tunnel
+ssh -L 2022:pella.eaalab.hpi.uni-potsdam.de:22 moritz.eyssen@ssh-stud.hpi.uni-potsdam.de
+
+# SSHFS
+sshfs -p 2022 Moritz.Eyssen@localhost:/home/Moritz.Eyssen ~/pella
+
+# Open SSH
+ssh -p 2022 Moritz.Eyssen@localhost
