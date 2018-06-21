@@ -18,6 +18,9 @@ int main(int argc, char* argv[]) {
       port = static_cast<uint16_t>(std::atoi(argv[1]));
     }
 
+    auto table_a = opossum::load_table("src/test/tables/int_float.tbl", 2);
+    opossum::StorageManager::get().add_table("table_a", table_a);
+
     // Set scheduler so that the server can execute the tasks on separate threads.
     opossum::CurrentScheduler::set(
         std::make_shared<opossum::NodeQueueScheduler>(opossum::Topology::create_numa_topology()));
