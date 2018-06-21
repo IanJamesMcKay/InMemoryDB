@@ -2,6 +2,7 @@
 
 #include <chrono>
 
+#include "scheduler/current_scheduler.hpp"
 #include "utils/timer.hpp"
 #include "sql/sql_pipeline_builder.hpp"
 
@@ -30,16 +31,27 @@ NumaJobQuery::NumaJobQuery(const std::shared_ptr<NumaJobConfig>& config, const s
 
 void NumaJobQuery::run() {
   out() << "-- Running Query: " << sample.name << std::endl;
+  // execution_begin = std::chrono::steady_clock::now();
 
-  auto pipeline = SQLPipelineBuilder{sql}.create_pipeline();
+  auto tasks = std::vector<std::shared_ptr<OperatorTask>>();
 
-  execution_begin = std::chrono::steady_clock::now();
+  for (auto i = size_t{0} ; i < config->iterations_per_query ; ++i) {
+    auto pipeline = SQLPipelineBuilder{sql}.with_mvcc(UseMvcc::No).create_pipeline();
+
+    for (auto task_set : pipeline.get_tasks()) {
+      for (auto task : task_set) {
+        tasks.emplace_back(std::move(task));
+      }
+    }
+  }
 
   auto timer = Timer{};
-  pipeline.get_result_table();
-  sample.execution_duration = timer.lap();
+  CurrentScheduler::schedule_and_wait_for_tasks(tasks);
+  auto total_duration = timer.lap();
 
-  out() << "-- Time: " << sample.execution_duration.count() << std::endl;
+  sample.execution_duration = total_duration / config->iterations_per_query;
+
+  out() << "-- Time per Iteration: " << sample.execution_duration.count() << std::endl;
 }
 
 }  // namespace opossum
