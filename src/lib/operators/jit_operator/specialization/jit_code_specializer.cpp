@@ -15,7 +15,26 @@
 #include "llvm_extensions.hpp"
 #include "jit_runtime_pointer.hpp"
 
+#include "llvm/IR/InstIterator.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/IRPrintingPasses.h"
+
 namespace opossum {
+
+namespace {
+void print(SpecializationContext &context) {
+  llvm::legacy::PassManager pass_manager;
+  pass_manager.add(llvm::createPrintModulePass(llvm::errs()));
+  pass_manager.run(*context.module);
+}
+
+void print_function(llvm::Function *F) {
+  for (llvm::inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F); I != E; ++I) {
+    llvm::errs() << *I << "\n";
+  }
+}
+
+}  // namespace
 
 JitCodeSpecializer::JitCodeSpecializer(JitRepository& repository)
     : _repository{repository}, _llvm_context{_repository.llvm_context()}, _compiler{_llvm_context} {}
@@ -62,6 +81,8 @@ std::shared_ptr<llvm::Module> JitCodeSpecializer::specialize_function(
     _perform_load_substitution(context);
     _optimize(context, false);
   }
+  print(context);
+  if (false) print_function(context.root_function);
 
   return context.module;
 }
@@ -152,6 +173,11 @@ void JitCodeSpecializer::_inline_function_calls(SpecializationContext& context) 
     auto function_has_opossum_namespace = boost::starts_with(function.getName().str(), "_ZNK7opossum") ||
                                           boost::starts_with(function.getName().str(), "_ZN7opossum");
 
+    bool no_inline = boost::contains(function.getName().str(), "no_inline");
+    if (no_inline) {
+      std::cout << "not inlining: " << function.getName().str() << std::endl;
+    }
+
     // A note about "__clang_call_terminate":
     // __clang_call_terminate is generated / used internally by clang to call the std::terminate function when expection
     // handling fails. For some unknown reason this function cannot be resolved in the Hyrise binary when jit-compiling
@@ -160,7 +186,7 @@ void JitCodeSpecializer::_inline_function_calls(SpecializationContext& context) 
 
     // All function that are not in the opossum:: namespace are not considered for inlining. Instead, a function
     // declaration (without a function body) is created.
-    if (!function_has_opossum_namespace && function_name != "__clang_call_terminate") {
+    if (no_inline || (!function_has_opossum_namespace && function_name != "__clang_call_terminate")) {
       context.llvm_value_map[&function] = _create_function_declaration(context, function, function.getName());
       call_sites.pop();
       continue;
