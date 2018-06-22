@@ -36,6 +36,11 @@ void JitReadTuples::before_chunk(const Table& in_table, const Chunk& in_chunk, J
   context.inputs.clear();
   context.chunk_offset = 0;
   context.chunk_size = in_chunk.size();
+  if (in_chunk.has_mvcc_columns()) {
+    auto mvcc_columns = in_chunk.mvcc_columns();
+    context.columns = &(*mvcc_columns);
+  }
+
 
   // Create the column iterator for each input column and store them to the runtime context
   for (const auto& input_column : _input_columns) {

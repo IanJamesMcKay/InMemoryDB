@@ -473,6 +473,8 @@ if (${ENABLE_JIT_SUPPORT})
         operators/jit_operator/operators/jit_filter.hpp
         operators/jit_operator/operators/jit_read_tuples.cpp
         operators/jit_operator/operators/jit_read_tuples.hpp
+        operators/jit_operator/operators/jit_validate.cpp
+        operators/jit_operator/operators/jit_validate.hpp
         operators/jit_operator/operators/jit_write_tuples.cpp
         operators/jit_operator/operators/jit_write_tuples.hpp
     )
@@ -489,6 +491,8 @@ if (${ENABLE_JIT_SUPPORT})
         operators/jit_operator/specialization/jit_repository.hpp
         operators/jit_operator/specialization/jit_runtime_pointer.cpp
         operators/jit_operator/specialization/jit_runtime_pointer.hpp
+        operators/jit_operator/specialization/jit_utils.cpp
+        operators/jit_operator/specialization/jit_utils.hpp
         operators/jit_operator/specialization/llvm/CloneFunction.cpp
         operators/jit_operator/specialization/llvm/InlineFunction.cpp
         operators/jit_operator/specialization/llvm_extensions.cpp

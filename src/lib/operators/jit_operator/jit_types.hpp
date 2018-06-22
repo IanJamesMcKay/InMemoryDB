@@ -122,6 +122,7 @@ struct JitRuntimeContext {
   std::vector<std::shared_ptr<BaseJitColumnWriter>> outputs;
   JitRuntimeHashmap hashmap;
   ChunkColumns out_chunk;
+  const MvccColumns* columns;
 };
 
 // The JitTupleValue represents a value in the runtime tuple.
