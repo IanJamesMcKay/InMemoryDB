@@ -11,7 +11,7 @@ def mean_absolute_percentage_error(y_true, y_pred):
     return np.mean(abs_errors) * 100
 
 
-samples_path = "/home/moritz/Coding/hyrise/CostFeatureSamples-Debug.json"
+samples_path = "/home/moritz/CostFeatureSamples-Release.json"
 
 features_by_operator = {
     "JoinHash": ["MajorInputRowCount", "MinorInputRowCount", "OutputRowCount"],
@@ -50,7 +50,12 @@ for operator, operator_samples in samples.items():
 
     print("{}: {} samples".format(operator, len(operator_samples)))
 
+    for sample in operator_samples:
+        if sample["LeftInputRowCount"] != sample["OutputRowCount"]:
+            print(sample)
+
     df = pandas.DataFrame(operator_samples)
+    i = pandas.DataFrame(df, columns=["LeftInputRowCount", "OutputRowCount", "Runtime"])
     df = df[df.Runtime < 300*1000*1000]
     df = df[df.Runtime > 1000]
 
@@ -59,8 +64,6 @@ for operator, operator_samples in samples.items():
 
     target = "Runtime"
     features = features_by_operator[operator]
-
-    print(df.columns.values.tolist())
 
     df = pandas.DataFrame(df, columns=features + [target])
 
