@@ -483,6 +483,8 @@ if (${ENABLE_JIT_SUPPORT})
         SOURCES
         operators/jit_operator/jit_aware_lqp_translator.cpp
         operators/jit_operator/jit_aware_lqp_translator.hpp
+        operators/jit_operator/jit_utils.cpp
+        operators/jit_operator/jit_utils.hpp
         operators/jit_operator/specialization/jit_compiler.cpp
         operators/jit_operator/specialization/jit_compiler.hpp
         operators/jit_operator/specialization/jit_code_specializer.cpp
@@ -491,8 +493,6 @@ if (${ENABLE_JIT_SUPPORT})
         operators/jit_operator/specialization/jit_repository.hpp
         operators/jit_operator/specialization/jit_runtime_pointer.cpp
         operators/jit_operator/specialization/jit_runtime_pointer.hpp
-        operators/jit_operator/specialization/jit_utils.cpp
-        operators/jit_operator/specialization/jit_utils.hpp
         operators/jit_operator/specialization/llvm/CloneFunction.cpp
         operators/jit_operator/specialization/llvm/InlineFunction.cpp
         operators/jit_operator/specialization/llvm_extensions.cpp

@@ -1,6 +1,5 @@
 #include "jit_utils.hpp"
 
-
 namespace opossum {
 
 namespace no_inline {

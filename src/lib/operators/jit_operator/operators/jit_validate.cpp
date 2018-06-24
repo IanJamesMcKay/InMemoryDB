@@ -1,7 +1,7 @@
 #include "jit_validate.hpp"
 
 #include "operators/jit_operator/jit_types.hpp"
-#include "operators/jit_operator/specialization/jit_utils.hpp"
+#include "operators/jit_operator/jit_utils.hpp"
 
 namespace opossum {
 
