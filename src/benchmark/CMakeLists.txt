@@ -26,6 +26,20 @@ target_link_libraries(
     benchmark
 )
 
+add_executable(
+    hyriseExpressionPresentationBenchmarks
+
+    benchmark_main.cpp
+    expression_presentation_benchmarks.cpp
+)
+
+target_link_libraries(
+    hyriseExpressionPresentationBenchmarks
+    hyrise
+    hyriseBenchmarkLib
+    benchmark
+)
+
 # General purpose benchmark runner
 add_executable(hyriseBenchmark benchmark_runner_main.cpp)
 target_link_libraries(
