@@ -58,7 +58,9 @@ void JitExpression::compute(JitRuntimeContext& context) const {
     return;
   }
 
-  _right_child->compute(context);
+  if (!(_expression_type == ExpressionType::And && _left_child->result().get<bool>(context) && _right_child || _expression_type == ExpressionType::Or)) {
+    _right_child->compute(context);
+  }
 
   switch (_expression_type) {
     case ExpressionType::Addition:
