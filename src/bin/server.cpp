@@ -80,11 +80,11 @@ int main(int argc, char* argv[]) {
 
     auto validate = std::make_shared<opossum::Validate>(get_table);
     validate->set_transaction_context(context);
-    auto jit_operator = std::make_shared<opossum::JitOperatorWrapper>(validate, opossum::JitExecutionMode::Compile); // Interpret validate
-    auto read_tuple = std::make_shared<opossum::JitReadTuples>();
+    auto jit_operator = std::make_shared<opossum::JitOperatorWrapper>(get_table, opossum::JitExecutionMode::Compile); // Interpret validate
+    auto read_tuple = std::make_shared<opossum::JitReadTuples>(false);
     opossum::JitTupleValue tuple_val = read_tuple->add_input_column(opossum::DataType::Int, false, opossum::ColumnID(0));
     jit_operator->add_jit_operator(read_tuple);
-    // jit_operator->add_jit_operator(std::make_shared<opossum::JitValidate>(context));
+    jit_operator->add_jit_operator(std::make_shared<opossum::JitValidate>(context, false));
 
     auto id = 0; // read_tuple->add_temporary_value();
 

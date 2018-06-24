@@ -84,6 +84,8 @@ class JitReadTuples : public AbstractJittable {
   };
 
  public:
+  explicit JitReadTuples(const bool use_ref_pos_list = false) : _use_ref_pos_list(use_ref_pos_list) {}
+
   std::string description() const final;
 
   virtual void before_query(const Table& in_table, JitRuntimeContext& context) const;
@@ -108,6 +110,7 @@ class JitReadTuples : public AbstractJittable {
 
  private:
   void _consume(JitRuntimeContext& context) const final {}
+  const bool _use_ref_pos_list;
 };
 
 }  // namespace opossum

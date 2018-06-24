@@ -3,8 +3,10 @@
 #include <boost/preprocessor/seq/for_each.hpp>
 
 #include "all_type_variant.hpp"
+#include "types.hpp"
 #include "storage/base_value_column.hpp"
 #include "storage/chunk.hpp"
+#include "storage/table.hpp"
 #include "storage/column_iterables/base_column_iterators.hpp"
 
 namespace opossum {
@@ -123,6 +125,8 @@ struct JitRuntimeContext {
   JitRuntimeHashmap hashmap;
   ChunkColumns out_chunk;
   const MvccColumns* columns;
+  std::shared_ptr<const Table> referenced_table;
+  PosList::const_iterator pos_list_itr;
 };
 
 // The JitTupleValue represents a value in the runtime tuple.
