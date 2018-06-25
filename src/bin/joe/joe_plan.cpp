@@ -132,7 +132,7 @@ void JoePlan::sample_cost_features(const std::vector<std::shared_ptr<AbstractOpe
 
     for (const auto& op: operators) {
       const auto operator_type = operator_type_to_string.left.at(op->type());
-      if (!json.count(operator_type)) {
+      if (!json.count(operator_type)) { 
         json[operator_type] = nlohmann::json::array();
       }
 
