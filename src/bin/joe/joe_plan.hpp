@@ -44,6 +44,7 @@ class JoeQueryIteration;
 struct JoePlanSample final {
   size_t hash{0};
   std::chrono::microseconds execution_duration{0};
+  std::chrono::microseconds cecaching_duration{0};
   Cost est_cost{0.0f};
   Cost re_est_cost{0.0f};
   Cost aim_cost{0.0f};
@@ -67,6 +68,8 @@ class JoePlan final {
   JoePlanSample sample;
 
   void sample_cost_features(const std::vector<std::shared_ptr<AbstractOperator>> &operators);
+  void init_cardinality_cache_entries(const std::vector<std::shared_ptr<AbstractOperator>> &operators);
+  void cache_cardinalities(const std::vector<std::shared_ptr<AbstractOperator>> &operators);
   void visualize(const SQLQueryPlan& plan);
   void save_plan_result_table(const SQLQueryPlan& plan);
 };

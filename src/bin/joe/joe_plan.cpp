@@ -14,6 +14,7 @@
 #include "out.hpp"
 #include "joe_query_iteration.hpp"
 #include "joe_query.hpp"
+#include "optimizer/join_ordering/join_graph_builder.hpp"
 
 namespace opossum {
 
@@ -25,6 +26,7 @@ std::ostream &operator<<(std::ostream &stream, const JoePlanSample &sample) {
     sample.aim_cost << "," <<
     sample.abs_est_cost_error << "," <<
     sample.abs_re_est_cost_error << "," <<
+    sample.cecaching_duration.count() << "," <<
          sample.hash;
   return stream;
 }
@@ -45,15 +47,14 @@ void JoePlan::run() {
   /**
    *  Translate to PQP
    */
-  LQPTranslator lqp_translator;
-  lqp_translator.add_post_operator_callback(
-  std::make_shared<CardinalityCachingCallback>(config->cardinality_estimation_cache));
-  const auto pqp = lqp_translator.translate_node(lqp);
-
+  const auto pqp = LQPTranslator{}.translate_node(lqp);
+  const auto operators = flatten_pqp(pqp);
 
   /**
    * Execute plan
    */
+  init_cardinality_cache_entries(operators);
+
   auto timer = Timer{};
   auto timed_out = false;
   if (query_iteration.current_plan_timeout) {
@@ -61,27 +62,26 @@ void JoePlan::run() {
   } else {
     execute_with_timeout(pqp, std::nullopt);
   }
+  sample.execution_duration = timer.lap();
 
-  // Visualize after execution
-  SQLQueryPlan plan;
-  plan.add_tree_by_root(pqp);
-  if (config->visualize) visualize(plan);
+  /**
+   * Evaluate plan execution
+   */
+  sample_cost_features(operators);
+  cache_cardinalities(operators);
 
   if (timed_out) {
+    sample.execution_duration = std::chrono::microseconds{0};
     out() << "---- Query timed out" << std::endl;
     return;
   }
 
   ++query_iteration.plans_execution_count;
 
-  /**
-   * Evaluate plan execution
-   */
-  sample.execution_duration = timer.lap();
-
-  const auto operators = flatten_pqp(pqp);
-  sample_cost_features(operators);
-
+  // Visualize after execution
+  SQLQueryPlan plan;
+  plan.add_tree_by_root(pqp);
+  if (config->visualize) visualize(plan);
 
   /**
    * Adjust dynamic timeout
@@ -180,6 +180,56 @@ void JoePlan::save_plan_result_table(const SQLQueryPlan& plan) {
   Print::print(limit->get_output(), 0, output_file);
 
   query_iteration.query.save_plan_results = false;
+}
+
+void JoePlan::init_cardinality_cache_entries(const std::vector<std::shared_ptr<AbstractOperator>> &operators) {
+  Timer timer([&](const auto& duration) {
+    sample.cecaching_duration += duration;
+  });
+
+  auto& config = query_iteration.query.config;
+
+  const auto cardinality_estimation_cache = config->cardinality_estimation_cache;
+
+  for (const auto& op : operators) {
+    if (!op->lqp_node()) return;
+    if (!op->get_output()) return;
+
+    const auto lqp = op->lqp_node();
+
+    if (lqp->type() != LQPNodeType::Predicate && lqp->type() != LQPNodeType::Join && lqp->type() != LQPNodeType::StoredTable) return;
+
+    auto join_graph_builder = JoinGraphBuilder{};
+    join_graph_builder.traverse(lqp);
+
+    BaseJoinGraph base_join_graph{join_graph_builder.vertices(), join_graph_builder.predicates()};
+
+    cardinality_estimation_cache->put(base_join_graph, CardinalityEstimationCache::TIMEOUT_CARDINALITY);
+  }
+}
+
+void JoePlan::cache_cardinalities(const std::vector<std::shared_ptr<AbstractOperator>> &operators) {
+  Timer timer([&](const auto& duration) {
+    sample.cecaching_duration += duration;
+  });
+
+  auto& config = query_iteration.query.config;
+
+  const auto cardinality_estimation_cache = config->cardinality_estimation_cache;
+
+  for (const auto& op : operators) {
+    if (!op->lqp_node()) return;
+    if (!op->get_output()) return;
+
+    const auto lqp = op->lqp_node();
+
+    if (lqp->type() != LQPNodeType::Predicate && lqp->type() != LQPNodeType::Join && lqp->type() != LQPNodeType::StoredTable) return;
+
+    auto join_graph_builder = JoinGraphBuilder{};
+    join_graph_builder.traverse(lqp);
+
+    cardinality_estimation_cache->put({join_graph_builder.vertices(), join_graph_builder.predicates()}, op->get_output()->row_count());
+  }
 }
 
 }  // namespace opossum

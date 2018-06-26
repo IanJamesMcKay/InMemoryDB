@@ -11,6 +11,9 @@ namespace opossum {
 
 class CardinalityEstimationCache final {
  public:
+  // Cardinality that is assumed if a join graph timed out
+  static constexpr auto TIMEOUT_CARDINALITY = 1e+12;
+
   struct Entry {
     std::optional<std::chrono::seconds> timeout;
     std::optional<Cardinality> cardinality;

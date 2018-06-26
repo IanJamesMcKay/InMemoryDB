@@ -11,6 +11,7 @@ struct JoeQueryIterationSample {
   std::shared_ptr<JoePlan> rank_zero_plan;
   std::shared_ptr<JoePlan> best_plan;
   std::chrono::microseconds planning_duration{0};
+  std::chrono::microseconds cecaching_duration{0};
   size_t ce_cache_hit_count{0};
   size_t ce_cache_miss_count{0};
   size_t ce_cache_size{0};

@@ -15,6 +15,7 @@ std::ostream &operator<<(std::ostream &stream, const JoeQueryIterationSample &sa
   stream << (sample.best_plan ? sample.best_plan->sample.execution_duration.count() : 0) << ",";
 
   stream << sample.planning_duration.count() << ",";
+  stream << sample.cecaching_duration.count() << ",";
   stream << sample.ce_cache_hit_count << ",";
   stream << sample.ce_cache_miss_count << ",";
   stream << sample.ce_cache_size << ",";
@@ -136,11 +137,13 @@ void JoeQueryIteration::run() {
     plan->run();
 
     /**
-     * Update best_plan
+     * Update plan related data
      */
     if (!sample.best_plan || plan->sample.execution_duration < sample.best_plan->sample.execution_duration) {
       sample.best_plan = plan;
     }
+
+    sample.cecaching_duration += plan->sample.cecaching_duration;
 
     // Update with timings
     write_plans_csv();
@@ -178,7 +181,7 @@ void JoeQueryIteration::write_plans_csv() {
   const auto config = query.config;
   if (config->save_plan_results) {
     write_csv(plans,
-              "ExecutionDuration,EstCost,ReEstCost,AimCost,AbsEstCostError,AbsReEstCostError,Hash",
+              "ExecutionDuration,EstCost,ReEstCost,AimCost,AbsEstCostError,AbsReEstCostError,CECachingDuration,Hash",
               config->evaluation_prefix + name + ".Plans.csv");
   }
 }

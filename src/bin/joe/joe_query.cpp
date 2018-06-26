@@ -51,7 +51,8 @@ void JoeQuery::run() {
 
     if (config->save_query_iterations_results) {
       write_csv(query_iterations,
-                "RankZeroPlanExecutionDuration,BestPlanExecutionDuration,PlanningDuration,CECacheHitCount,CECacheMissCount,CECacheSize,CECacheDistinctHitCount,CECacheDistinctMissCount,RankZeroPlanHash,BestPlanExecutionDuration",
+                "RankZeroPlanExecutionDuration,BestPlanExecutionDuration,PlanningDuration,CECachingDuration,CECacheHitCount,CECacheMissCount,CECacheSize,"
+                "CECacheDistinctHitCount,CECacheDistinctMissCount,RankZeroPlanHash,BestPlanExecutionDuration",
                 config->evaluation_prefix + sample.name + ".Iterations.csv");
     }
 

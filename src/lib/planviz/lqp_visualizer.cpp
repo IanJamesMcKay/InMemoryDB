@@ -43,7 +43,7 @@ void LQPVisualizer::_build_subtree(const std::shared_ptr<AbstractLQPNode>& node,
 
   VizRecordLayout record_layout;
 
-  record_layout.add_label(node->depscription());
+  record_layout.add_label(node->description());
 
   if (_cost_model) {
     const auto cost = _cost_model->estimate_cost(CostFeatureLQPNodeProxy(node));
