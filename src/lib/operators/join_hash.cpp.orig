@@ -278,29 +278,74 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
     auto output = std::make_shared<Partition<T>>();
     output->resize(materialized->size());
 
-    auto& offsets = *chunk_offsets;
+    auto& offsets = static_cast<std::vector<size_t>&>(*chunk_offsets);
 
     RadixContainer<T> radix_output;
     radix_output.elements = output;
     radix_output.partition_offsets.resize(_num_partitions + 1);
 
     // use histograms to calculate partition offsets
+<<<<<<< HEAD
+    for (ChunkID chunk_id{0}; chunk_id < offsets.size(); ++chunk_id) {
+      size_t local_sum = 0;
+      auto& histogram = histograms[chunk_id];
+
+      for (size_t partition_id = 0; partition_id < _num_partitions; ++partition_id) {
+        // update local prefix sum
+        local_sum += histogram[partition_id];
+        // update output partition offsets
+        radix_output.partition_offsets[partition_id] += histogram[partition_id];
+        // save offsets
+        histogram[partition_id] = local_sum;
+      }
+    }
+
+    /*
+    At this point, partition_offsets only contains the size of each partition.
+    We now calculate the offsets by adding up the sizes previous partitions.
+    */
     size_t offset = 0;
-    std::vector<std::vector<size_t>> output_offsets_by_chunk(offsets.size(), std::vector<size_t>(_num_partitions));
-    for (size_t partition_id = 0; partition_id < _num_partitions; ++partition_id) {
+    for (size_t partition_id = 0; partition_id < _num_partitions + 1; ++partition_id) {
+      size_t next_offset = offset + radix_output.partition_offsets[partition_id];
+=======
+    size_t offset = 0;
+    std::vector<std::vector<size_t>> output_offsets_by_chunk(offsets.size(), std::vector<size_t>(num_partitions));
+    for (size_t partition_id = 0; partition_id < num_partitions; ++partition_id) {
+>>>>>>> master
       radix_output.partition_offsets[partition_id] = offset;
       for (ChunkID chunk_id{0}; chunk_id < offsets.size(); ++chunk_id) {
         output_offsets_by_chunk[chunk_id][partition_id] = offset;
-        offset += (histograms[chunk_id])[partition_id];
+        offset += (*histograms[chunk_id])[partition_id];
       }
     }
-    radix_output.partition_offsets[_num_partitions] = offset;
+    radix_output.partition_offsets[num_partitions] = offset;
 
     std::vector<std::shared_ptr<AbstractTask>> jobs;
     jobs.reserve(offsets.size());
 
     for (ChunkID chunk_id{0}; chunk_id < offsets.size(); ++chunk_id) {
+<<<<<<< HEAD
+      jobs.emplace_back(std::make_shared<JobTask>([&, chunk_id] {
+        // calculate output offsets for each partition
+        auto output_offsets = std::vector<size_t>(_num_partitions, 0);
+
+        // add up the output offsets for chunks before this one
+        for (ChunkID i{0}; i < chunk_id; ++i) {
+          const auto& histogram = histograms[i];
+          for (size_t j = 0; j < _num_partitions; ++j) {
+            output_offsets[j] += histogram[j];
+          }
+        }
+        for (auto i = chunk_id; i < offsets.size(); ++i) {
+          const auto& histogram = histograms[i];
+          for (size_t j = 1; j < _num_partitions; ++j) {
+            output_offsets[j] += histogram[j - 1];
+          }
+        }
+
+=======
       jobs.emplace_back(std::make_shared<JobTask>([&, chunk_id]() {
+>>>>>>> master
         size_t input_offset = offsets[chunk_id];
         auto& output_offsets = output_offsets_by_chunk[chunk_id];
 
@@ -575,8 +620,8 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
     Timer performance_timer;
 
     // Materialization phase
-    std::vector<Histogram> histograms_left;
-    std::vector<Histogram> histograms_right;
+    std::vector<std::array<size_t, _num_partitions>> histograms_left;
+    std::vector<std::array<size_t, _num_partitions>> histograms_right;
     /*
     NUMA notes:
     The materialized vectors don't have any strong NUMA preference because they haven't been partitioned yet.
@@ -740,12 +785,24 @@ class JoinHash::JoinHashImpl : public AbstractJoinOperatorImpl {
             // Get the row ids that are referenced
             auto new_pos_list = std::make_shared<PosList>(pos_list->size());
             auto new_pos_list_iter = new_pos_list->begin();
+<<<<<<< HEAD
+
+            // Cache the referenced PosList
+            std::shared_ptr<const PosList> referenced_pos_list;
+            ChunkID cached_chunk_id = INVALID_CHUNK_ID;
+
+            for (const auto& row : pos_list) {
+=======
             for (const auto& row : *pos_list) {
+>>>>>>> master
               if (row.chunk_offset == INVALID_CHUNK_OFFSET) {
                 *new_pos_list_iter = row;
               } else {
-                const auto& referenced_pos_list = *(*input_table_pos_lists)[row.chunk_id];
-                *new_pos_list_iter = referenced_pos_list[row.chunk_offset];
+                if (cached_chunk_id != row.chunk_id) {
+                  referenced_pos_list = (*input_table_pos_lists)[row.chunk_id];
+                  cached_chunk_id = row.chunk_id;
+                }
+                *new_pos_list_iter = referenced_pos_list->operator[](row.chunk_offset);
               }
               ++new_pos_list_iter;
             }
