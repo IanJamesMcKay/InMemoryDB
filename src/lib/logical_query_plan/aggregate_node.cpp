@@ -29,7 +29,7 @@ AggregateNode::AggregateNode(const std::vector<std::shared_ptr<AbstractExpressio
   _output_column_expressions.insert(_output_column_expressions.end(), aggregate_expressions.begin(), aggregate_expressions.end());
 }
 
-std::string AggregateNode::description() const {
+std::string AggregateNode::description(const DescriptionMode description_mode) const {
   std::stringstream stream;
 
   stream << "[Aggregate] GroupBy: [" << expression_column_names(group_by_expressions);

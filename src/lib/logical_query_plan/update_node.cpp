@@ -14,7 +14,7 @@ UpdateNode::UpdateNode(const std::string& table_name,
                        const std::vector<std::shared_ptr<AbstractExpression>>& column_expressions)
     : AbstractLQPNode(LQPNodeType::Update), _table_name(table_name), _column_expressions(column_expressions) {}
 
-std::string UpdateNode::description() const {
+std::string UpdateNode::description(const DescriptionMode description_mode) const {
   std::ostringstream desc;
 
   desc << "[Update] Table: '" << _table_name << "'";

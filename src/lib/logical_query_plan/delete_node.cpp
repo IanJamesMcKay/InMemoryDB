@@ -11,7 +11,7 @@ namespace opossum {
 
 DeleteNode::DeleteNode(const std::string& table_name) : AbstractLQPNode(LQPNodeType::Delete), _table_name(table_name) {}
 
-std::string DeleteNode::description() const {
+std::string DeleteNode::description(const DescriptionMode description_mode) const {
   std::ostringstream desc;
 
   desc << "[Delete] Table: '" << _table_name << "'";

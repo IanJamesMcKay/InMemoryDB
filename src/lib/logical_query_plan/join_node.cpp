@@ -29,7 +29,7 @@ AbstractLQPNode(LQPNodeType::Join), join_mode(join_mode), join_predicate(join_pr
   Assert(join_mode != JoinMode::Cross , "Cross Joins take no predicate");
 }
 
-std::string JoinNode::description() const {
+std::string JoinNode::description(const DescriptionMode description_mode) const {
   std::stringstream stream;
   stream << "[Join] Mode: " << join_mode_to_string.at(join_mode);
 

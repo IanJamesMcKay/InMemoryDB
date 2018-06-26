@@ -13,7 +13,7 @@ namespace opossum {
 DummyTableNode::DummyTableNode() : AbstractLQPNode(LQPNodeType::DummyTable) {
 }
 
-std::string DummyTableNode::description() const {
+std::string DummyTableNode::description(const DescriptionMode description_mode) const {
   return "[DummyTable]";
 }
 

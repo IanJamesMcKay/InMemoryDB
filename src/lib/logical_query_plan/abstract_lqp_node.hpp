@@ -51,7 +51,7 @@ class AbstractLQPNode : public std::enable_shared_from_this<AbstractLQPNode> {
   /**
    * @return a string describing this node, but nothing about its inputs.
    */
-  virtual std::string description() const = 0;
+  virtual std::string description(const DescriptionMode description_mode = DescriptionMode::SingleLine) const = 0;
 
   /**
    * @defgroup Access the outputs/inputs

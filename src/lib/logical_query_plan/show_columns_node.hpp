@@ -13,7 +13,7 @@ class ShowColumnsNode : public EnableMakeForLQPNode<ShowColumnsNode>, public Abs
  public:
   explicit ShowColumnsNode(const std::string& table_name);
 
-  std::string description() const override;
+  std::string description(const DescriptionMode description_mode = DescriptionMode::SingleLine) const override;
 
   const std::string& table_name() const;
 

@@ -7,7 +7,7 @@ namespace opossum {
 ShowColumnsNode::ShowColumnsNode(const std::string& table_name)
     : AbstractLQPNode(LQPNodeType::ShowColumns), _table_name(table_name) {}
 
-std::string ShowColumnsNode::description() const { return "[ShowColumns] Table: '" + _table_name + "'"; }
+std::string ShowColumnsNode::description(const DescriptionMode description_mode) const { return "[ShowColumns] Table: '" + _table_name + "'"; }
 
 const std::string& ShowColumnsNode::table_name() const { return _table_name; }
 

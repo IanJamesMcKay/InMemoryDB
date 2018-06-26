@@ -14,7 +14,7 @@ class DropViewNode : public EnableMakeForLQPNode<DropViewNode>, public AbstractL
  public:
   explicit DropViewNode(const std::string& view_name);
 
-  std::string description() const override;
+  std::string description(const DescriptionMode description_mode = DescriptionMode::SingleLine) const override;
 
   const std::string& view_name() const;
 

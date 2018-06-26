@@ -14,7 +14,7 @@ namespace opossum {
 DropViewNode::DropViewNode(const std::string& view_name)
     : AbstractLQPNode(LQPNodeType::DropView), _view_name(view_name) {}
 
-std::string DropViewNode::description() const {
+std::string DropViewNode::description(const DescriptionMode description_mode) const {
   return "[Drop] View: '"s + _view_name + "'";
 }
 

@@ -12,7 +12,7 @@ namespace opossum {
 LimitNode::LimitNode(const std::shared_ptr<AbstractExpression>& num_rows_expression):
   AbstractLQPNode(LQPNodeType::Limit), num_rows_expression(num_rows_expression) {}
 
-std::string LimitNode::description() const {
+std::string LimitNode::description(const DescriptionMode description_mode) const {
   std::stringstream stream;
   stream << "[Limit] " << num_rows_expression->as_column_name();
   return stream.str();

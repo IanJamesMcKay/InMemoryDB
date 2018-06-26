@@ -14,7 +14,7 @@ std::string CreateViewNode::view_name() const { return _view_name; }
 
 std::shared_ptr<View> CreateViewNode::view() const { return _view; }
 
-std::string CreateViewNode::description() const {
+std::string CreateViewNode::description(const DescriptionMode description_mode) const {
   std::stringstream stream;
   _view->lqp->print(stream);
 

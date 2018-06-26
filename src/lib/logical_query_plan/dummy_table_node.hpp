@@ -16,7 +16,7 @@ class DummyTableNode : public EnableMakeForLQPNode<DummyTableNode>, public Abstr
  public:
   DummyTableNode();
 
-  std::string description() const override;
+  std::string description(const DescriptionMode description_mode = DescriptionMode::SingleLine) const override;
 
   const std::vector<std::shared_ptr<AbstractExpression>>& output_column_expressions() const override;
 

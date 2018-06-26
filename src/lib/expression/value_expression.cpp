@@ -17,10 +17,15 @@ std::shared_ptr<AbstractExpression> ValueExpression::deep_copy() const  {
 
 std::string ValueExpression::as_column_name() const {
   std::stringstream stream;
-  stream << value;
 
-  if (value.type() == typeid(int64_t)) stream << "l";
-  else if (value.type() == typeid(float)) stream << "f";
+  if (value.type() == typeid(std::string)) {
+    stream << "'" << value << "'";
+  } else {
+    stream << value;
+  }
+
+  if (value.type() == typeid(int64_t)) stream << "_l";
+  else if (value.type() == typeid(float)) stream << "_f";
 
   return stream.str();
 }

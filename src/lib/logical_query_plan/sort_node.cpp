@@ -17,7 +17,7 @@ SortNode::SortNode(const std::vector<std::shared_ptr<AbstractExpression>>& expre
   Assert(expressions.size() == order_by_modes.size(), "Expected as many Expressions as OrderByModes");
 }
 
-std::string SortNode::description() const {
+std::string SortNode::description(const DescriptionMode description_mode) const {
   std::stringstream stream;
 
   stream << "[Sort] ";

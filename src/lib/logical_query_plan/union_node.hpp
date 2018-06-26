@@ -13,7 +13,7 @@ class UnionNode : public EnableMakeForLQPNode<UnionNode>, public AbstractLQPNode
  public:
   explicit UnionNode(const UnionMode union_mode);
 
-  std::string description() const override;
+  std::string description(const DescriptionMode description_mode = DescriptionMode::SingleLine) const override;
   const std::vector<std::shared_ptr<AbstractExpression>>& output_column_expressions() const override;
   std::shared_ptr<TableStatistics> derive_statistics_from(const std::shared_ptr<AbstractLQPNode>& left_input, const std::shared_ptr<AbstractLQPNode>& right_input) const override;
 

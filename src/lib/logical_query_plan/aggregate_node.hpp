@@ -23,7 +23,7 @@ class AggregateNode : public EnableMakeForLQPNode<AggregateNode>, public Abstrac
   AggregateNode(const std::vector<std::shared_ptr<AbstractExpression>>& group_by_expressions,
                 const std::vector<std::shared_ptr<AbstractExpression>>& aggregate_expressions);
 
-  std::string description() const override;
+  std::string description(const DescriptionMode description_mode = DescriptionMode::SingleLine) const override;
   const std::vector<std::shared_ptr<AbstractExpression>>& output_column_expressions() const override;
 
   const std::vector<std::shared_ptr<AbstractExpression>> group_by_expressions;

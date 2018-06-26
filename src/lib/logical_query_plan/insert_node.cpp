@@ -12,7 +12,7 @@ namespace opossum {
 
 InsertNode::InsertNode(const std::string table_name) : AbstractLQPNode(LQPNodeType::Insert), _table_name(table_name) {}
 
-std::string InsertNode::description() const {
+std::string InsertNode::description(const DescriptionMode description_mode) const {
   std::ostringstream desc;
 
   desc << "[Insert] Into table '" << _table_name << "'";

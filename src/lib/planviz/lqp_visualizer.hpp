@@ -21,6 +21,8 @@ class LQPVisualizer : public AbstractVisualizer<std::vector<std::shared_ptr<Abst
   LQPVisualizer(GraphvizConfig graphviz_config, VizGraphInfo graph_info = {}, VizVertexInfo vertex_info = {},
                 VizEdgeInfo edge_info = {});
 
+  bool visualize_cardinality_estimates = true;
+
  protected:
   void _build_graph(const std::vector<std::shared_ptr<AbstractLQPNode>>& lqp_roots) override;
 
@@ -29,6 +31,7 @@ class LQPVisualizer : public AbstractVisualizer<std::vector<std::shared_ptr<Abst
                       ExpressionUnorderedSet& visualized_sub_queries);
 
   void _build_dataflow(const std::shared_ptr<AbstractLQPNode>& from, const std::shared_ptr<AbstractLQPNode>& to);
+  void _build_vertex(const std::shared_ptr<AbstractLQPNode>& node);
 };
 
 }  // namespace opossum

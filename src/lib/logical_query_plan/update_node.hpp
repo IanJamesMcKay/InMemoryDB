@@ -18,7 +18,7 @@ class UpdateNode : public EnableMakeForLQPNode<UpdateNode>, public AbstractLQPNo
   UpdateNode(const std::string& table_name,
                       const std::vector<std::shared_ptr<AbstractExpression>>& column_expressions);
 
-  std::string description() const override;
+  std::string description(const DescriptionMode description_mode = DescriptionMode::SingleLine) const override;
 
   const std::string& table_name() const;
 

@@ -61,7 +61,7 @@ const std::vector<std::shared_ptr<AbstractExpression>>& MockNode::output_column_
   return *_output_column_expressions;
 }
 
-std::string MockNode::description() const {
+std::string MockNode::description(const DescriptionMode description_mode) const {
   return "[MockNode '"s + _name.value_or("Unnamed") + "']";
 }
 

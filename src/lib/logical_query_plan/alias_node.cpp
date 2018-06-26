@@ -12,7 +12,7 @@ AliasNode::AliasNode(const std::vector<std::shared_ptr<AbstractExpression>> &exp
   Assert(_expressions.size() == aliases.size(), "Specify a name for each Expression");
 }
 
-std::string AliasNode::description() const {
+std::string AliasNode::description(const DescriptionMode description_mode) const {
   std::stringstream stream;
   stream << "Alias [";
   for (auto column_id = ColumnID{0}; column_id < _expressions.size(); ++column_id) {

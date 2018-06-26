@@ -20,7 +20,7 @@ namespace opossum {
 
 PredicateNode::PredicateNode(const std::shared_ptr<AbstractExpression>& predicate): AbstractLQPNode(LQPNodeType::Predicate), predicate(predicate) {}
 
-std::string PredicateNode::description() const {
+std::string PredicateNode::description(const DescriptionMode description_mode) const {
   std::stringstream stream;
   stream << "[Predicate] " << predicate->as_column_name();
   return stream.str();

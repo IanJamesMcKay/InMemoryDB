@@ -665,30 +665,26 @@ std::shared_ptr<ExpressionResult<R>> ExpressionEvaluator::evaluate_binary_with_d
                                                          const AbstractExpression& right_expression) {
   auto result = std::shared_ptr<ExpressionResult<R>>{};
 
-  resolve_to_expression_results(left_expression, right_expression, [&](const auto &left, const auto &right) {
-    using LeftDataType = typename std::decay_t<decltype(left)>::Type;
-    using RightDataType = typename std::decay_t<decltype(right)>::Type;
+  resolve_to_expression_results(left_expression, right_expression, [&](const auto &left_result,
+                                                                       const auto &right_result) {
+    using LeftDataType = typename std::decay_t<decltype(left_result)>::Type;
+    using RightDataType = typename std::decay_t<decltype(right_result)>::Type;
 
     if constexpr (Functor::template supports<R, LeftDataType, RightDataType>::value) {
-      const auto result_size = _result_size(left.size(), right.size());
-      auto nulls = _evaluate_default_null_logic(left.nulls, right.nulls);
+      const auto result_size = _result_size(left_result.size(), right_result.size());
 
-      std::vector<R> values(result_size);
-      if (left.is_literal() == right.is_literal()) {
-        for (auto row_idx = ChunkOffset{0}; row_idx < result_size; ++row_idx) {
-          Functor{}(values[row_idx], left.values[row_idx], right.values[row_idx]);
-        }
-      } else if (right.is_literal()) {
-        for (auto row_idx = ChunkOffset{0}; row_idx < result_size; ++row_idx) {
-          Functor{}(values[row_idx], left.values[row_idx], right.values.front());
-        }
-      } else {
-        for (auto row_idx = ChunkOffset{0}; row_idx < result_size; ++row_idx) {
-          Functor{}(values[row_idx], left.values.front(), right.values[row_idx]);
-        }
-      }
+      auto result_nulls = _evaluate_default_null_logic(left_result.nulls, right_result.nulls);
+      auto result_values = std::vector<R>(result_size);
 
-      result = std::make_shared<ExpressionResult<R>>(std::move(values), std::move(nulls));
+      left_result.as_view([&](const auto& left_view) {
+        right_result.as_view([&](const auto& right_view) {
+          for (auto row_idx = ChunkOffset{0}; row_idx < result_size; ++row_idx) {
+            Functor{}(result_values[row_idx], left_view.value(row_idx), right_view.value(row_idx));
+          }
+        });
+      });
+
+      result = std::make_shared<ExpressionResult<R>>(std::move(result_values), std::move(result_nulls));
     } else {
       Fail("BinaryOperation not supported on the requested DataTypes");
     }

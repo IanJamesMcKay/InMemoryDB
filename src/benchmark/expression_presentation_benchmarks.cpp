@@ -18,6 +18,9 @@ class ExpressionPresentationFixture : public benchmark::Fixture {
   void TearDown(benchmark::State &state) override {
   }
 
+  const std::string query_simple_where = "SELECT * FROM lineitem WHERE l_extendedprice * 2.0f > l";
+  const std::string query_complex_where = "SELECT l_extendedprice*(1.0-l_discount)*(1.0+l_tax) FROM lineitem";
+  const std::string query_arithmetics = "SELECT l_extendedprice*(1.0-l_discount)*(1.0+l_tax) FROM lineitem";
   const std::string query_arithmetics = "SELECT l_extendedprice*(1.0-l_discount)*(1.0+l_tax) FROM lineitem";
   const std::string query_arithmetics_nullables = "SELECT a*(100-b)*(100+c) FROM t";
 };

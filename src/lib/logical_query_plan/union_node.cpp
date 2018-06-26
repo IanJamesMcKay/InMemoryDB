@@ -13,7 +13,7 @@ namespace opossum {
 
 UnionNode::UnionNode(const UnionMode union_mode) : AbstractLQPNode(LQPNodeType::Union), union_mode(union_mode) {}
 
-std::string UnionNode::description() const { return "[UnionNode] Mode: " + union_mode_to_string.at(union_mode); }
+std::string UnionNode::description(const DescriptionMode description_mode) const { return "[UnionNode] Mode: " + union_mode_to_string.at(union_mode); }
 
 const std::vector<std::shared_ptr<AbstractExpression>>& UnionNode::output_column_expressions() const {
   Assert(expressions_equal(left_input()->output_column_expressions(), right_input()->output_column_expressions()), "Input Expressions must match");

@@ -7,9 +7,13 @@
 #include <utility>
 #include <vector>
 
+#include "viz_record_layout.hpp"
 #include "expression/expression_utils.hpp"
 #include "expression/lqp_select_expression.hpp"
+#include "logical_query_plan/stored_table_node.hpp"
 #include "logical_query_plan/projection_node.hpp"
+
+using namespace std::string_literals;
 
 namespace opossum {
 
@@ -39,7 +43,7 @@ void LQPVisualizer::_build_subtree(const std::shared_ptr<AbstractLQPNode>& node,
   if (visualized_nodes.find(node) != visualized_nodes.end()) return;
   visualized_nodes.insert(node);
 
-  _add_vertex(node, node->description());
+  _build_vertex(node);
 
   if (node->left_input()) {
     auto left_input = node->left_input();
@@ -64,8 +68,15 @@ void LQPVisualizer::_build_subtree(const std::shared_ptr<AbstractLQPNode>& node,
 
         _build_subtree(lqp_select_expression->lqp, visualized_nodes, visualized_sub_queries);
 
+        std::stringstream stream;
+        stream << "Subquery";
+
+        if (!lqp_select_expression->parameters.empty()) {
+          stream << "(" << lqp_select_expression->parameters.size() << " parameter(s))";
+        }
+
         auto edge_info = _default_edge;
-        edge_info.label = "Subquery";
+        edge_info.label = stream.str();
         edge_info.style = "dashed";
         _add_edge(lqp_select_expression->lqp, node, edge_info);
 
@@ -78,42 +89,92 @@ void LQPVisualizer::_build_subtree(const std::shared_ptr<AbstractLQPNode>& node,
 void LQPVisualizer::_build_dataflow(const std::shared_ptr<AbstractLQPNode>& from,
                                     const std::shared_ptr<AbstractLQPNode>& to) {
   float row_count, row_percentage = 100.0f;
-  double pen_width;
-
-  try {
-    row_count = from->get_statistics()->row_count();
-    pen_width = std::fmax(1, std::ceil(std::log10(row_count) / 2));
-  } catch (...) {
-    // statistics don't exist for this edge
-    row_count = NAN;
-    pen_width = 1.0;
-  }
-
-  if (from->left_input()) {
-    try {
-      float input_count = from->left_input()->get_statistics()->row_count();
-      if (from->right_input()) {
-        input_count *= from->right_input()->get_statistics()->row_count();
-      }
-      row_percentage = 100 * row_count / input_count;
-    } catch (...) {
-      // Couldn't create statistics. Using default value of 100%
-    }
-  }
-
-  std::ostringstream label_stream;
-  if (!isnan(row_count)) {
-    label_stream << " " << std::fixed << std::setprecision(1) << row_count << " row(s) | " << row_percentage
-                 << "% estd.";
-  } else {
-    label_stream << "no est.";
-  }
+  double pen_width = 1.0;
 
   VizEdgeInfo info = _default_edge;
-  info.label = label_stream.str();
+
+  if (visualize_cardinality_estimates) {
+    try {
+      row_count = from->get_statistics()->row_count();
+      pen_width = std::fmax(1, std::ceil(std::log10(row_count) / 2));
+    } catch (...) {
+      // statistics don't exist for this edge
+      row_count = NAN;
+      pen_width = 1.0;
+    }
+
+    if (from->left_input()) {
+      try {
+        float input_count = from->left_input()->get_statistics()->row_count();
+        if (from->right_input()) {
+          input_count *= from->right_input()->get_statistics()->row_count();
+        }
+        row_percentage = 100 * row_count / input_count;
+      } catch (...) {
+        // Couldn't create statistics. Using default value of 100%
+      }
+    }
+
+    std::ostringstream label_stream;
+    if (!isnan(row_count)) {
+      label_stream << " " << std::fixed << std::setprecision(1) << row_count << " row(s) | " << row_percentage
+                   << "% estd.";
+    } else {
+      label_stream << "no est.";
+    }
+
+    info.label = label_stream.str();
+  }
   info.pen_width = pen_width;
 
   _add_edge(from, to, info);
+}
+
+void LQPVisualizer::_build_vertex(const std::shared_ptr<AbstractLQPNode>& node) {
+  auto vertex_info = _default_vertex;
+  vertex_info.shape = "rectangle";
+
+  switch (node->type) {
+    case LQPNodeType::StoredTable: {
+      vertex_info.shape = "ellipse";
+      vertex_info.label = std::static_pointer_cast<StoredTableNode>(node)->table_name;
+    } break;
+
+    case LQPNodeType::Projection: {
+      Assert(node->left_input(), "Need input node to visualize ProjectionNode")
+
+      const auto projection_node = std::static_pointer_cast<ProjectionNode>(node);
+      vertex_info.shape = "record";
+      VizRecordLayout layout;
+
+      layout.add_label("Projection");
+
+      auto forward_count = size_t{0};
+      for (const auto& expression : projection_node->output_column_expressions()) {
+        if (node->left_input()->find_column_id(*expression)) {
+          ++forward_count;
+        } else {
+          layout.add_label(expression->as_column_name());
+        }
+      }
+
+      if (forward_count > 0) {
+        layout.add_label("Forwarding "s + std::to_string(forward_count) + " columns");
+      }
+
+      const auto discard_count = node->left_input()->output_column_expressions().size() - forward_count;
+      if (discard_count > 0) {
+        layout.add_label("Discarding "s + std::to_string(discard_count) + " columns");
+      }
+
+      vertex_info.label = layout.to_label_string();
+    } break;
+
+    default:
+      vertex_info.label = node->description();
+  }
+
+  _add_vertex(node, vertex_info);
 }
 
 }  // namespace opossum
