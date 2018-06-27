@@ -3,17 +3,20 @@
 #include "../jit_operations.hpp"
 #include "abstract_expression.hpp"
 #include "constant_mappings.hpp"
+#include "jit_read_tuples.hpp"
 
 namespace opossum {
 
 JitExpression::JitExpression(const JitTupleValue& tuple_value)
-    : _expression_type{ExpressionType::Column}, _result_value{tuple_value} {}
+    : _expression_type{ExpressionType::Column}, _result_value{tuple_value}, _load_column{false}, _input_column_index{} {}
 
 JitExpression::JitExpression(const std::shared_ptr<const JitExpression>& child, const ExpressionType expression_type,
                              const size_t result_tuple_index)
     : _left_child{child},
       _expression_type{expression_type},
-      _result_value{JitTupleValue(_compute_result_type(), result_tuple_index)} {}
+      _result_value{JitTupleValue(_compute_result_type(), result_tuple_index)},
+      _load_column{false},
+      _input_column_index{} {}
 
 JitExpression::JitExpression(const std::shared_ptr<const JitExpression>& left_child,
                              const ExpressionType expression_type,
@@ -21,21 +24,25 @@ JitExpression::JitExpression(const std::shared_ptr<const JitExpression>& left_ch
     : _left_child{left_child},
       _right_child{right_child},
       _expression_type{expression_type},
-      _result_value{JitTupleValue(_compute_result_type(), result_tuple_index)} {}
+      _result_value{JitTupleValue(_compute_result_type(), result_tuple_index)},
+      _load_column{false},
+      _input_column_index{} {}
 
 std::string JitExpression::to_string() const {
   if (_expression_type == ExpressionType::Column) {
-    return "x" + std::to_string(_result_value.tuple_index());
+    std::string load_column = _load_column ? " (Using input reader #" + std::to_string(_input_column_index) + ")" : "";
+    return "x" + std::to_string(_result_value.tuple_index()) + load_column;
   }
 
   const auto left = _left_child->to_string() + " ";
-  const auto right = _right_child ? _right_child->to_string() + " " : "";
+  const auto right = _right_child ? _right_child->to_string()  : "";
   return "(" + left + expression_type_to_string.at(_expression_type) + " " + right + ")";
 }
 
 void JitExpression::compute(JitRuntimeContext& context) const {
   // We are dealing with an already computed value here, so there is nothing to do.
   if (_expression_type == ExpressionType::Column) {
+    if (_load_column) context.inputs[_input_column_index]->read_value(context);
     return;
   }
 

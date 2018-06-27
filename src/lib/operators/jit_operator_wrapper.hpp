@@ -43,6 +43,7 @@ class JitOperatorWrapper : public AbstractReadOnlyOperator {
  private:
   const std::shared_ptr<JitReadTuples> _source() const;
   const std::shared_ptr<AbstractJittableSink> _sink() const;
+  void make_loads_lazy();
 
   const JitExecutionMode _execution_mode;
   JitCodeSpecializer _module;

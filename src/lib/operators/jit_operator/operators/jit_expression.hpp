@@ -38,6 +38,13 @@ class JitExpression {
    */
   void compute(JitRuntimeContext& context) const;
 
+  void set_load_column(const size_t input_column_index) const {
+    auto &non_const_load_column = const_cast<bool&>(_load_column);
+    non_const_load_column = true;
+    auto &non_const_input_column_index = const_cast<size_t&>(_input_column_index);
+    non_const_input_column_index = input_column_index;
+  }
+
  private:
   std::pair<const DataType, const bool> _compute_result_type();
 
@@ -45,6 +52,8 @@ class JitExpression {
   const std::shared_ptr<const JitExpression> _right_child;
   const ExpressionType _expression_type;
   const JitTupleValue _result_value;
+  const bool _load_column;
+  const size_t _input_column_index;
 };
 
 }  // namespace opossum

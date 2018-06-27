@@ -1,6 +1,9 @@
 #include "jit_operator_wrapper.hpp"
 
 #include "operators/jit_operator/operators/jit_aggregate.hpp"
+#include "operators/jit_operator/operators/jit_compute.hpp"
+#include "operators/jit_operator/operators/jit_read_value.hpp"
+
 
 namespace opossum {
 
@@ -37,11 +40,54 @@ const std::shared_ptr<AbstractJittableSink> JitOperatorWrapper::_sink() const {
   return std::dynamic_pointer_cast<AbstractJittableSink>(_jit_operators.back());
 }
 
+void JitOperatorWrapper::make_loads_lazy() {
+  std::map<size_t, size_t> inverted_input_columns;
+  auto input_columns = _source()->input_columns();
+  for (size_t input_column_index = 0; input_column_index < input_columns.size(); ++input_column_index) {
+    inverted_input_columns[input_columns[input_column_index].tuple_value.tuple_index()] = input_column_index;
+  }
+
+  std::vector<std::shared_ptr<AbstractJittable>> jit_operators;
+  std::vector<std::map<size_t, bool>> accessed_column_ids;
+  accessed_column_ids.reserve(jit_operators.size());
+  std::map<size_t, bool> column_id_used_by_one_operator;
+  for (const auto& jit_operator : _jit_operators) {
+    auto col_ids = jit_operator->accessed_column_ids();
+    accessed_column_ids.emplace_back(col_ids);
+    for (const auto &pair : accessed_column_ids.back()) {
+      if (inverted_input_columns.count(pair.first)) {
+        column_id_used_by_one_operator[pair.first] = !column_id_used_by_one_operator.count(pair.first);
+      }
+    }
+  }
+  auto ids_itr = accessed_column_ids.begin();
+  for (auto& jit_operator : _jit_operators) {
+    for (const auto &pair : *ids_itr++) {
+      if (column_id_used_by_one_operator.count(pair.first)) {
+        if (pair.second && column_id_used_by_one_operator[pair.first]) {
+          // insert within JitCompute operator
+          auto compute_ptr = std::dynamic_pointer_cast<JitCompute>(jit_operator);
+          compute_ptr->set_load_column(pair.first, inverted_input_columns[pair.first]);
+        } else {
+          jit_operators.emplace_back(std::make_shared<JitReadValue>(_source()->input_columns()[inverted_input_columns[pair.first]], inverted_input_columns[pair.first]));
+        }
+        column_id_used_by_one_operator.erase(pair.first);
+      }
+    }
+    jit_operators.push_back(jit_operator);
+  }
+
+
+  _jit_operators = jit_operators;
+}
+
 std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
   Assert(_source(), "JitOperatorWrapper does not have a valid source node.");
   Assert(_sink(), "JitOperatorWrapper does not have a valid sink node.");
 
-  std::cout << description(DescriptionMode::MultiLine) << std::endl;
+  std::cout << "Before make loads lazy:" << std::endl << description(DescriptionMode::MultiLine) << std::endl;
+  make_loads_lazy();
+  std::cout << "After make loads lazy:" << std::endl << description(DescriptionMode::MultiLine) << std::endl;
 
   const auto& in_table = *input_left()->get_output();
 
@@ -60,7 +106,7 @@ std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
   // We want to perform two specialization passes if the operator chain contains a JitAggregate operator, since the
   // JitAggregate operator contains multiple loops that need unrolling.
   auto two_specialization_passes = static_cast<bool>(std::dynamic_pointer_cast<JitAggregate>(_sink()));
-  switch (_execution_mode) {
+  switch (_execution_mode) {  // _execution_mode
     case JitExecutionMode::Compile:
       // this corresponds to "opossum::JitReadTuples::execute(opossum::JitRuntimeContext&) const"
       execute_func = _module.specialize_and_compile_function<void(const JitReadTuples*, JitRuntimeContext&)>(

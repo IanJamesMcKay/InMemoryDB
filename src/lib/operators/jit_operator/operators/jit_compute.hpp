@@ -16,7 +16,11 @@ class JitCompute : public AbstractJittable {
 
   std::shared_ptr<const JitExpression> expression();
 
- private:
+  std::map<size_t, bool> accessed_column_ids() const final;
+
+  void set_load_column(const size_t tuple_id, const size_t input_column_index) const;
+
+private:
   void _consume(JitRuntimeContext& context) const final;
 
   std::shared_ptr<const JitExpression> _expression;

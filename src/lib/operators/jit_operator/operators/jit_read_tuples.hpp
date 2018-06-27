@@ -13,7 +13,8 @@ namespace opossum {
 class BaseJitColumnReader {
  public:
   virtual ~BaseJitColumnReader() = default;
-  virtual void read_value(JitRuntimeContext& context) = 0;
+  virtual void read_value(JitRuntimeContext& context) const = 0;
+  virtual void increment() = 0;
 };
 
 struct JitInputColumn {
@@ -63,9 +64,8 @@ class JitReadTuples : public AbstractJittable {
         : _iterator{iterator}, _tuple_value{tuple_value} {}
 
     // Reads a value from the _iterator into the _tuple_value and increments the _iterator.
-    void read_value(JitRuntimeContext& context) {
+    void read_value(JitRuntimeContext& context) const {
       const auto& value = *_iterator;
-      ++_iterator;
       // clang-format off
       if constexpr (Nullable) {
         context.tuple.set_is_null(_tuple_value.tuple_index(), value.is_null());
@@ -76,6 +76,10 @@ class JitReadTuples : public AbstractJittable {
         context.tuple.set<DataType>(_tuple_value.tuple_index(), value.value());
       }
       // clang-format on
+    }
+
+    void increment() {
+      ++_iterator;
     }
 
    private:

@@ -70,6 +70,8 @@ class JitWriteTuples : public AbstractJittableSink {
 
   std::vector<JitOutputColumn> output_columns() const;
 
+  std::map<size_t, bool> accessed_column_ids() const final;
+
  private:
   void _consume(JitRuntimeContext& context) const final;
 

@@ -79,6 +79,8 @@ class JitAggregate : public AbstractJittableSink {
   const std::vector<JitAggregateColumn> aggregate_columns() const;
   const std::vector<JitGroupByColumn> groupby_columns() const;
 
+  std::map<size_t, bool> accessed_column_ids() const final;
+
  private:
   void _consume(JitRuntimeContext& ctx) const final;
 
