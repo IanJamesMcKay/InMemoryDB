@@ -168,7 +168,7 @@ float AbstractHistogram<T>::estimate_cardinality(const T value, const PredicateC
       // }
       //
       // return cardinality;
-      return 1 - estimate_cardinality(value, PredicateCondition::LessThanEquals);
+      return total_count() - estimate_cardinality(value, PredicateCondition::LessThanEquals);
     }
     default:
       Fail("Predicate condition not yet supported.");
