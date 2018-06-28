@@ -1,3 +1,7 @@
+# Setup the version.hpp file.
+# Include this here because we need the GENERATED property on version.hpp and in CMake that property has directory
+# scope
+include(${PROJECT_SOURCE_DIR}/cmake/git_watcher.cmake)
 # Sources and libraries shared among the different builds of the lib
 set(
     SOURCES
@@ -314,6 +318,14 @@ set(
     storage/dictionary_column/dictionary_encoder.hpp
     storage/dictionary_column.hpp
     storage/encoding_type.hpp
+    storage/fixed_string_dictionary_column.cpp
+    storage/fixed_string_dictionary_column.hpp
+    storage/fixed_string_dictionary_column/fixed_string.cpp
+    storage/fixed_string_dictionary_column/fixed_string.hpp
+    storage/fixed_string_dictionary_column/fixed_string_vector.cpp
+    storage/fixed_string_dictionary_column/fixed_string_vector.hpp
+    storage/fixed_string_dictionary_column/fixed_string_vector_iterator.cpp
+    storage/fixed_string_dictionary_column/fixed_string_vector_iterator.hpp
     storage/frame_of_reference_column.cpp
     storage/frame_of_reference_column.hpp
     storage/frame_of_reference/frame_of_reference_encoder.hpp
@@ -417,6 +429,7 @@ set(
     utils/copyable_atomic.hpp
     utils/cuckoo_hashtable.hpp
     utils/enum_constant.hpp
+    utils/filesystem.hpp
     utils/format_bytes.cpp
     utils/format_bytes.hpp
     utils/format_duration.cpp
@@ -436,6 +449,7 @@ set(
     utils/template_type.hpp
     utils/timer.cpp
     utils/timer.hpp
+    ${CMAKE_BINARY_DIR}/version.hpp
 )
 
 set(
@@ -481,6 +495,7 @@ if (${ENABLE_JIT_SUPPORT})
         operators/jit_operator/specialization/jit_code_specializer.hpp
         operators/jit_operator/specialization/jit_repository.cpp
         operators/jit_operator/specialization/jit_repository.hpp
+        operators/jit_operator/specialization/jit_runtime_pointer.cpp
         operators/jit_operator/specialization/jit_runtime_pointer.hpp
         operators/jit_operator/specialization/llvm/CloneFunction.cpp
         operators/jit_operator/specialization/llvm/InlineFunction.cpp
@@ -505,3 +520,4 @@ endif()
 # Configure the regular hyrise library used for tests/server/playground...
 add_library(hyrise STATIC ${SOURCES})
 target_link_libraries(hyrise ${LIBRARIES})
+target_include_directories(hyrise PUBLIC ${CMAKE_BINARY_DIR})
