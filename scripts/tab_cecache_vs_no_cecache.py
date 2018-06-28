@@ -7,6 +7,11 @@ import re
 import numpy as np
 import interesting_job_queries
 
+
+def diff(nocache, cache):
+    return -((nocache - cache) / nocache) * 100.0
+
+
 use_whitelist = False
 root_directory = "/home/moritz/pella/hyrise/joe/adaptive"
 
@@ -58,10 +63,23 @@ for name, df in data_frames:
     if name in blacklist:
         continue
 
+    plan_hashes = df["RankZeroPlanHash"]
+    convergence_idx = df.shape[0] - 1 # last "counting" idx
+    for idx in range(df.shape[0] - 1):
+        if plan_hashes[idx] == plan_hashes[idx + 1]:
+            convergence_idx = idx + 1
+            break
+
+    print("{} converges at iteration {}".format(name, convergence_idx))
+
     nocache_exe = df["RankZeroPlanExecutionDuration"][0] * iteration_count
-    cache_exe = np.sum(df["RankZeroPlanExecutionDuration"])
     nocache_total = nocache_exe + df["PlanningDuration"][0]
-    cache_total = cache_exe + np.sum(df["PlanningDuration"]) + np.sum(df["CECachingDuration"])
+
+    cache_planning_durations = df["PlanningDuration"][:convergence_idx]
+    cache_cecaching_durations = df["CECachingDuration"][:convergence_idx]
+
+    cache_exe = np.sum(df["RankZeroPlanExecutionDuration"])
+    cache_total = cache_exe + np.sum(cache_planning_durations) + np.sum(cache_cecaching_durations)
 
     all_nocache_total += nocache_total
     all_cache_total += cache_total
@@ -72,15 +90,48 @@ for name, df in data_frames:
         "nocache_total": nocache_total,
         "cache_exe": cache_exe,
         "cache_total": cache_total,
-        "diff": -((nocache_total - cache_total) / nocache_total) * 100.0
+        "diff": diff(nocache_total, cache_total)
     }
 
     table_data.append(query_data)
 
-table_df = pandas.DataFrame(table_data)
-table_df = table_df.sort_values("diff")
+table_data = sorted(table_data, key=lambda query_data: query_data["diff"])
 
-print(table_df)
+row_format = "{} & {:.2f}s & {:.2f}s & {:+.2f}\\% \\\\"
 
-all_diff = -((all_nocache_total - all_cache_total) / all_nocache_total) * 100.0
-print("{} {} {}".format(all_nocache_total, all_cache_total,all_diff ))
+
+def print_selection(selection):
+    for query_data in selection:
+        nocache_total_seconds = query_data["nocache_total"] / 1000000
+        cache_total_seconds = query_data["cache_total"] / 1000000
+
+        print(row_format.format(query_data["name"], nocache_total_seconds,
+                                                                cache_total_seconds, query_data["diff"]))
+
+head_tail_count = 3
+
+print_selection(table_data[:head_tail_count])
+print("\hline")
+
+print(pandas.DataFrame(table_data).to_string())
+
+omitted = table_data[head_tail_count:-head_tail_count]
+omitted_nocache_total = 0
+omitted_cache_total = 0
+for omitted_query in omitted:
+    omitted_nocache_total += omitted_query["nocache_total"]
+    omitted_cache_total += omitted_query["cache_total"]
+omitted_nocache_total_seconds = omitted_nocache_total / 1000000
+omitted_cache_total_seconds = omitted_cache_total / 1000000
+omitted_diff = diff(omitted_nocache_total, omitted_cache_total)
+
+print(row_format.format("{} omitted".format(len(omitted)), omitted_nocache_total_seconds, omitted_cache_total_seconds, omitted_diff))
+print("\hline")
+print_selection(table_data[-head_tail_count:])
+print("\hline")
+
+all_nocache_total_seconds = all_nocache_total / 1000000
+all_cache_total_seconds = all_cache_total / 1000000
+
+all_diff = diff(all_nocache_total, all_cache_total)
+print(row_format.format("Accumulated", all_nocache_total_seconds, all_cache_total_seconds, all_diff))
