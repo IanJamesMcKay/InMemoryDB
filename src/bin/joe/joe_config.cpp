@@ -36,6 +36,8 @@ void JoeConfig::add_options(cxxopts::Options& cli_options_description) {
   ("save-results", "Save head of result tables.", cxxopts::value(save_results)->default_value("true"))  // NOLINT
   ("shuffle-idx", "Shuffle plan order from this index on, 0 to disable", cxxopts::value(*plan_order_shuffling)->default_value("0"))  // NOLINT
   ("iterations-per-query", "Number of times to execute/optimize each query", cxxopts::value(iterations_per_query)->default_value("1"))  // NOLINT
+  ("iterations-per-workload", "Number of times to execute the workload", cxxopts::value(iterations_per_workload)->default_value("1"))  // NOLINT
+  ("permute-workload", "Run the queries of a workload in a random order", cxxopts::value(permute_workload)->default_value("false"))  // NOLINT
   ("isolate-queries", "Reset all cached data for each query", cxxopts::value(isolate_queries)->default_value("true"))  // NOLINT  // NOLINT
   ("save-plan-results", "Save measurements per plan", cxxopts::value(save_plan_results)->default_value("true"))  // NOLINT
   ("save-query-iterations-results", "Save measurements per query iterations", cxxopts::value(save_query_iterations_results)->default_value("true"))  // NOLINT

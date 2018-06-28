@@ -114,6 +114,15 @@ int main(int argc, char ** argv) {
   config->parse(cli_parse_result);
   config->setup();
 
-  Joe joe{config};
-  joe.run();
+  for (auto workload_iteration_idx = size_t{0};
+       workload_iteration_idx < config->iterations_per_workload;
+       ++workload_iteration_idx) {
+
+    if (config->iterations_per_workload != 1) {
+      out() << "Workload Iteration " << workload_iteration_idx << std::endl;
+    }
+
+    Joe joe{config, workload_iteration_idx};
+    joe.run();
+  }
 }

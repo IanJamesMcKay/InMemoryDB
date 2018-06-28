@@ -11,9 +11,11 @@ namespace opossum {
 
 class Joe final {
  public:
-  explicit Joe(const std::shared_ptr<JoeConfig>& config);
+  Joe(const std::shared_ptr<JoeConfig>& config, const size_t workload_iteration_idx);
 
   void run();
+
+  const size_t workload_iteration_idx;
 
   std::shared_ptr<JoeConfig> config;
 

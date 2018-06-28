@@ -39,6 +39,8 @@ struct JoeConfig final {
   std::optional<long> plan_order_shuffling = std::optional<long>{0};
   std::optional<std::vector<std::string>> query_name_strs;
   size_t iterations_per_query{1};
+  size_t iterations_per_workload{1};
+  bool permute_workload{false};
   bool isolate_queries{true};
   bool save_plan_results{true};
   bool save_query_iterations_results{true};
