@@ -28,7 +28,9 @@ node {
         stage("clang-release") {
           sh "export CCACHE_BASEDIR=`pwd`; cd clang-release && make all -j \$(( \$(cat /proc/cpuinfo | grep processor | wc -l) / 3))"
           sh "ulimit -c 10000; ./clang-release/hyriseTest clang-release"
+          archive 'core'  // Store the core dump (if it was created)
         }
+        
       }, clangDebugBuildOnly: {
         stage("clang-debug") {
           sh "export CCACHE_BASEDIR=`pwd`; cd clang-debug && make all -j \$(( \$(cat /proc/cpuinfo | grep processor | wc -l) / 3))"
@@ -44,12 +46,16 @@ node {
       parallel clangDebugRun: {
         stage("clang-debug:test") {
           sh "ulimit -c 10000; ./clang-debug/hyriseTest clang-debug"
+          archive 'core'  // Store the core dump (if it was created)
         }
+        
       }, clangDebugRunShuffled: {
         stage("clang-debug:test-shuffle") {
           sh "mkdir ./clang-debug/run-shuffled"
           sh "ulimit -c 10000; ./clang-debug/hyriseTest clang-debug/run-shuffled --gtest_repeat=5 --gtest_shuffle"
+          archive 'core'  // Store the core dump (if it was created)
         }
+        
       }, clangDebugSanitizers: {
         stage("clang-debug:sanitizers") {
           sh "export CCACHE_BASEDIR=`pwd`; cd clang-debug-sanitizers && make hyriseTest -j \$(( \$(cat /proc/cpuinfo | grep processor | wc -l) / 3))"
@@ -59,11 +65,15 @@ node {
         stage("gcc-release") {
           sh "export CCACHE_BASEDIR=`pwd`; cd gcc-release && make all -j \$(( \$(cat /proc/cpuinfo | grep processor | wc -l) / 3))"
           sh "ulimit -c 10000; ./gcc-release/hyriseTest gcc-release"
+          archive 'core'  // Store the core dump (if it was created)
         }
+        
       }, clangSystemTestRelease: {
         stage("System Test") {
-            sh "ulimit -c 10000; ./clang-release/hyriseSystemTest"
+          sh "ulimit -c 10000; ./clang-release/hyriseSystemTest"
+          archive 'core'  // Store the core dump (if it was created)
         }
+        
       }, clangReleaseSanitizers: {
         stage("clang-release:sanitizers (master only)") {
           if (env.BRANCH_NAME == 'master') {
@@ -119,8 +129,6 @@ node {
       }
     } catch (error) {
       stage ("Cleanup after fail") {
-        sh "find . -name core"
-        archive 'core'  // Store the core dump (if it was created)
         script {
           githubNotify context: 'CI Pipeline', status: 'FAILURE'
           if (env.BRANCH_NAME == 'master') {
