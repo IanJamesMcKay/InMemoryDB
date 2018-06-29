@@ -22,7 +22,7 @@ node {
         mkdir clang-release-sanitizers-no-numa && cd clang-release-sanitizers-no-numa && cmake -DCI_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang-6.0 -DCMAKE_CXX_COMPILER=clang++-6.0 -DENABLE_SANITIZATION=ON -DENABLE_NUMA_SUPPORT=OFF .. &\
         mkdir gcc-release && cd gcc-release && cmake -DCI_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ .. &\
         wait;\
-        echo core > /proc/sys/kernel/core_pattern"
+        sudo echo core > /proc/sys/kernel/core_pattern"
       }
 
       parallel clangRelease: {
