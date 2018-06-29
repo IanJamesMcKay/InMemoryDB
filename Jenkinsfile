@@ -21,13 +21,13 @@ node {
         mkdir clang-release && cd clang-release && cmake -DCI_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang-6.0 -DCMAKE_CXX_COMPILER=clang++-6.0 .. &\
         mkdir clang-release-sanitizers-no-numa && cd clang-release-sanitizers-no-numa && cmake -DCI_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang-6.0 -DCMAKE_CXX_COMPILER=clang++-6.0 -DENABLE_SANITIZATION=ON -DENABLE_NUMA_SUPPORT=OFF .. &\
         mkdir gcc-release && cd gcc-release && cmake -DCI_BUILD=ON -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ .. &\
-        wait; ulimit -c 10000"
+        wait;"
       }
 
       parallel clangRelease: {
         stage("clang-release") {
           sh "export CCACHE_BASEDIR=`pwd`; cd clang-release && make all -j \$(( \$(cat /proc/cpuinfo | grep processor | wc -l) / 3))"
-          sh "./clang-release/hyriseTest clang-release"
+          sh "ulimit -c 10000; ./clang-release/hyriseTest clang-release"
         }
       }, clangDebugBuildOnly: {
         stage("clang-debug") {
@@ -43,12 +43,12 @@ node {
 
       parallel clangDebugRun: {
         stage("clang-debug:test") {
-          sh "./clang-debug/hyriseTest clang-debug"
+          sh "ulimit -c 10000; ./clang-debug/hyriseTest clang-debug"
         }
       }, clangDebugRunShuffled: {
         stage("clang-debug:test-shuffle") {
           sh "mkdir ./clang-debug/run-shuffled"
-          sh "./clang-debug/hyriseTest clang-debug/run-shuffled --gtest_repeat=5 --gtest_shuffle"
+          sh "ulimit -c 10000; ./clang-debug/hyriseTest clang-debug/run-shuffled --gtest_repeat=5 --gtest_shuffle"
         }
       }, clangDebugSanitizers: {
         stage("clang-debug:sanitizers") {
@@ -58,11 +58,11 @@ node {
       }, gccRelease: {
         stage("gcc-release") {
           sh "export CCACHE_BASEDIR=`pwd`; cd gcc-release && make all -j \$(( \$(cat /proc/cpuinfo | grep processor | wc -l) / 3))"
-          sh "./gcc-release/hyriseTest gcc-release"
+          sh "ulimit -c 10000; ./gcc-release/hyriseTest gcc-release"
         }
       }, clangSystemTestRelease: {
         stage("System Test") {
-            sh "./clang-release/hyriseSystemTest"
+            sh "ulimit -c 10000; ./clang-release/hyriseSystemTest"
         }
       }, clangReleaseSanitizers: {
         stage("clang-release:sanitizers (master only)") {
@@ -119,7 +119,7 @@ node {
       }
     } catch (error) {
       stage ("Cleanup after fail") {
-        archive '*/core'
+        archive 'core'  // Store the core dump (if it was created)
         script {
           githubNotify context: 'CI Pipeline', status: 'FAILURE'
           if (env.BRANCH_NAME == 'master') {
