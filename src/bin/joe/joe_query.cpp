@@ -1,10 +1,12 @@
 #include "joe_query.hpp"
 
 #include <chrono>
+#include <sstream>
 
 #include "out.hpp"
 #include "write_csv.hpp"
 #include "planviz/join_graph_visualizer.hpp"
+#include "joe.hpp"
 
 namespace opossum {
 
@@ -20,17 +22,19 @@ std::ostream &operator<<(std::ostream &stream, const JoeQuerySample &sample) {
   return stream;
 }
 
-JoeQuery::JoeQuery(const std::shared_ptr<JoeConfig>& config, const std::string& name, const std::string& sql):
-  config(config), sql(sql) {
+JoeQuery::JoeQuery(const Joe& joe, const std::string& name, const std::string& sql):
+  joe(joe), sql(sql) {
   sample.name = name;
 }
 
 void JoeQuery::run() {
   out() << "-- Evaluating Query: " << sample.name << std::endl;
 
+  const auto config = joe.config;
+
   // Enable CardinalityEstimationCache logging
   if (config->cardinality_estimation_cache_log) {
-    config->cardinality_estimation_cache->set_log(std::make_shared<std::ofstream>(config->evaluation_prefix + "CardinalityEstimationCache-" + sample.name + ".log"));
+    config->cardinality_estimation_cache->set_log(std::make_shared<std::ofstream>(prefix() + "CardinalityEstimationCache-" + sample.name + ".log"));
   }
 
   execution_begin = std::chrono::steady_clock::now();
@@ -53,7 +57,7 @@ void JoeQuery::run() {
       write_csv(query_iterations,
                 "RankZeroPlanExecutionDuration,BestPlanExecutionDuration,PlanningDuration,CECachingDuration,CECacheHitCount,CECacheMissCount,CECacheSize,"
                 "CECacheDistinctHitCount,CECacheDistinctMissCount,RankZeroPlanHash,BestPlanExecutionDuration",
-                config->evaluation_prefix + sample.name + ".Iterations.csv");
+                prefix() + "Iterations.csv");
     }
 
     if (config->visualize && !join_graph_visualized) {
@@ -65,6 +69,8 @@ void JoeQuery::run() {
 }
 
 void JoeQuery::visualize_join_graph(const std::shared_ptr<JoinGraph>& join_graph) {
+  const auto config = joe.config;
+
   try {
     JoinGraphVisualizer visualizer{{}, {}, {}, {}};
     visualizer.visualize(join_graph, config->tmp_dot_file_path,
@@ -72,6 +78,12 @@ void JoeQuery::visualize_join_graph(const std::shared_ptr<JoinGraph>& join_graph
   } catch (const std::exception &e) {
     out() << "----- Error while visualizing: " << e.what() << std::endl;
   }
+}
+
+std::string JoeQuery::prefix() const {
+  std::stringstream stream;
+  stream << joe.prefix() << sample.name << ".";
+  return stream.str();
 }
 
 }  // namespace opossum

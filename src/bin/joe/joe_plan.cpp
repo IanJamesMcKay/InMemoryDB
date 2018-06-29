@@ -14,6 +14,7 @@
 #include "out.hpp"
 #include "joe_query_iteration.hpp"
 #include "joe_query.hpp"
+#include "joe.hpp"
 #include "optimizer/join_ordering/join_graph_builder.hpp"
 
 namespace opossum {
@@ -34,15 +35,14 @@ std::ostream &operator<<(std::ostream &stream, const JoePlanSample &sample) {
 JoePlan::JoePlan(JoeQueryIteration& query_iteration, const Cost estimated_cost, const std::shared_ptr<AbstractLQPNode>& lqp, const size_t idx):
   query_iteration(query_iteration), lqp(lqp), idx(idx)
 {
-  name = query_iteration.name + "-" + std::to_string(idx);
   sample.hash = lqp->hash();
   sample.est_cost = estimated_cost;
 }
 
 void JoePlan::run() {
-  out() << "----- Evaluating " << query_iteration.name << " plan " << idx << "/" << (query_iteration.plans.size() - 1) << std::endl;
+  out() << "----- Evaluating plan " << idx << "/" << (query_iteration.plans.size() - 1) << std::endl;
 
-  auto& config = query_iteration.query.config;
+  auto& config = query_iteration.query.joe.config;
 
   /**
    *  Translate to PQP
@@ -100,7 +100,7 @@ void JoePlan::run() {
 }
 
 void JoePlan::sample_cost_features(const std::vector<std::shared_ptr<AbstractOperator>> &operators) {
-  auto& config = query_iteration.query.config;
+  auto& config = query_iteration.query.joe.config;
 
   if (!config->cost_sample_dir) return;
 
@@ -155,13 +155,19 @@ void JoePlan::sample_cost_features(const std::vector<std::shared_ptr<AbstractOpe
 }
 
 void JoePlan::visualize(const SQLQueryPlan& plan) {
-  auto& config = query_iteration.query.config;
+  auto& config = query_iteration.query.joe.config;
 
   try {
     SQLQueryPlanVisualizer visualizer{{}, {}, {}, {}};
     visualizer.set_cost_model(config->cost_model);
-    visualizer.visualize(plan, config->tmp_dot_file_path,
-                         std::string(config->evaluation_dir + "/viz/") + name + ".svg");
+
+    std::stringstream stream;
+    stream << config->evaluation_dir << "/viz/";
+    stream << "WIter." << query_iteration.query.joe.workload_iteration_idx << ".";
+    stream << query_iteration.query.sample.name << ".QIter." << query_iteration.idx;
+    stream << ".Plan." << idx << ".svg";
+
+    visualizer.visualize(plan, config->tmp_dot_file_path, stream.str());
   } catch (const std::exception &e) {
     out() << "----- Error while visualizing: " << e.what() << std::endl;
   }
@@ -174,7 +180,7 @@ void JoePlan::save_plan_result_table(const SQLQueryPlan& plan) {
   auto limit = std::make_shared<Limit>(output_wrapper, 500);
   limit->execute();
 
-  std::ofstream output_file(query_iteration.query.config->evaluation_prefix + query_iteration.query.sample.name + ".ResultTable.txt");
+  std::ofstream output_file(query_iteration.query.prefix() + "ResultTable.txt");
   output_file << "Total Row Count: " << plan.tree_roots().at(0)->get_output()->row_count() << std::endl;
   output_file << std::endl;
   Print::print(limit->get_output(), 0, output_file);
@@ -187,7 +193,7 @@ void JoePlan::init_cardinality_cache_entries(const std::vector<std::shared_ptr<A
     sample.cecaching_duration += duration;
   });
 
-  auto& config = query_iteration.query.config;
+  auto& config = query_iteration.query.joe.config;
 
   const auto cardinality_estimation_cache = config->cardinality_estimation_cache;
 
@@ -213,7 +219,7 @@ void JoePlan::cache_cardinalities(const std::vector<std::shared_ptr<AbstractOper
     sample.cecaching_duration += duration;
   });
 
-  auto& config = query_iteration.query.config;
+  auto& config = query_iteration.query.joe.config;
 
   const auto cardinality_estimation_cache = config->cardinality_estimation_cache;
 

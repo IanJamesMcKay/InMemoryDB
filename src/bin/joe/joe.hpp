@@ -3,8 +3,6 @@
 #include <memory>
 
 #include "joe_config.hpp"
-//#include "joe_plan.hpp"
-//#include "joe_query_iteration.hpp"
 #include "joe_query.hpp"
 
 namespace opossum {
@@ -15,11 +13,12 @@ class Joe final {
 
   void run();
 
-  const size_t workload_iteration_idx;
+  std::string prefix() const;
 
   std::shared_ptr<JoeConfig> config;
+  const size_t workload_iteration_idx;
 
-  std::vector<JoeQuery> queries;
+  std::vector<std::shared_ptr<JoeQuery>> queries;
 };
 
 }  // namespace opossum

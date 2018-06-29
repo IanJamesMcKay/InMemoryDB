@@ -1,5 +1,7 @@
 #include "joe_query_iteration.hpp"
 
+#include <sstream>
+
 #include "sql/sql.hpp"
 #include "utils/timer.hpp"
 #include "utils/format_duration.hpp"
@@ -7,6 +9,7 @@
 #include "out.hpp"
 #include "joe_query.hpp"
 #include "write_csv.hpp"
+#include "joe.hpp"
 
 namespace opossum {
 
@@ -30,11 +33,10 @@ std::ostream &operator<<(std::ostream &stream, const JoeQueryIterationSample &sa
 
 JoeQueryIteration::JoeQueryIteration(JoeQuery& query, const size_t idx):
   query(query), idx(idx) {
-  name = query.sample.name + "-Iteration-" + std::to_string(idx);
 }
 
 void JoeQueryIteration::run() {
-  const auto config = query.config;
+  const auto config = query.joe.config;
 
   out() << "--- Query Iteration " << idx << std::endl;
 
@@ -52,8 +54,8 @@ void JoeQueryIteration::run() {
   const auto unoptimized_lqp = sql_pipeline_statement.get_unoptimized_logical_plan();
   const auto lqp_root = std::shared_ptr<AbstractLQPNode>(LogicalPlanRootNode::make(unoptimized_lqp));
   join_graph = JoinGraph::from_lqp(unoptimized_lqp);
-  const auto plan_generation_count = query.config->max_plan_generation_count ? *query.config->max_plan_generation_count : DpSubplanCacheTopK::NO_ENTRY_LIMIT;
-  DpCcpTopK dp_ccp_top_k{plan_generation_count, query.config->cost_model, query.config->main_cardinality_estimator};
+  const auto plan_generation_count = config->max_plan_generation_count ? *config->max_plan_generation_count : DpSubplanCacheTopK::NO_ENTRY_LIMIT;
+  DpCcpTopK dp_ccp_top_k{plan_generation_count, config->cost_model, config->main_cardinality_estimator};
   dp_ccp_top_k(join_graph);
   JoinVertexSet all_vertices{join_graph->vertices.size()};
   all_vertices.flip();
@@ -63,11 +65,11 @@ void JoeQueryIteration::run() {
    * Take measurements about Plan Generation
    */
   sample.planning_duration = std::chrono::duration_cast<std::chrono::microseconds>(timer.lap());
-  sample.ce_cache_hit_count = query.config->cardinality_estimation_cache->cache_hit_count();
-  sample.ce_cache_miss_count = query.config->cardinality_estimation_cache->cache_miss_count();
-  sample.ce_cache_size = query.config->cardinality_estimation_cache->size();
-  sample.ce_cache_distinct_hit_count = query.config->cardinality_estimation_cache->distinct_hit_count();
-  sample.ce_cache_distinct_miss_count = query.config->cardinality_estimation_cache->distinct_miss_count();
+  sample.ce_cache_hit_count = config->cardinality_estimation_cache->cache_hit_count();
+  sample.ce_cache_miss_count = config->cardinality_estimation_cache->cache_miss_count();
+  sample.ce_cache_size = config->cardinality_estimation_cache->size();
+  sample.ce_cache_distinct_hit_count = config->cardinality_estimation_cache->distinct_hit_count();
+  sample.ce_cache_distinct_miss_count = config->cardinality_estimation_cache->distinct_miss_count();
 
   out() << "---- Generated " << join_plans.size() << " plans in " << format_duration(std::chrono::duration_cast<std::chrono::nanoseconds>(sample.planning_duration)) << std::endl;
 
@@ -96,11 +98,11 @@ void JoeQueryIteration::run() {
   std::vector<size_t> plan_indices(join_plans.size());
   std::iota(plan_indices.begin(), plan_indices.end(), 0);
 
-  if (query.config->plan_order_shuffling) {
-    if (plan_indices.size() > static_cast<size_t>(*query.config->plan_order_shuffling)) {
+  if (config->plan_order_shuffling) {
+    if (plan_indices.size() > static_cast<size_t>(*config->plan_order_shuffling)) {
       std::random_device rd;
       std::mt19937 g(rd());
-      std::shuffle(plan_indices.begin() + *query.config->plan_order_shuffling, plan_indices.end(), g);
+      std::shuffle(plan_indices.begin() + *config->plan_order_shuffling, plan_indices.end(), g);
     }
   }
 
@@ -117,8 +119,8 @@ void JoeQueryIteration::run() {
     /**
      * Check for break conditions
      */
-    if (query.config->max_plan_execution_count && plans_execution_count >= *query.config->max_plan_execution_count) {
-      out() << "---- Requested number of plans (" << *query.config->max_plan_execution_count << ") executed, stopping" << std::endl;
+    if (config->max_plan_execution_count && plans_execution_count >= *config->max_plan_execution_count) {
+      out() << "---- Requested number of plans (" << *config->max_plan_execution_count << ") executed, stopping" << std::endl;
       break;
     }
 
@@ -151,11 +153,11 @@ void JoeQueryIteration::run() {
     /**
      * Timeout query
      */
-    if (query.config->query_timeout_seconds) {
+    if (config->query_timeout_seconds) {
       const auto query_duration = std::chrono::steady_clock::now() - query.execution_begin;
 
       if (std::chrono::duration_cast<std::chrono::seconds>(query_duration).count() >=
-          *query.config->query_timeout_seconds) {
+          *config->query_timeout_seconds) {
         out() << "---- Query timeout" << std::endl;
         break;
       }
@@ -171,19 +173,26 @@ void JoeQueryIteration::run() {
 }
 
 void JoeQueryIteration::dump_cardinality_estimation_cache() {
-  if (!query.config->cardinality_estimation_cache_dump) return;
+  const auto config = query.joe.config;
+  if (!config->cardinality_estimation_cache_dump) return;
 
-  std::ofstream stream{query.config->evaluation_prefix + "CardinalityEstimationCache-" + query.sample.name + ".dump.log"};
-  query.config->cardinality_estimation_cache->print(stream);
+  std::ofstream stream{prefix() + "CardinalityEstimationCache.Dump.log"};
+  config->cardinality_estimation_cache->print(stream);
 }
 
 void JoeQueryIteration::write_plans_csv() {
-  const auto config = query.config;
+  const auto config = query.joe.config;
   if (config->save_plan_results) {
     write_csv(plans,
               "ExecutionDuration,EstCost,ReEstCost,AimCost,AbsEstCostError,AbsReEstCostError,CECachingDuration,Hash",
-              config->evaluation_prefix + name + ".Plans.csv");
+              prefix() + "Plans.csv");
   }
+}
+
+std::string JoeQueryIteration::prefix() const {
+  std::stringstream stream;
+  stream << query.prefix() << "QIteration." << idx << ".";
+  return stream.str();
 }
 
 }  // namespace opossum

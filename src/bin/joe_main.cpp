@@ -119,7 +119,7 @@ int main(int argc, char ** argv) {
        ++workload_iteration_idx) {
 
     if (config->iterations_per_workload != 1) {
-      out() << "Workload Iteration " << workload_iteration_idx << std::endl;
+      out() << "-- Workload Iteration " << workload_iteration_idx << std::endl;
     }
 
     Joe joe{config, workload_iteration_idx};

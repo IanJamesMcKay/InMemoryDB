@@ -5,6 +5,8 @@
 
 namespace opossum {
 
+class Joe;
+
 struct JoeQuerySample {
   std::string name;
   std::shared_ptr<JoePlan> best_plan;
@@ -14,13 +16,14 @@ std::ostream &operator<<(std::ostream &stream, const JoeQuerySample &sample);
 
 class JoeQuery final {
  public:
-  JoeQuery(const std::shared_ptr<JoeConfig>& config, const std::string& name, const std::string& sql);
+  JoeQuery(const Joe& joe, const std::string& name, const std::string& sql);
 
   void run();
 
   void visualize_join_graph(const std::shared_ptr<JoinGraph>& join_graph);
+  std::string prefix() const;
 
-  std::shared_ptr<JoeConfig> config;
+  const Joe& joe;
   std::string sql;
 
   std::chrono::steady_clock::time_point execution_begin;

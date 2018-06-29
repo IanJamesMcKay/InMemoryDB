@@ -70,6 +70,7 @@ struct JoeConfig final {
   std::string evaluation_dir;
   std::string evaluation_prefix;
   std::string tmp_dot_file_path;
+  std::string tmp_dir_path;
 
   /**
    * tmps

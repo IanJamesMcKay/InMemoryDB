@@ -288,12 +288,14 @@ void JoeConfig::setup() {
   /**
   * Create evaluation dir
   */
-  evaluation_dir = "joe/" + evaluation_name;
+  evaluation_dir = "joe/" + evaluation_name + "/";
   out() << "-- Writing results to '" << evaluation_dir << "'" << std::endl;
-  tmp_dot_file_path = evaluation_dir + "/viz/" + boost::lexical_cast<std::string>(boost::uuids::random_generator{}()) + ".dot";
+  tmp_dir_path = evaluation_dir + "/tmp/";
+  tmp_dot_file_path = tmp_dir_path + boost::lexical_cast<std::string>(boost::uuids::random_generator{}()) + ".dot";
   std::experimental::filesystem::create_directories(evaluation_dir);
+  std::experimental::filesystem::create_directories(tmp_dir_path);
   std::experimental::filesystem::create_directory(evaluation_dir + "/viz");
-  evaluation_prefix = evaluation_dir + "/" + cost_model->name() + "-" + std::string(IS_DEBUG ? "d" : "r") + "-";
+  evaluation_prefix = evaluation_dir;
 
   if (cost_sample_dir) {
     std::experimental::filesystem::create_directories(*cost_sample_dir);

@@ -28,13 +28,13 @@ class JoeQueryIteration final {
   void run();
   void write_plans_csv();
   void dump_cardinality_estimation_cache();
+  std::string prefix() const;
 
   JoeQuery& query;
 
   JoeQueryIterationSample sample;
 
   size_t idx;
-  std::string name;
   std::vector<std::shared_ptr<JoePlan>> plans;
   size_t plans_execution_count{0};
   std::optional<std::chrono::seconds> current_plan_timeout;
