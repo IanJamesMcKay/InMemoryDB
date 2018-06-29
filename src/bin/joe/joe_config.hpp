@@ -22,8 +22,8 @@ struct JoeConfig final {
   std::string cost_model_str = "linear";
   std::string workload_str = "tpch";
   std::string cardinality_estimation_str = "cached";
-  std::string cardinality_estimation_cache_access_str = "none";
-  std::string cardinality_estimation_cache_path = "joe/cardinality_estimation_cache.production.json";
+  std::string persistent_cardinality_estimation_cache_access_str = "none";
+  std::string persistent_cardinality_estimation_cache_path = "joe/cardinality_estimation_cache.production.json";
   std::string imdb_dir = "";
   std::string job_dir = "";
   float scale_factor = 0.1f;
@@ -51,6 +51,7 @@ struct JoeConfig final {
   bool unique_plans{false};
   bool force_plan_zero{false};
   bool join_graph_log{true};
+  bool cache_cardinalities{false};
   std::string evaluation_name;
   std::optional<std::string> cost_sample_dir{""};
 

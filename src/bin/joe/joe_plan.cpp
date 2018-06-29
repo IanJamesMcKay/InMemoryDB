@@ -221,6 +221,8 @@ void JoePlan::cache_cardinalities(const std::vector<std::shared_ptr<AbstractOper
 
   auto& config = query_iteration.query.joe.config;
 
+  if (!config->cache_cardinalities) return;
+
   const auto cardinality_estimation_cache = config->cardinality_estimation_cache;
 
   for (const auto& op : operators) {

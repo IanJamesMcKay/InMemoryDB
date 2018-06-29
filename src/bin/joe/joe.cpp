@@ -32,8 +32,8 @@ void Joe::run() {
     query->run();
 
     if (config->cardinality_estimation_cache_access == CardinalityEstimationCacheAccess::ReadAndWrite) {
-      out() << "-- Updating persistent cardinality estimation cache '" << config->cardinality_estimation_cache_path << "'" << std::endl;
-      config->cardinality_estimation_cache->update(config->cardinality_estimation_cache_path);
+      out() << "-- Updating persistent cardinality estimation cache '" << config->persistent_cardinality_estimation_cache_path << "'" << std::endl;
+      config->cardinality_estimation_cache->update(config->persistent_cardinality_estimation_cache_path);
       out() << "-- Done!" << std::endl;
     }
 
