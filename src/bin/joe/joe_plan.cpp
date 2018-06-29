@@ -53,7 +53,7 @@ void JoePlan::run() {
   /**
    * Execute plan
    */
-  init_cardinality_cache_entries(operators);
+  // init_cardinality_cache_entries(operators);
 
   auto timer = Timer{};
   auto timed_out = false;
