@@ -165,6 +165,9 @@ TEST_F(RecreationTest, RecreationTableScan) {
 }
 
 TEST_F(RecreationTest, DiamondShape) {
+  int* test = nullptr;
+  std::cout << (*test + 3) << std::endl;
+
   auto scan_a = std::make_shared<TableScan>(_table_wrapper_a, ColumnID{0}, PredicateCondition::GreaterThanEquals, 1234);
   auto scan_b = std::make_shared<TableScan>(scan_a, ColumnID{1}, PredicateCondition::LessThan, 1000);
   auto scan_c = std::make_shared<TableScan>(scan_a, ColumnID{1}, PredicateCondition::GreaterThan, 2000);
