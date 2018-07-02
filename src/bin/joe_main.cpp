@@ -124,5 +124,8 @@ int main(int argc, char ** argv) {
 
     Joe joe{config, workload_iteration_idx};
     joe.run();
+
+    //
+    config->cardinality_estimation_cache->clear();
   }
 }
