@@ -14,7 +14,7 @@ std::shared_ptr<const JitExpression> JitCompute::expression() { return _expressi
 
 std::map<size_t, bool> JitCompute::accessed_column_ids() const {
   std::map<size_t, bool> column_ids;
-  std::stack<const std::shared_ptr<const JitExpression>> stack;
+  std::stack<std::shared_ptr<const JitExpression>> stack;
   stack.push(_expression);
   while (!stack.empty()) {
     auto current = stack.top();
@@ -30,7 +30,7 @@ std::map<size_t, bool> JitCompute::accessed_column_ids() const {
 }
 
 void JitCompute::set_load_column(const size_t tuple_id, const size_t input_column_index) const {
-  std::stack<const std::shared_ptr<const JitExpression>> stack;
+  std::stack<std::shared_ptr<const JitExpression>> stack;
   stack.push(_expression);
   while (!stack.empty()) {
     auto current = stack.top();
