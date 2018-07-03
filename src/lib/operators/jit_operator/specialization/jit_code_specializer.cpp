@@ -81,7 +81,7 @@ std::shared_ptr<llvm::Module> JitCodeSpecializer::specialize_function(
     _perform_load_substitution(context);
     _optimize(context, false);
   }
-  print(context);
+  if (false) print(context);
   if (false) print_function(context.root_function);
 
   return context.module;
@@ -175,7 +175,7 @@ void JitCodeSpecializer::_inline_function_calls(SpecializationContext& context) 
 
     bool no_inline = boost::contains(function.getName().str(), "no_inline");
     if (no_inline) {
-      std::cout << "not inlining: " << function.getName().str() << std::endl;
+      // std::cout << "not inlining: " << function.getName().str() << std::endl;
     }
 
     // A note about "__clang_call_terminate":
