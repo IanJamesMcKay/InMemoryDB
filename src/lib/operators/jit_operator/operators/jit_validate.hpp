@@ -1,8 +1,8 @@
 #pragma once
 
 #include "abstract_jittable.hpp"
-#include "types.hpp"
 #include "concurrency/transaction_context.hpp"
+#include "types.hpp"
 
 namespace opossum {
 
@@ -11,8 +11,10 @@ namespace opossum {
  */
 class JitValidate : public AbstractJittable {
  public:
-  explicit JitValidate(const TransactionID transaction_id, const CommitID snapshot_commit_id, const bool use_ref_pos_list = false);
-  explicit JitValidate(const std::shared_ptr<TransactionContext>& transaction_context, const bool use_ref_pos_list = false);
+  explicit JitValidate(const TransactionID transaction_id, const CommitID snapshot_commit_id,
+                       const bool use_ref_pos_list = false);
+  explicit JitValidate(const std::shared_ptr<TransactionContext>& transaction_context,
+                       const bool use_ref_pos_list = false);
 
   std::string description() const final;
 

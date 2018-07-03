@@ -22,17 +22,19 @@ bool is_row_visible(CommitID our_tid, CommitID snapshot_commit_id, ChunkOffset c
 
 }  // namespace
 
-JitValidate::JitValidate(const TransactionID transaction_id, const CommitID snapshot_commit_id, const bool use_ref_pos_list) :
-        _transaction_id(transaction_id), _snapshot_commit_id(snapshot_commit_id), _use_ref_pos_list(use_ref_pos_list) {}
+JitValidate::JitValidate(const TransactionID transaction_id, const CommitID snapshot_commit_id,
+                         const bool use_ref_pos_list)
+    : _transaction_id(transaction_id), _snapshot_commit_id(snapshot_commit_id), _use_ref_pos_list(use_ref_pos_list) {}
 
-JitValidate::JitValidate(const std::shared_ptr<TransactionContext>& transaction_context, const bool use_ref_pos_list) :
-        _transaction_id(transaction_context->transaction_id()),
-        _snapshot_commit_id(transaction_context->snapshot_commit_id()),
-        _use_ref_pos_list(use_ref_pos_list){}
+JitValidate::JitValidate(const std::shared_ptr<TransactionContext>& transaction_context, const bool use_ref_pos_list)
+    : _transaction_id(transaction_context->transaction_id()),
+      _snapshot_commit_id(transaction_context->snapshot_commit_id()),
+      _use_ref_pos_list(use_ref_pos_list) {}
 
-std::string JitValidate::description() const { return "[Validate] with transaction id: " +
-                                                      std::to_string(_transaction_id) + ", commit id: " +
-                                                      std::to_string(_snapshot_commit_id); }
+std::string JitValidate::description() const {
+  return "[Validate] with transaction id: " + std::to_string(_transaction_id) +
+         ", commit id: " + std::to_string(_snapshot_commit_id);
+}
 
 TransactionID JitValidate::transaction_id() const { return _transaction_id; }
 

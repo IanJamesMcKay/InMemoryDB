@@ -8,7 +8,10 @@
 namespace opossum {
 
 JitExpression::JitExpression(const JitTupleValue& tuple_value)
-    : _expression_type{ExpressionType::Column}, _result_value{tuple_value}, _load_column{false}, _input_column_index{} {}
+    : _expression_type{ExpressionType::Column},
+      _result_value{tuple_value},
+      _load_column{false},
+      _input_column_index{} {}
 
 JitExpression::JitExpression(const std::shared_ptr<const JitExpression>& child, const ExpressionType expression_type,
                              const size_t result_tuple_index)
@@ -35,7 +38,7 @@ std::string JitExpression::to_string() const {
   }
 
   const auto left = _left_child->to_string() + " ";
-  const auto right = _right_child ? _right_child->to_string()  : "";
+  const auto right = _right_child ? _right_child->to_string() : "";
   return "(" + left + expression_type_to_string.at(_expression_type) + " " + right + ")";
 }
 
@@ -68,9 +71,11 @@ void JitExpression::compute(JitRuntimeContext& context) const {
   // Check, whether right side can be pruned
   // AND: false and true/false/null = false
   // OR:  true  or  true/false/null = true
-  if (_expression_type == ExpressionType::And && !_left_child->result().is_null(context) && !_left_child->result().get<bool>(context)) {
+  if (_expression_type == ExpressionType::And && !_left_child->result().is_null(context) &&
+      !_left_child->result().get<bool>(context)) {
     return jit_and(_left_child->result(), _right_child->result(), _result_value, context, true);
-  } else if (_expression_type == ExpressionType::Or && !_left_child->result().is_null(context) && _left_child->result().get<bool>(context)) {
+  } else if (_expression_type == ExpressionType::Or && !_left_child->result().is_null(context) &&
+             _left_child->result().get<bool>(context)) {
     return jit_or(_left_child->result(), _right_child->result(), _result_value, context, true);
   }
 

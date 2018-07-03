@@ -46,7 +46,7 @@ std::vector<JitOutputColumn> JitWriteTuples::output_columns() const { return _ou
 
 std::map<size_t, bool> JitWriteTuples::accessed_column_ids() const {
   std::map<size_t, bool> column_ids;
-  for (const auto &column : _output_columns) {
+  for (const auto& column : _output_columns) {
     column_ids.insert_or_assign(column.tuple_value.tuple_index(), false);
   }
   return column_ids;

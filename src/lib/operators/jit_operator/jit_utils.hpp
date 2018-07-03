@@ -1,7 +1,7 @@
 #pragma once
 
-#include "types.hpp"
 #include "storage/mvcc_columns.hpp"
+#include "types.hpp"
 
 namespace opossum {
 
@@ -13,8 +13,7 @@ struct Mvcc {
 
 namespace no_inline {
 
-__attribute__((noinline))
-Mvcc unpack_mvcc(const MvccColumns &columns, ChunkOffset chunk_offset);
+__attribute__((noinline)) Mvcc unpack_mvcc(const MvccColumns& columns, ChunkOffset chunk_offset);
 
 }  // namespace no_inline
 

@@ -20,7 +20,7 @@ class JitCompute : public AbstractJittable {
 
   void set_load_column(const size_t tuple_id, const size_t input_column_index) const;
 
-private:
+ private:
   void _consume(JitRuntimeContext& context) const final;
 
   std::shared_ptr<const JitExpression> _expression;

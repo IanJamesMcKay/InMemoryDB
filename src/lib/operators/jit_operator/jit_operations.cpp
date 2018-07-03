@@ -50,8 +50,8 @@ void jit_and(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleV
   }
 }
 
-void jit_or(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result,
-            JitRuntimeContext& context, const bool prune_right_side) {
+void jit_or(const JitTupleValue& lhs, const JitTupleValue& rhs, const JitTupleValue& result, JitRuntimeContext& context,
+            const bool prune_right_side) {
   DebugAssert(
       lhs.data_type() == DataType::Bool && rhs.data_type() == DataType::Bool && result.data_type() == DataType::Bool,
       "invalid type for operation");

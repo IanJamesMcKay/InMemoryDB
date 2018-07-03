@@ -23,9 +23,7 @@ class AbstractJittable {
 
   virtual std::string description() const = 0;
 
-  virtual std::map<size_t, bool> accessed_column_ids() const {
-    return std::map<size_t, bool>();
-  }
+  virtual std::map<size_t, bool> accessed_column_ids() const { return std::map<size_t, bool>(); }
 
  protected:
   void _emit(JitRuntimeContext& context) const { _next_operator->_consume(context); }

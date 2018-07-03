@@ -1,34 +1,35 @@
 #include "jit_code_specializer.hpp"
 
 #include <llvm/Analysis/GlobalsModRef.h>
+
 #include <llvm/Analysis/TargetTransformInfo.h>
+
+#include <llvm/IR/IRPrintingPasses.h>
+#include <llvm/IR/InstIterator.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/Linker/IRMover.h>
 #include <llvm/Support/YAMLTraits.h>
 #include <llvm/Transforms/IPO/ForceFunctionAttrs.h>
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include <llvm/Transforms/Scalar.h>
-#include "llvm/IR/InstIterator.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/IRPrintingPasses.h"
 
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <queue>
 
-#include "llvm_extensions.hpp"
 #include "jit_runtime_pointer.hpp"
-
+#include "llvm_extensions.hpp"
 
 namespace opossum {
 
 namespace {
-void print(SpecializationContext &context) {
+void print(SpecializationContext& context) {
   llvm::legacy::PassManager pass_manager;
   pass_manager.add(llvm::createPrintModulePass(llvm::errs()));
   pass_manager.run(*context.module);
 }
 
-void print_function(llvm::Function *F) {
+void print_function(llvm::Function* F) {
   for (llvm::inst_iterator I = llvm::inst_begin(F), E = llvm::inst_end(F); I != E; ++I) {
     llvm::errs() << *I << "\n";
   }

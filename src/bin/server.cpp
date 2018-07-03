@@ -27,7 +27,6 @@ int main(int argc, char* argv[]) {
     auto table_c = opossum::load_table("src/test/tables/int3.tbl", 1000);
     opossum::StorageManager::get().add_table("tmp2", table_c);
 
-
     // Set scheduler so that the server can execute the tasks on separate threads.
     opossum::CurrentScheduler::set(
         std::make_shared<opossum::NodeQueueScheduler>(opossum::Topology::create_numa_topology()));

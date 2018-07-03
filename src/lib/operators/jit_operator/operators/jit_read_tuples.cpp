@@ -49,7 +49,6 @@ void JitReadTuples::before_chunk(const Table& in_table, const Chunk& in_chunk, J
     }
   }
 
-
   // Create the column iterator for each input column and store them to the runtime context
   for (const auto& input_column : _input_columns) {
     const auto column_id = input_column.column_id;

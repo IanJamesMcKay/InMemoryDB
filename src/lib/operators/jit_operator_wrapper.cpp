@@ -4,7 +4,6 @@
 #include "operators/jit_operator/operators/jit_compute.hpp"
 #include "operators/jit_operator/operators/jit_read_value.hpp"
 
-
 namespace opossum {
 
 JitOperatorWrapper::JitOperatorWrapper(const std::shared_ptr<const AbstractOperator> left,
@@ -54,7 +53,7 @@ void JitOperatorWrapper::make_loads_lazy() {
   for (const auto& jit_operator : _jit_operators) {
     auto col_ids = jit_operator->accessed_column_ids();
     accessed_column_ids.emplace_back(col_ids);
-    for (const auto &pair : accessed_column_ids.back()) {
+    for (const auto& pair : accessed_column_ids.back()) {
       if (inverted_input_columns.count(pair.first)) {
         column_id_used_by_one_operator[pair.first] = !column_id_used_by_one_operator.count(pair.first);
       }
@@ -62,21 +61,21 @@ void JitOperatorWrapper::make_loads_lazy() {
   }
   auto ids_itr = accessed_column_ids.begin();
   for (auto& jit_operator : _jit_operators) {
-    for (const auto &pair : *ids_itr++) {
+    for (const auto& pair : *ids_itr++) {
       if (column_id_used_by_one_operator.count(pair.first)) {
         if (pair.second && column_id_used_by_one_operator[pair.first]) {
           // insert within JitCompute operator
           auto compute_ptr = std::dynamic_pointer_cast<JitCompute>(jit_operator);
           compute_ptr->set_load_column(pair.first, inverted_input_columns[pair.first]);
         } else {
-          jit_operators.emplace_back(std::make_shared<JitReadValue>(_source()->input_columns()[inverted_input_columns[pair.first]], inverted_input_columns[pair.first]));
+          jit_operators.emplace_back(std::make_shared<JitReadValue>(
+              _source()->input_columns()[inverted_input_columns[pair.first]], inverted_input_columns[pair.first]));
         }
         column_id_used_by_one_operator.erase(pair.first);
       }
     }
     jit_operators.push_back(jit_operator);
   }
-
 
   _jit_operators = jit_operators;
 }

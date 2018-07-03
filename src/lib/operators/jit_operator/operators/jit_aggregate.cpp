@@ -213,10 +213,10 @@ const std::vector<JitGroupByColumn> JitAggregate::groupby_columns() const { retu
 
 std::map<size_t, bool> JitAggregate::accessed_column_ids() const {
   std::map<size_t, bool> column_ids;
-  for (const auto &column : _groupby_columns) {
+  for (const auto& column : _groupby_columns) {
     column_ids.insert_or_assign(column.tuple_value.tuple_index(), false);
   }
-  for (const auto &column : _aggregate_columns) {
+  for (const auto& column : _aggregate_columns) {
     column_ids.insert_or_assign(column.tuple_value.tuple_index(), false);
   }
   return column_ids;

@@ -78,9 +78,7 @@ class JitReadTuples : public AbstractJittable {
       // clang-format on
     }
 
-    void increment() {
-      ++_iterator;
-    }
+    void increment() { ++_iterator; }
 
    private:
     Iterator _iterator;
