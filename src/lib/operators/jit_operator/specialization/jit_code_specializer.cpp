@@ -7,6 +7,9 @@
 #include <llvm/Transforms/IPO/ForceFunctionAttrs.h>
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include <llvm/Transforms/Scalar.h>
+#include "llvm/IR/InstIterator.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/IRPrintingPasses.h"
 
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -15,9 +18,6 @@
 #include "llvm_extensions.hpp"
 #include "jit_runtime_pointer.hpp"
 
-#include "llvm/IR/InstIterator.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/IRPrintingPasses.h"
 
 namespace opossum {
 
