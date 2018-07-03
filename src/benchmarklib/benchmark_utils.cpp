@@ -379,11 +379,11 @@ The encoding is always required, the compression is optional.
   },
 
   "type": {
-    <DATA_TPYE>: {
+    <DATA_TYPE>: {
       "encoding": <ENCODING_TYPE_STRING>,
       "compression": <VECTOR_COMPRESSION_TYPE_STRING>
     },
-    <DATA_TPYE>: {
+    <DATA_TYPE>: {
       "encoding": <ENCODING_TYPE_STRING>
     }
   },

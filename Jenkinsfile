@@ -28,9 +28,6 @@ node {
         stage("clang-release") {
           sh "export CCACHE_BASEDIR=`pwd`; cd clang-release && make all -j \$(( \$(cat /proc/cpuinfo | grep processor | wc -l) / 3))"
           sh "./clang-release/hyriseTest clang-release"
-
-          // https://stackoverflow.com/questions/51048414/clang-how-to-check-if-lto-was-performed/51103593#51103593
-          sh "llvm-dis .clang-release/src/lib/CMakeFiles/hyrise.dir/abstract_expression.cpp.o || echo Link-Time Optimization failed"
         }
       }, clangDebugBuildOnly: {
         stage("clang-debug") {

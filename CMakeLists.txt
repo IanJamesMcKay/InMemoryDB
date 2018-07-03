@@ -99,7 +99,8 @@ endif()
 
 # Link Time Optimization (LTO)
 cmake_policy(SET CMP0069 NEW)
-if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+option(ENABLE_COVERAGE "Set to ON to build Hyrise with enabled coverage checking. Default: OFF" OFF)
+if (${ENABLE_COVERAGE})
     if(NOT ${CMAKE_VERSION} VERSION_LESS "3.9.0")
         cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
         include(CheckIPOSupported)
@@ -116,7 +117,8 @@ endif()
 
 # Include sub-CMakeLists.txt
 add_subdirectory(third_party/ EXCLUDE_FROM_ALL)
-# Some third-party libs don't support LTO:
+
+# Some third-party libs don't support LTO (if enabled above):
 set_property(TARGET gtest PROPERTY INTERPROCEDURAL_OPTIMIZATION FALSE)
 set_property(TARGET gtest_main PROPERTY INTERPROCEDURAL_OPTIMIZATION FALSE)
 set_property(TARGET gmock PROPERTY INTERPROCEDURAL_OPTIMIZATION FALSE)
