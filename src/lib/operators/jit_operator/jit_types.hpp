@@ -127,6 +127,8 @@ struct JitRuntimeContext {
   const MvccColumns* columns;
   std::shared_ptr<const Table> referenced_table;
   PosList::const_iterator pos_list_itr;
+  TransactionID transaction_id;
+  CommitID snapshot_commit_id;
 };
 
 // The JitTupleValue represents a value in the runtime tuple.

@@ -70,7 +70,7 @@ int main() {
   auto read_tuple = std::make_shared<opossum::JitReadTuples>(false);
   opossum::JitTupleValue tuple_val = read_tuple->add_input_column(opossum::DataType::Int, false, opossum::ColumnID(0));
   jit_operator->add_jit_operator(read_tuple);
-  jit_operator->add_jit_operator(std::make_shared<opossum::JitValidate>(context, false));
+  jit_operator->add_jit_operator(std::make_shared<opossum::JitValidate>(false));
 
   auto id = read_tuple->add_temporary_value();
 

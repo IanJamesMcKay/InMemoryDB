@@ -22,23 +22,11 @@ bool is_row_visible(CommitID our_tid, CommitID snapshot_commit_id, ChunkOffset c
 
 }  // namespace
 
-JitValidate::JitValidate(const TransactionID transaction_id, const CommitID snapshot_commit_id,
-                         const bool use_ref_pos_list)
-    : _transaction_id(transaction_id), _snapshot_commit_id(snapshot_commit_id), _use_ref_pos_list(use_ref_pos_list) {}
-
-JitValidate::JitValidate(const std::shared_ptr<TransactionContext>& transaction_context, const bool use_ref_pos_list)
-    : _transaction_id(transaction_context->transaction_id()),
-      _snapshot_commit_id(transaction_context->snapshot_commit_id()),
-      _use_ref_pos_list(use_ref_pos_list) {}
+JitValidate::JitValidate(const bool use_ref_pos_list) : _use_ref_pos_list(use_ref_pos_list) {}
 
 std::string JitValidate::description() const {
-  return "[Validate] with transaction id: " + std::to_string(_transaction_id) +
-         ", commit id: " + std::to_string(_snapshot_commit_id);
+  return "[Validate]";
 }
-
-TransactionID JitValidate::transaction_id() const { return _transaction_id; }
-
-CommitID JitValidate::snapshot_commit_id() const { return _snapshot_commit_id; }
 
 void JitValidate::_consume(JitRuntimeContext& context) const {
   bool row_is_visible;
@@ -46,9 +34,9 @@ void JitValidate::_consume(JitRuntimeContext& context) const {
     const auto row_id = *context.pos_list_itr;
     const auto referenced_chunk = context.referenced_table->get_chunk(row_id.chunk_id);
     const auto mvcc_columns = referenced_chunk->mvcc_columns();
-    row_is_visible = is_row_visible(_transaction_id, _snapshot_commit_id, row_id.chunk_offset, *mvcc_columns);
+    row_is_visible = is_row_visible(context.transaction_id, context.snapshot_commit_id, row_id.chunk_offset, *mvcc_columns);
   } else {
-    row_is_visible = is_row_visible(_transaction_id, _snapshot_commit_id, context.chunk_offset, *context.columns);
+    row_is_visible = is_row_visible(context.transaction_id, context.snapshot_commit_id, context.chunk_offset, *context.columns);
   }
   if (row_is_visible) _emit(context);
 }

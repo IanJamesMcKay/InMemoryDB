@@ -16,6 +16,7 @@
 #include "operators/jit_operator/operators/jit_compute.hpp"
 #include "operators/jit_operator/operators/jit_filter.hpp"
 #include "operators/jit_operator/operators/jit_read_tuples.hpp"
+#include "operators/jit_operator/operators/jit_validate.hpp"
 #include "operators/jit_operator/operators/jit_write_tuples.hpp"
 #include "storage/storage_manager.hpp"
 
@@ -55,10 +56,21 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_node_t
   uint32_t num_jittable_nodes{0};
   std::unordered_set<std::shared_ptr<AbstractLQPNode>> input_nodes;
 
+  // Check for altering query
+  bool select_query = true;
+  _visit(node, [&](auto& current_node) {
+    select_query &= current_node->type() != LQPNodeType::Update && current_node->type() != LQPNodeType::Delete;
+    return true;
+  });
+  if (!select_query) return nullptr;
+
+  bool use_validate = false;
+
   // Traverse query tree until a non-jittable nodes is found in each branch
   _visit(node, [&](auto& current_node) {
     const auto is_root_node = current_node == node;
     if (_node_is_jittable(current_node, is_root_node)) {
+      use_validate |= current_node->type() == LQPNodeType::Validate;
       ++num_jittable_nodes;
       return true;
     } else {
@@ -66,6 +78,7 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_node_t
       return false;
     }
   });
+
 
   // We use a really simple heuristic to decide when to introduce jittable operators:
   // For aggregate operations replacing a single AggregateNode with a JitAggregate operator already yields significant
@@ -99,6 +112,8 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_node_t
     // and then filter on the resulting boolean.
     jit_operator->add_jit_operator(std::make_shared<JitFilter>(expression->result()));
   }
+
+  if (use_validate) jit_operator->add_jit_operator(std::make_shared<JitValidate>());
 
   if (node->type() == LQPNodeType::Aggregate) {
     // Since aggregate nodes cause materialization, there is at most one JitAggregate operator in each operator chain
@@ -200,7 +215,11 @@ std::shared_ptr<const JitExpression> JitAwareLQPTranslator::_try_translate_node_
 
     case LQPNodeType::Projection:
       // We don't care about projection nodes here, since they do not perform any tuple filtering
+    case LQPNodeType::Validate:
+      // The validate filters independently to the filter node
       return _try_translate_node_to_jit_expression(node->left_input(), jit_source, input_node);
+
+
 
     default:
       return nullptr;
@@ -346,7 +365,7 @@ bool JitAwareLQPTranslator::_node_is_jittable(const std::shared_ptr<AbstractLQPN
            std::dynamic_pointer_cast<PredicateNode>(node)->predicate_condition() != PredicateCondition::Between;
   }
 
-  if (node->type() == LQPNodeType::Projection || node->type() == LQPNodeType::Union) {
+  if (node->type() == LQPNodeType::Projection || node->type() == LQPNodeType::Union || node->type() == LQPNodeType::Validate) {
     return true;
   }
 

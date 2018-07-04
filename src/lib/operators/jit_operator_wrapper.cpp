@@ -94,6 +94,10 @@ std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
   auto out_table = _sink()->create_output_table(in_table.max_chunk_size());
 
   JitRuntimeContext context;
+  if (transaction_context_is_set()) {
+    context.transaction_id = transaction_context()->transaction_id();
+    context.snapshot_commit_id = transaction_context()->snapshot_commit_id();
+  }
   _source()->before_query(in_table, context);
   _sink()->before_query(*out_table, context);
 
