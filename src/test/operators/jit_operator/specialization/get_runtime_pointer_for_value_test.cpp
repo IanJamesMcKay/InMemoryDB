@@ -88,10 +88,6 @@ class GetRuntimePointerForValueTest : public BaseTest {
     assert_address_eq(GetRuntimePointerForValue(_value_7, _context), reinterpret_cast<uint64_t>(some_pointer_1));
   }
 
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/mrks/jittests
   std::shared_ptr<llvm::LLVMContext> _llvm_context;
   SpecializationContext _context;
   llvm::Value* _value_0;
@@ -104,13 +100,7 @@ class GetRuntimePointerForValueTest : public BaseTest {
   llvm::Value* _value_7;
 };
 
-<<<<<<< HEAD
-TEST_F(GetRuntimePointerForValueTest, BitcodePointerInstructionsAreProperlySimulated) {
-  bitcode_pointer_test();
-}
-=======
 TEST_F(GetRuntimePointerForValueTest, BitcodePointerInstructionsAreProperlySimulated) { bitcode_pointer_test(); }
->>>>>>> origin/mrks/jittests
 
 TEST_F(GetRuntimePointerForValueTest, RuntimePointersAreInvalidWithoutInitialAddress) {
   //
