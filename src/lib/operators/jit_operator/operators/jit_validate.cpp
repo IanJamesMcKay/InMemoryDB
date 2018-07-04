@@ -9,7 +9,9 @@ namespace {
 
 bool is_row_visible(CommitID our_tid, CommitID snapshot_commit_id, ChunkOffset chunk_offset,
                     const MvccColumns& columns) {
-  Mvcc mvcc = no_inline::unpack_mvcc(columns, chunk_offset);
+  const auto row_tid = columns.tids[chunk_offset].load();
+  const auto begin_cid = columns.begin_cids[chunk_offset];
+  const auto end_cid = columns.end_cids[chunk_offset];
 
   // Taken from: https://github.com/hyrise/hyrise/blob/master/docs/documentation/queryexecution/tx.rst
   // auto own_insert = (our_tid == row_tid) && !(snapshot_commit_id >= begin_cid) && !(snapshot_commit_id >= end_cid);
@@ -17,7 +19,7 @@ bool is_row_visible(CommitID our_tid, CommitID snapshot_commit_id, ChunkOffset c
   // return own_insert || past_insert;
 
   // since gcc and clang are surprisingly bad at optimizing the above boolean expression, lets do that ourselves
-  return snapshot_commit_id < mvcc.end_cid && ((snapshot_commit_id >= mvcc.begin_cid) != (mvcc.row_tid == our_tid));
+  return snapshot_commit_id < end_cid && ((snapshot_commit_id >= begin_cid) != (row_tid == our_tid));
 }
 
 }  // namespace
