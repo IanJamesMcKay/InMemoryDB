@@ -172,44 +172,44 @@ TEST_F(JitOperationsTest, JitAnd) {
 
   // Test of three-valued logic AND operation
   {
-    jit_and(null_value, null_value, result_value, context);
+    jit_and(null_value, null_value, result_value, context, false);
     EXPECT_TRUE(result_value.is_null(context));
   }
   {
-    jit_and(null_value, true_value, result_value, context);
+    jit_and(null_value, true_value, result_value, context, false);
     EXPECT_TRUE(result_value.is_null(context));
   }
   {
-    jit_and(null_value, false_value, result_value, context);
+    jit_and(null_value, false_value, result_value, context, false);
     EXPECT_FALSE(result_value.is_null(context));
     EXPECT_FALSE(result_value.get<bool>(context));
   }
   {
-    jit_and(true_value, null_value, result_value, context);
+    jit_and(true_value, null_value, result_value, context, false);
     EXPECT_TRUE(result_value.is_null(context));
   }
   {
-    jit_and(true_value, true_value, result_value, context);
+    jit_and(true_value, true_value, result_value, context, false);
     EXPECT_FALSE(result_value.is_null(context));
     EXPECT_TRUE(result_value.get<bool>(context));
   }
   {
-    jit_and(true_value, false_value, result_value, context);
+    jit_and(true_value, false_value, result_value, context, false);
     EXPECT_FALSE(result_value.is_null(context));
     EXPECT_FALSE(result_value.get<bool>(context));
   }
   {
-    jit_and(false_value, null_value, result_value, context);
+    jit_and(false_value, null_value, result_value, context, true);
     EXPECT_FALSE(result_value.is_null(context));
     EXPECT_FALSE(result_value.get<bool>(context));
   }
   {
-    jit_and(false_value, true_value, result_value, context);
+    jit_and(false_value, true_value, result_value, context, true);
     EXPECT_FALSE(result_value.is_null(context));
     EXPECT_FALSE(result_value.get<bool>(context));
   }
   {
-    jit_and(false_value, false_value, result_value, context);
+    jit_and(false_value, false_value, result_value, context, true);
     EXPECT_FALSE(result_value.is_null(context));
     EXPECT_FALSE(result_value.get<bool>(context));
   }
@@ -217,7 +217,7 @@ TEST_F(JitOperationsTest, JitAnd) {
   // Check that invalid data type combinations are rejected
   if (IS_DEBUG) {
     const JitTupleValue int_value{DataType::Int, false, 0};
-    EXPECT_THROW(jit_and(true_value, int_value, result_value, context), std::logic_error);
+    EXPECT_THROW(jit_and(true_value, int_value, result_value, context, false), std::logic_error);
   }
 }
 
@@ -236,44 +236,44 @@ TEST_F(JitOperationsTest, JitOr) {
 
   // Test of three-valued logic OR operation
   {
-    jit_or(null_value, null_value, result_value, context);
+    jit_or(null_value, null_value, result_value, context, false);
     EXPECT_TRUE(result_value.is_null(context));
   }
   {
-    jit_or(null_value, true_value, result_value, context);
+    jit_or(null_value, true_value, result_value, context, false);
     EXPECT_FALSE(result_value.is_null(context));
     EXPECT_TRUE(result_value.get<bool>(context));
   }
   {
-    jit_or(null_value, false_value, result_value, context);
+    jit_or(null_value, false_value, result_value, context, false);
     EXPECT_TRUE(result_value.is_null(context));
   }
   {
-    jit_or(true_value, null_value, result_value, context);
+    jit_or(true_value, null_value, result_value, context, true);
     EXPECT_FALSE(result_value.is_null(context));
     EXPECT_TRUE(result_value.get<bool>(context));
   }
   {
-    jit_or(true_value, true_value, result_value, context);
+    jit_or(true_value, true_value, result_value, context, true);
     EXPECT_FALSE(result_value.is_null(context));
     EXPECT_TRUE(result_value.get<bool>(context));
   }
   {
-    jit_or(true_value, false_value, result_value, context);
+    jit_or(true_value, false_value, result_value, context, true);
     EXPECT_FALSE(result_value.is_null(context));
     EXPECT_TRUE(result_value.get<bool>(context));
   }
   {
-    jit_or(false_value, null_value, result_value, context);
+    jit_or(false_value, null_value, result_value, context, false);
     EXPECT_TRUE(result_value.is_null(context));
   }
   {
-    jit_or(false_value, true_value, result_value, context);
+    jit_or(false_value, true_value, result_value, context, false);
     EXPECT_FALSE(result_value.is_null(context));
     EXPECT_TRUE(result_value.get<bool>(context));
   }
   {
-    jit_or(false_value, false_value, result_value, context);
+    jit_or(false_value, false_value, result_value, context, false);
     EXPECT_FALSE(result_value.is_null(context));
     EXPECT_FALSE(result_value.get<bool>(context));
   }
@@ -281,7 +281,7 @@ TEST_F(JitOperationsTest, JitOr) {
   // Check that invalid data type combinations are rejected
   if (IS_DEBUG) {
     const JitTupleValue int_value{DataType::Int, false, 0};
-    EXPECT_THROW(jit_or(true_value, int_value, result_value, context), std::logic_error);
+    EXPECT_THROW(jit_or(true_value, int_value, result_value, context, false), std::logic_error);
   }
 }
 

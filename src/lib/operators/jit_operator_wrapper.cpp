@@ -3,6 +3,7 @@
 #include "operators/jit_operator/operators/jit_aggregate.hpp"
 #include "operators/jit_operator/operators/jit_compute.hpp"
 #include "operators/jit_operator/operators/jit_read_value.hpp"
+#include "operators/jit_operator/operators/jit_validate.hpp"
 
 namespace opossum {
 
@@ -96,10 +97,14 @@ std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
   _source()->before_query(in_table, context);
   _sink()->before_query(*out_table, context);
 
+  bool has_validate = false;
+
   // Connect operators to a chain
   for (auto it = _jit_operators.begin(); it != _jit_operators.end() && it + 1 != _jit_operators.end(); ++it) {
     (*it)->set_next_operator(*(it + 1));
+    if (std::dynamic_pointer_cast<JitValidate>(*it)) has_validate = true;
   }
+  _source()->set_has_validate(has_validate);
 
   std::function<void(const JitReadTuples*, JitRuntimeContext&)> execute_func;
   // We want to perform two specialization passes if the operator chain contains a JitAggregate operator, since the

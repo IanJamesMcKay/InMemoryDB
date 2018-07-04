@@ -105,6 +105,8 @@ class JitReadTuples : public AbstractJittable {
 
   void execute(JitRuntimeContext& context) const;
 
+  void set_has_validate(const bool has_validate) { _has_validate = has_validate; };
+
  protected:
   uint32_t _num_tuple_values{0};
   std::vector<JitInputColumn> _input_columns;
@@ -113,6 +115,7 @@ class JitReadTuples : public AbstractJittable {
  private:
   void _consume(JitRuntimeContext& context) const final {}
   const bool _use_ref_pos_list;
+  bool _has_validate;
 };
 
 }  // namespace opossum

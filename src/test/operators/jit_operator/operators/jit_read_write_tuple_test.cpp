@@ -1,5 +1,6 @@
 #include "../../../base_test.hpp"
 #include "operators/jit_operator/operators/jit_read_tuples.hpp"
+#include "operators/jit_operator/operators/jit_read_value.hpp"
 #include "operators/jit_operator/operators/jit_write_tuples.hpp"
 #include "utils/load_table.hpp"
 
@@ -73,13 +74,19 @@ TEST_F(JitReadWriteTupleTest, CopyTable) {
   // Create operator chain that passes from the input tuple to an output table unmodified
   auto read_tuples = std::make_shared<JitReadTuples>();
   auto write_tuples = std::make_shared<JitWriteTuples>();
-  read_tuples->set_next_operator(write_tuples);
 
   // Add all input table columns to pipeline
   auto a_value = read_tuples->add_input_column(DataType::Int, true, ColumnID{0});
   auto b_value = read_tuples->add_input_column(DataType::Float, true, ColumnID{1});
   write_tuples->add_output_column("a", a_value);
   write_tuples->add_output_column("b", b_value);
+
+  auto read_value_a = std::make_shared<JitReadValue>(read_tuples->input_columns()[0], 0);
+  auto read_value_b = std::make_shared<JitReadValue>(read_tuples->input_columns()[1], 1);
+
+  read_tuples->set_next_operator(read_value_a);
+  read_value_a->set_next_operator(read_value_b);
+  read_value_b->set_next_operator(write_tuples);
 
   // Initialize operators with actual input table
   auto input_table = load_table("src/test/tables/int_float_null_sorted_asc.tbl", 2);
@@ -96,7 +103,7 @@ TEST_F(JitReadWriteTupleTest, CopyTable) {
   write_tuples->after_query(*output_table, context);
 
   // Both tables should be equal now
-  ASSERT_TRUE(check_table_equal(input_table, output_table, OrderSensitivity::Yes, TypeCmpMode::Strict,
+  ASSERT_TRUE(check_table_equal(output_table, input_table, OrderSensitivity::Yes, TypeCmpMode::Strict,
                                 FloatComparisonMode::AbsoluteDifference));
 }
 
