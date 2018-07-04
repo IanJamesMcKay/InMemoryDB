@@ -487,10 +487,10 @@ if (${ENABLE_JIT_SUPPORT})
     embed_llvm(LLVM_BUNDLE_FILE jit_llvm_bundle ${JIT_EMBEDDED_SOURCES})
     set(
         SOURCES
-        operators/jit_operator/jit_aware_lqp_translator.cpp
-        operators/jit_operator/jit_aware_lqp_translator.hpp
         operators/jit_operator/jit_utils.cpp
         operators/jit_operator/jit_utils.hpp
+        logical_query_plan/jit_aware_lqp_translator.cpp
+        logical_query_plan/jit_aware_lqp_translator.hpp
         operators/jit_operator/specialization/jit_compiler.cpp
         operators/jit_operator/specialization/jit_compiler.hpp
         operators/jit_operator/specialization/jit_code_specializer.cpp

@@ -1,5 +1,7 @@
 #include "jit_aware_lqp_translator.hpp"
 
+#if HYRISE_JIT_SUPPORT
+
 #include <boost/range/adaptors.hpp>
 #include <boost/range/combine.hpp>
 
@@ -10,20 +12,37 @@
 #include "logical_query_plan/aggregate_node.hpp"
 #include "logical_query_plan/projection_node.hpp"
 #include "logical_query_plan/stored_table_node.hpp"
-#include "operators/jit_aggregate.hpp"
-#include "operators/jit_compute.hpp"
-#include "operators/jit_filter.hpp"
-#include "operators/jit_read_tuples.hpp"
-#include "operators/jit_write_tuples.hpp"
+#include "operators/jit_operator/operators/jit_aggregate.hpp"
+#include "operators/jit_operator/operators/jit_compute.hpp"
+#include "operators/jit_operator/operators/jit_filter.hpp"
+#include "operators/jit_operator/operators/jit_read_tuples.hpp"
+#include "operators/jit_operator/operators/jit_write_tuples.hpp"
 #include "storage/storage_manager.hpp"
 
 namespace opossum {
 
-JitAwareLQPTranslator::JitAwareLQPTranslator() : LQPTranslator() {
-#if !HYRISE_JIT_SUPPORT
-  Fail("Query translation with JIT operators requested, but jitting is not available");
-#endif
+void column_name_for_aggregate_rec(const std::shared_ptr<opossum::LQPExpression>& expression, std::stringstream& stream,
+                                   const bool brackets = true) {
+  if (expression->type() == ExpressionType::Column) {
+    const auto& column_reference = expression->column_reference();
+    stream << column_reference.original_node()->output_column_names()[column_reference.original_column_id()];
+  } else {
+    if (brackets) stream << "(";
+    DebugAssert(expression->is_arithmetic_operator(), "Unsupported expression type");
+    column_name_for_aggregate_rec(expression->left_child(), stream);
+    stream << " " << expression_type_to_operator_string.at(expression->type()) << " ";
+    column_name_for_aggregate_rec(expression->right_child(), stream);
+    if (brackets) stream << ")";
+  }
 }
+
+std::string column_name_for_aggregate(const std::shared_ptr<opossum::LQPExpression>& expression) {
+  std::stringstream stream;
+  column_name_for_aggregate_rec(expression, stream, false);
+  return stream.str();
+}
+
+JitAwareLQPTranslator::JitAwareLQPTranslator() : LQPTranslator() {}
 
 std::shared_ptr<AbstractOperator> JitAwareLQPTranslator::translate_node(
     const std::shared_ptr<AbstractLQPNode>& node) const {
@@ -112,15 +131,19 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_node_t
     for (const auto& aggregate_column : boost::combine(aggregate_column_names, aggregate_columns)) {
       const auto aggregate_expression = aggregate_column.get<1>();
       DebugAssert(aggregate_expression->type() == ExpressionType::Function, "Expression is not a function.");
-      const auto expression = _try_translate_expression_to_jit_expression(
-          *aggregate_expression->aggregate_function_arguments()[0], *read_tuple, input_node);
+      const auto function_arg = aggregate_expression->aggregate_function_arguments()[0];
+      const auto expression = _try_translate_expression_to_jit_expression(*function_arg, *read_tuple, input_node);
       if (!expression) return nullptr;
       // Create a JitCompute operator for each aggregate expression on a computed value ...
       if (expression->expression_type() != ExpressionType::Column) {
         jit_operator->add_jit_operator(std::make_shared<JitCompute>(expression));
       }
+      // ... resolve the aggregate column name ...
+      const std::string& aggregate_column_name = aggregate_expression->alias().value_or(
+          aggregate_function_to_string.left.at(aggregate_expression->aggregate_function()) + "(" +
+          column_name_for_aggregate(function_arg) + ")");
       // ... and add the aggregate expression to the JitAggregate operator.
-      aggregate->add_aggregate_column(aggregate_column.get<0>(), expression->result(),
+      aggregate->add_aggregate_column(aggregate_column_name, expression->result(),
                                       aggregate_expression->aggregate_function());
     }
 
@@ -352,3 +375,5 @@ void JitAwareLQPTranslator::_visit(const std::shared_ptr<AbstractLQPNode>& node,
 }
 
 }  // namespace opossum
+
+#endif
