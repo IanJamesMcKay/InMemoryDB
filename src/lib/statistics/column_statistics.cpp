@@ -394,7 +394,7 @@ float ColumnStatistics<ColumnDataType>::estimate_range_selectivity(const ColumnD
   // minimum must be smaller or equal than maximum
   // distinction between integers and decimals
   // for integers the number of possible integers is used within the inclusive ranges
-  // for decimals the size of the range is used
+  // for decimals the size of the range is usedN
   if (std::is_integral<ColumnDataType>::value) {
     return static_cast<float>(maximum - minimum + 1) / static_cast<float>(_max - _min + 1);
   } else {

@@ -73,7 +73,7 @@ TableStatistics TableStatistics::estimate_predicate(const ColumnID column_id,
   }
 
   auto predicated_statistics = TableStatistics{TableType::References, predicated_row_count, predicated_column_statistics};
- // predicated_statistics.cap_distinct_counts();
+  predicated_statistics.cap_distinct_counts();
 
   return predicated_statistics;
 }
@@ -264,7 +264,7 @@ TableStatistics TableStatistics::estimate_predicated_join(const TableStatistics&
     default: { Fail("Join mode not implemented."); }
   }
 
-  //join_table_stats.cap_distinct_counts();
+  join_table_stats.cap_distinct_counts();
 
   return join_table_stats;
 }

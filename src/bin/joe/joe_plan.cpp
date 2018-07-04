@@ -70,6 +70,11 @@ void JoePlan::run() {
   sample_cost_features(operators);
   cache_cardinalities(operators);
 
+  // Visualize after execution
+  SQLQueryPlan plan;
+  plan.add_tree_by_root(pqp);
+  if (config->visualize) visualize(plan);
+
   if (timed_out) {
     sample.execution_duration = std::chrono::microseconds{0};
     out() << "---- Query timed out" << std::endl;
@@ -77,11 +82,6 @@ void JoePlan::run() {
   }
 
   ++query_iteration.plans_execution_count;
-
-  // Visualize after execution
-  SQLQueryPlan plan;
-  plan.add_tree_by_root(pqp);
-  if (config->visualize) visualize(plan);
 
   /**
    * Adjust dynamic timeout
@@ -131,6 +131,8 @@ void JoePlan::sample_cost_features(const std::vector<std::shared_ptr<AbstractOpe
     }
 
     for (const auto& op: operators) {
+      if (!op->get_output()) continue; // Operator likely timed out
+
       const auto operator_type = operator_type_to_string.left.at(op->type());
       if (!json.count(operator_type)) { 
         json[operator_type] = nlohmann::json::array();
