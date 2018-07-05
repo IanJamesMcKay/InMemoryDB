@@ -8,6 +8,7 @@
 #include "jit_types.hpp"
 #include "operators/table_scan/like_table_scan_impl.hpp"
 #include "resolve_type.hpp"
+#include "jit_utils.hpp"
 
 namespace opossum {
 
@@ -122,6 +123,12 @@ void jit_compute(const T& op_func, const JitTupleValue& lhs, const JitTupleValue
   const bool result_is_null = lhs.is_null(context) || rhs.is_null(context);
   result.set_is_null(result_is_null, context);
   if (result_is_null) {
+    return;
+  }
+
+  // Hack as strings cannot be currently specialised
+  if (std::is_same<T, StringFunction>::value) {
+    no_inline::jit_compute_str<T>(op_func, lhs, rhs, result, context);
     return;
   }
 
