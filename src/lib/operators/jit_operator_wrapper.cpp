@@ -86,7 +86,7 @@ std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
   Assert(_sink(), "JitOperatorWrapper does not have a valid sink node.");
 
   // std::cout << "Before make loads lazy:" << std::endl << description(DescriptionMode::MultiLine) << std::endl;
-  make_loads_lazy();
+  // make_loads_lazy();
   // std::cout << "After make loads lazy:" << std::endl << description(DescriptionMode::MultiLine) << std::endl;
 
   const auto& in_table = *input_left()->get_output();

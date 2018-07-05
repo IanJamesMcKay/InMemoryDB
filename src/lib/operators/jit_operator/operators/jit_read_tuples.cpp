@@ -78,10 +78,11 @@ void JitReadTuples::execute(JitRuntimeContext& context) const {
     /* for (const auto& input : context.inputs) {
       input->read_value(context);
     } */
-    _emit(context);
     for (const auto& input : context.inputs) {
+      input->read_value(context);
       input->increment();
     }
+    _emit(context);
     if (_use_ref_pos_list) ++(context.pos_list_itr);
   }
 }
