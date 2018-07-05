@@ -1,0 +1,7 @@
+{
+    "verbose": false,
+    "scheduler": false,
+    "chunk_size": 50000,
+    "scale": 0.5,
+    "queries": [1, 6, 13]
+}
