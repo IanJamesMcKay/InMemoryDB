@@ -34,6 +34,7 @@ void DpCcpTopK::_on_execute() {
   std::vector<std::pair<size_t, size_t>> enumerate_ccp_edges;
   for (const auto& edge : _join_graph->edges) {
     if (edge->vertex_set.count() != 2) continue;
+    Assert(edge->vertex_set.count() == 2, "Can't place complex predicates yet");
 
     const auto first_vertex_idx = edge->vertex_set.find_first();
     const auto second_vertex_idx = edge->vertex_set.find_next(first_vertex_idx);
