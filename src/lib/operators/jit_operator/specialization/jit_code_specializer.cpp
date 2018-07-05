@@ -174,8 +174,8 @@ void JitCodeSpecializer::_inline_function_calls(SpecializationContext& context) 
 
     if (!call_site.getCalledFunction()) {
       std::cout << "called function is null" << std::endl;
-      // call_sites.pop();
-      // continue;
+      call_sites.pop();
+      continue;
     }
 
 

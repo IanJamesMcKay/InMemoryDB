@@ -9,7 +9,7 @@ namespace {
 
 bool is_row_visible(CommitID our_tid, CommitID snapshot_commit_id, ChunkOffset chunk_offset,
                     const MvccColumns& columns) {
-  const auto row_tid = columns.tids[chunk_offset];
+  const auto row_tid = columns.tids[chunk_offset].load();
   const auto begin_cid = columns.begin_cids[chunk_offset];
   const auto end_cid = columns.end_cids[chunk_offset];
 
