@@ -72,7 +72,7 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_node_t
   _visit(node, [&](auto& current_node) {
     const auto is_root_node = current_node == node;
     if (_node_is_jittable(current_node, is_root_node)) {
-      use_validate |= current_node->type() == LQPNodeType::Validate;
+      // use_validate |= current_node->type() == LQPNodeType::Validate;
       ++num_jittable_nodes;
       return true;
     } else {
@@ -217,7 +217,7 @@ std::shared_ptr<const JitExpression> JitAwareLQPTranslator::_try_translate_node_
 
     case LQPNodeType::Projection:
       // We don't care about projection nodes here, since they do not perform any tuple filtering
-    case LQPNodeType::Validate:
+    // case LQPNodeType::Validate:
       // The validate filters independently to the filter node
       return _try_translate_node_to_jit_expression(node->left_input(), jit_source, input_node);
 
@@ -367,7 +367,7 @@ bool JitAwareLQPTranslator::_node_is_jittable(const std::shared_ptr<AbstractLQPN
            std::dynamic_pointer_cast<PredicateNode>(node)->predicate_condition() != PredicateCondition::Between;
   }
 
-  if (node->type() == LQPNodeType::Projection || node->type() == LQPNodeType::Union || node->type() == LQPNodeType::Validate) {
+  if (node->type() == LQPNodeType::Projection || node->type() == LQPNodeType::Union) {  // || node->type() == LQPNodeType::Validate) {
     return true;
   }
 
