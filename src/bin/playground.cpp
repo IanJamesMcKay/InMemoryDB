@@ -17,6 +17,7 @@
 #include "storage/storage_manager.hpp"
 #include "types.hpp"
 #include "utils/load_table.hpp"
+#include "global.hpp"
 
 using namespace opossum;  // NOLINT
 
@@ -29,6 +30,13 @@ int main() {
 
   auto table_c = opossum::load_table("src/test/tables/int3.tbl", 1000);
   opossum::StorageManager::get().add_table("tmp2", table_c);
+
+  bool &jit = const_cast<bool&>(opossum::Global::get().jit);
+  bool &lazy_load = const_cast<bool&>(opossum::Global::get().lazy_load);
+  bool &jit_validate = const_cast<bool&>(opossum::Global::get().jit_validate);
+  jit = true;
+  lazy_load = false;
+  jit_validate = true;
 
   auto context = opossum::TransactionManager::get().new_transaction_context();
   auto get_table = std::make_shared<opossum::GetTable>("tmp");
@@ -66,12 +74,13 @@ int main() {
   auto validate = std::make_shared<opossum::Validate>(get_table);
   validate->set_transaction_context(context);
   auto jit_operator = std::make_shared<opossum::JitOperatorWrapper>(
-      get_table, opossum::JitExecutionMode::Compile);  // Interpret validate
-  auto read_tuple = std::make_shared<opossum::JitReadTuples>(false);
+      get_table, opossum::JitExecutionMode::Interpret);  // Interpret validate
+  auto read_tuple = std::make_shared<opossum::JitReadTuples>(lazy_load, false);
   opossum::JitTupleValue tuple_val = read_tuple->add_input_column(opossum::DataType::Int, false, opossum::ColumnID(0));
   jit_operator->add_jit_operator(read_tuple);
   jit_operator->add_jit_operator(std::make_shared<opossum::JitValidate>(false));
 
+  /*
   auto id = read_tuple->add_temporary_value();
 
   auto expression = std::make_shared<opossum::JitExpression>(std::make_shared<opossum::JitExpression>(tuple_val),
@@ -82,9 +91,12 @@ int main() {
 
   jit_operator->add_jit_operator(compute);
 
-  auto write_table = std::make_shared<opossum::JitWriteTuples>();
   auto tuple_value = expression->result();
-  write_table->add_output_column("a+a", tuple_value);  // tuple_value
+  */
+
+
+  auto write_table = std::make_shared<opossum::JitWriteTuples>();
+  write_table->add_output_column("a", tuple_val);  // tuple_value
   jit_operator->add_jit_operator(write_table);
 
   jit_operator->set_transaction_context(context);

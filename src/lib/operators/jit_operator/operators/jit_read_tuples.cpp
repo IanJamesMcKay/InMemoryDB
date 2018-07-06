@@ -75,7 +75,7 @@ void JitReadTuples::before_chunk(const Table& in_table, const Chunk& in_chunk, J
 void JitReadTuples::execute(JitRuntimeContext& context) const {
   for (; context.chunk_offset < context.chunk_size; ++context.chunk_offset) {
     // We read from and advance all column iterators, before passing the tuple on to the next operator.
-    if (_lazy_load) {
+    if (!_lazy_load) {
       for (const auto& input : context.inputs) {
         input->read_value(context);
       }
