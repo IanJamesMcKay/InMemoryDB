@@ -20,6 +20,7 @@
 #include "storage/storage_manager.hpp"
 #include "tpch/tpch_db_generator.hpp"
 #include "tpch/tpch_queries.hpp"
+#include "global.hpp"
 
 /**
  * This benchmark measures Hyrise's performance executing the TPC-H *queries*, it doesn't (yet) support running the
@@ -40,18 +41,28 @@ int main(int argc, char* argv[]) {
   // clang-format off
   cli_options.add_options()
     ("s,scale", "Database scale factor (1.0 ~ 1GB)", cxxopts::value<float>()->default_value("0.001"))
-    ("queries", "Specify queries to run, default is all that are supported", cxxopts::value<std::vector<opossum::QueryID>>()); // NOLINT
+    ("queries", "Specify queries to run, default is all that are supported", cxxopts::value<std::vector<opossum::QueryID>>()) // NOLINT
+    ("jit", "Enable jit", cxxopts::value<bool>()->default_value("false"))
+    ("lazy_load", "Enable lazy load in jit", cxxopts::value<bool>()->default_value("false"))
+    ("jit_validate", "Use jit validate", cxxopts::value<bool>()->default_value("false"));
   // clang-format on
 
   std::unique_ptr<opossum::BenchmarkConfig> config;
   std::vector<opossum::QueryID> query_ids;
   float scale_factor;
+  bool &jit = const_cast<bool&>(opossum::Global::get().jit);
+  bool &lazy_load = const_cast<bool&>(opossum::Global::get().lazy_load);
+  bool &jit_validate = const_cast<bool&>(opossum::Global::get().jit_validate);
 
   if (opossum::CLIConfigParser::cli_has_json_config(argc, argv)) {
     // JSON config file was passed in
     const auto json_config = opossum::CLIConfigParser::parse_json_config_file(argv[1]);
     scale_factor = json_config.value("scale", 0.001f);
     query_ids = json_config.value("queries", std::vector<opossum::QueryID>());
+    jit = json_config.value("jit", false);
+    lazy_load = json_config.value("lazy_load", false);
+    jit_validate = json_config.value("jit_validate", false);
+
 
     config = std::make_unique<opossum::BenchmarkConfig>(
         opossum::CLIConfigParser::parse_basic_options_json_config(json_config));
@@ -70,11 +81,17 @@ int main(int argc, char* argv[]) {
       query_ids = cli_parse_result["queries"].as<std::vector<opossum::QueryID>>();
     }
 
+    jit = cli_parse_result.count("jit");
+    lazy_load = cli_parse_result.count("lazy_load");
+    jit_validate = cli_parse_result.count("jit_validate");
+
     scale_factor = cli_parse_result["scale"].as<float>();
 
     config =
         std::make_unique<opossum::BenchmarkConfig>(opossum::CLIConfigParser::parse_basic_cli_options(cli_parse_result));
   }
+
+  auto bool_to_str = [](bool value) { return value ? "true" : "false"; };
 
   // Build list of query ids to be benchmarked and display it
   if (query_ids.empty()) {
@@ -113,6 +130,10 @@ int main(int argc, char* argv[]) {
 
   // Add TPCH-specific information
   context.emplace("scale_factor", scale_factor);
+
+  context.emplace("jit", bool_to_str(jit));
+  context.emplace("lazy_load", bool_to_str(lazy_load));
+  context.emplace("jit_validate", bool_to_str(jit_validate));
 
   // Run the benchmark
   opossum::BenchmarkRunner(*config, queries, context).run();

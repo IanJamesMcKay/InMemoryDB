@@ -19,6 +19,7 @@
 #include "operators/jit_operator/operators/jit_validate.hpp"
 #include "operators/jit_operator/operators/jit_write_tuples.hpp"
 #include "storage/storage_manager.hpp"
+#include "global.hpp"
 
 namespace opossum {
 
@@ -217,11 +218,15 @@ std::shared_ptr<const JitExpression> JitAwareLQPTranslator::_try_translate_node_
 
     case LQPNodeType::Projection:
       // We don't care about projection nodes here, since they do not perform any tuple filtering
-    case LQPNodeType::Validate:
-      // The validate filters independently to the filter node
       return _try_translate_node_to_jit_expression(node->left_input(), jit_source, input_node);
 
-
+    case LQPNodeType::Validate:
+      // The validate filters independently to the filter node
+      if (Global::get().jit_validate) {
+        return _try_translate_node_to_jit_expression(node->left_input(), jit_source, input_node);
+      } else {
+        return nullptr;
+      }
 
     default:
       return nullptr;
@@ -367,7 +372,11 @@ bool JitAwareLQPTranslator::_node_is_jittable(const std::shared_ptr<AbstractLQPN
            std::dynamic_pointer_cast<PredicateNode>(node)->predicate_condition() != PredicateCondition::Between;
   }
 
-  if (node->type() == LQPNodeType::Projection || node->type() == LQPNodeType::Union || node->type() == LQPNodeType::Validate) {
+  if (node->type() == LQPNodeType::Projection || node->type() == LQPNodeType::Union) {
+    return true;
+  }
+
+  if (Global::get().jit_validate && node->type() == LQPNodeType::Validate) {
     return true;
   }
 

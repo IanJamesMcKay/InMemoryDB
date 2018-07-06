@@ -19,6 +19,8 @@ set(
     concurrency/transaction_manager.hpp
     constant_mappings.cpp
     constant_mappings.hpp
+    global.cpp
+    global.hpp
     cost_model/abstract_cost_feature_proxy.cpp
     cost_model/abstract_cost_feature_proxy.hpp
     cost_model/abstract_cost_model.cpp

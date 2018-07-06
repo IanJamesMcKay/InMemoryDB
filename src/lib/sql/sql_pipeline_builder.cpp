@@ -1,6 +1,7 @@
 #include "sql_pipeline_builder.hpp"
 
 #include "logical_query_plan/jit_aware_lqp_translator.hpp"
+#include "global.hpp"
 
 namespace opossum {
 
@@ -42,8 +43,16 @@ SQLPipelineBuilder& SQLPipelineBuilder::dont_cleanup_temporaries() {
   return *this;
 }
 
+std::shared_ptr<LQPTranslator> get_lqp_translator(std::shared_ptr<LQPTranslator> lqp_translator) {
+  if (lqp_translator) return lqp_translator;
+  if (Global::get().jit) {
+    return std::make_shared<JitAwareLQPTranslator>();
+  }
+  return std::make_shared<LQPTranslator>();
+}
+
 SQLPipeline SQLPipelineBuilder::create_pipeline() const {
-  auto lqp_translator = _lqp_translator ? _lqp_translator : std::make_shared<JitAwareLQPTranslator>();
+  auto lqp_translator = get_lqp_translator(_lqp_translator);
   auto optimizer = _optimizer ? _optimizer : Optimizer::create_default_optimizer();
 
   return {_sql, _transaction_context, _use_mvcc, lqp_translator, optimizer, _prepared_statements, _cleanup_temporaries};
@@ -51,7 +60,7 @@ SQLPipeline SQLPipelineBuilder::create_pipeline() const {
 
 SQLPipelineStatement SQLPipelineBuilder::create_pipeline_statement(
     std::shared_ptr<hsql::SQLParserResult> parsed_sql) const {
-  auto lqp_translator = _lqp_translator ? _lqp_translator : std::make_shared<JitAwareLQPTranslator>();
+  auto lqp_translator = get_lqp_translator(_lqp_translator);
   auto optimizer = _optimizer ? _optimizer : Optimizer::create_default_optimizer();
 
   return {_sql,      parsed_sql,           _use_mvcc,           _transaction_context, lqp_translator,
