@@ -3,7 +3,6 @@
 #include "constant_mappings.hpp"
 #include "resolve_type.hpp"
 #include "storage/create_iterable_from_column.hpp"
-#include "global.hpp"
 
 namespace opossum {
 
@@ -76,17 +75,14 @@ void JitReadTuples::before_chunk(const Table& in_table, const Chunk& in_chunk, J
 void JitReadTuples::execute(JitRuntimeContext& context) const {
   for (; context.chunk_offset < context.chunk_size; ++context.chunk_offset) {
     // We read from and advance all column iterators, before passing the tuple on to the next operator.
-    if (Global::get().lazy_load) {
+    if (_lazy_load) {
       for (const auto& input : context.inputs) {
         input->read_value(context);
-        input->increment();
       }
-      _emit(context);
-    } else {
-      _emit(context);
-      for (const auto& input : context.inputs) {
-        input->increment();
-      }
+    }
+    _emit(context);
+    for (const auto& input : context.inputs) {
+      input->increment();
     }
     if (_use_ref_pos_list) ++(context.pos_list_itr);
   }

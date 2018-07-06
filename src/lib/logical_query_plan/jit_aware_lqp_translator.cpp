@@ -95,7 +95,7 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_node_t
   const auto input_node = *input_nodes.begin();
 
   auto jit_operator = std::make_shared<JitOperatorWrapper>(translate_node(input_node));
-  auto read_tuple = std::make_shared<JitReadTuples>();
+  auto read_tuple = std::make_shared<JitReadTuples>(Global::get().lazy_load);
   jit_operator->add_jit_operator(read_tuple);
 
   auto filter_node = node;
