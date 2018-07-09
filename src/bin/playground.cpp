@@ -74,7 +74,7 @@ int main() {
   auto validate = std::make_shared<opossum::Validate>(get_table);
   validate->set_transaction_context(context);
   auto jit_operator = std::make_shared<opossum::JitOperatorWrapper>(
-      validate, opossum::JitExecutionMode::Interpret);  // Interpret validate
+      validate, opossum::JitExecutionMode::Compile);  // Interpret validate
   auto read_tuple = std::make_shared<opossum::JitReadTuples>(lazy_load);
   opossum::JitTupleValue tuple_val = read_tuple->add_input_column(opossum::DataType::Int, false, opossum::ColumnID(0));
   jit_operator->add_jit_operator(read_tuple);
