@@ -67,14 +67,18 @@ int main() {
   ins->set_transaction_context(context);
   ins->execute();
 
+  auto print_before = std::make_shared<opossum::Print>(get_table);
+  print_before->execute();
+  std::cout << std::endl;
+
   /* get_table = std::make_shared<opossum::GetTable>("tmp");
   get_table->set_transaction_context(context);
   get_table->execute(); */
 
-  auto validate = std::make_shared<opossum::Validate>(get_table);
-  validate->set_transaction_context(context);
+  // auto validate = std::make_shared<opossum::Validate>(get_table);
+  // validate->set_transaction_context(context);
   auto jit_operator = std::make_shared<opossum::JitOperatorWrapper>(
-      validate, opossum::JitExecutionMode::Compile);  // Interpret validate
+          get_table, opossum::JitExecutionMode::Compile);  // Interpret validate
   auto read_tuple = std::make_shared<opossum::JitReadTuples>(lazy_load);
   opossum::JitTupleValue tuple_val = read_tuple->add_input_column(opossum::DataType::Int, false, opossum::ColumnID(0));
   jit_operator->add_jit_operator(read_tuple);
@@ -102,7 +106,7 @@ int main() {
   jit_operator->set_transaction_context(context);
   auto print = std::make_shared<opossum::Print>(jit_operator);
   print->set_transaction_context(context);
-  validate->execute();
+  // validate->execute();
   jit_operator->execute();
   print->execute();
   context->commit();
