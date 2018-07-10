@@ -126,12 +126,6 @@ void jit_compute(const T& op_func, const JitTupleValue& lhs, const JitTupleValue
     return;
   }
 
-  // Hack as strings cannot be currently specialised
-  if (std::is_same<T, StringFunction>::value) {
-    no_inline::jit_compute_str<T>(op_func, lhs, rhs, result, context);
-    return;
-  }
-
   // This lambda calls the op_func (a lambda that performs the actual computation) with typed arguments and stores
   // the result.
   const auto store_result_wrapper = [&](const auto& typed_lhs, const auto& typed_rhs,

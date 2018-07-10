@@ -176,7 +176,7 @@ void JitCodeSpecializer::_inline_function_calls(SpecializationContext& context) 
 
     bool no_inline = boost::contains(function.getName().str(), "no_inline");
     if (no_inline) {
-      // std::cout << "not inlining: " << function.getName().str() << std::endl;
+      std::cout << "not inlining: " << function.getName().str() << std::endl;
     }
 
     // A note about "__clang_call_terminate":
@@ -242,6 +242,8 @@ void JitCodeSpecializer::_inline_function_calls(SpecializationContext& context) 
         call_sites.push(new_call_site);
       }
     }
+
+    // std::cout << "Inlining function: " << function.getName().str() << std::endl;
 
     // clear runtime_value_map to allow multiple inlining of same function
     auto runtime_this = context.runtime_value_map[context.root_function->arg_begin()];

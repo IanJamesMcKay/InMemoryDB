@@ -86,6 +86,8 @@ std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
   Assert(_source(), "JitOperatorWrapper does not have a valid source node.");
   Assert(_sink(), "JitOperatorWrapper does not have a valid sink node.");
 
+  // const_cast<JitExecutionMode&>(_execution_mode) = JitExecutionMode::Interpret;
+
   // std::cout << "Before make loads lazy:" << std::endl << description(DescriptionMode::MultiLine) << std::endl;
   if (Global::get().lazy_load) make_loads_lazy();
   std::cout << "Specialising: " << (_execution_mode == JitExecutionMode::Compile ? "true" : "false") << std::endl;

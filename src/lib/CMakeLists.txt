@@ -493,6 +493,8 @@ if (${ENABLE_JIT_SUPPORT})
         operators/jit_operator/jit_utils.hpp
         logical_query_plan/jit_aware_lqp_translator.cpp
         logical_query_plan/jit_aware_lqp_translator.hpp
+        operators/jit_operator/operators/jit_expression.cpp
+        operators/jit_operator/operators/jit_expression.hpp
         operators/jit_operator/specialization/jit_compiler.cpp
         operators/jit_operator/specialization/jit_compiler.hpp
         operators/jit_operator/specialization/jit_code_specializer.cpp

@@ -40,11 +40,13 @@ void JitReadTuples::before_chunk(const Table& in_table, const Chunk& in_chunk, J
     if (in_chunk.has_mvcc_columns()) {
       auto mvcc_columns = in_chunk.mvcc_columns();
       context.columns = &(*mvcc_columns);
+      DebugAssert(!_use_ref_pos_list, "use ref pos list flag must not be set.");
     } else {
       const auto ref_col_in = std::dynamic_pointer_cast<const ReferenceColumn>(in_chunk.get_column(ColumnID{0}));
       if (ref_col_in) {
         DebugAssert(in_chunk.references_exactly_one_table(),
                     "Input to Validate contains a Chunk referencing more than one table.");
+        DebugAssert(_use_ref_pos_list, "use ref pos list flag must be set.");
         context.referenced_table = ref_col_in->referenced_table();
         context.pos_list_itr = ref_col_in->pos_list()->cbegin();
       }
