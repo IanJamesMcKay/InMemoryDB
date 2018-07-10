@@ -176,7 +176,7 @@ void JitCodeSpecializer::_inline_function_calls(SpecializationContext& context) 
 
     bool no_inline = boost::contains(function.getName().str(), "no_inline");
     if (no_inline) {
-      std::cout << "not inlining: " << function.getName().str() << std::endl;
+      // std::cout << "not inlining: " << function.getName().str() << std::endl;
     }
 
     // A note about "__clang_call_terminate":

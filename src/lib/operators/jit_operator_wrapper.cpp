@@ -90,8 +90,8 @@ std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
 
   // std::cout << "Before make loads lazy:" << std::endl << description(DescriptionMode::MultiLine) << std::endl;
   if (Global::get().lazy_load) make_loads_lazy();
-  std::cout << "Specialising: " << (_execution_mode == JitExecutionMode::Compile ? "true" : "false") << std::endl;
-  std::cout << description(DescriptionMode::MultiLine) << std::endl;
+  // std::cout << "Specialising: " << (_execution_mode == JitExecutionMode::Compile ? "true" : "false") << std::endl;
+  // std::cout << description(DescriptionMode::MultiLine) << std::endl;
 
   const auto& in_table = *input_left()->get_output();
 
