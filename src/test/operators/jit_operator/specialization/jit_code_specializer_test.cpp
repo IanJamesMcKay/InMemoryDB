@@ -57,7 +57,9 @@ TEST_F(JitCodeSpecializerTest, InlinesVirtualCalls) {
         code_specializer.specialize_function(virtual_call_fn_symbol, std::make_shared<JitRuntimePointer>());
 
     ASSERT_EQ(specialized_module->size(), 1u);
+
     const auto specialized_virtual_call_fn = specialized_module->begin();
+    ASSERT_EQ(specialized_virtual_call_fn->getName().str(), "jit_module_root_function");
 
     // There is still one call instruction (the virtual call) in the specialized module
     const auto num_call_instructions = count_instructions<llvm::CallInst>(*specialized_virtual_call_fn);
@@ -73,7 +75,9 @@ TEST_F(JitCodeSpecializerTest, InlinesVirtualCalls) {
         code_specializer.specialize_function(virtual_call_fn_symbol, std::make_shared<JitConstantRuntimePointer>(&dec));
 
     ASSERT_EQ(specialized_module->size(), 1u);
+
     const auto specialized_virtual_call_fn = specialized_module->begin();
+    ASSERT_EQ(specialized_virtual_call_fn->getName().str(), "jit_module_root_function");
 
     // The specialized module contains NO call instruction, since the virtual call was resolved and inlined.
     const auto num_call_instructions = count_instructions<llvm::CallInst>(*specialized_virtual_call_fn);
@@ -102,7 +106,9 @@ TEST_F(JitCodeSpecializerTest, InlinesVirtualCalls) {
         code_specializer.specialize_function(virtual_call_fn_symbol, std::make_shared<JitConstantRuntimePointer>(&inc));
 
     ASSERT_EQ(specialized_module->size(), 1u);
+
     const auto specialized_virtual_call_fn = specialized_module->begin();
+    ASSERT_EQ(specialized_virtual_call_fn->getName().str(), "jit_module_root_function");
 
     const auto num_call_instructions = count_instructions<llvm::CallInst>(*specialized_virtual_call_fn);
     ASSERT_EQ(num_call_instructions, 0u);
@@ -135,7 +141,9 @@ TEST_F(JitCodeSpecializerTest, ReplacesLoadInstructions) {
         code_specializer.specialize_function(load_replacement_fn_symbol, std::make_shared<JitRuntimePointer>());
 
     ASSERT_EQ(specialized_module->size(), 1u);
+
     const auto specialized_load_replacement_fn = specialized_module->begin();
+    ASSERT_EQ(specialized_load_replacement_fn->getName().str(), "jit_module_root_function");
 
     // There is still one load instruction (to load the _n member from the IncrementByN instance) in the module
     const auto num_load_instructions = count_instructions<llvm::LoadInst>(*specialized_load_replacement_fn);
@@ -151,7 +159,9 @@ TEST_F(JitCodeSpecializerTest, ReplacesLoadInstructions) {
         load_replacement_fn_symbol, std::make_shared<JitConstantRuntimePointer>(&inc_by_5));
 
     ASSERT_EQ(specialized_module->size(), 1u);
+
     const auto specialized_load_replacement_fn = specialized_module->begin();
+    ASSERT_EQ(specialized_load_replacement_fn->getName().str(), "jit_module_root_function");
 
     // The load instruction has been replaced by a constant value that has been fetched from the instance by the
     // specialization engine
@@ -194,7 +204,9 @@ TEST_F(JitCodeSpecializerTest, UnrollsLoops) {
         apply_multiple_operations_fn_symbol, std::make_shared<JitConstantRuntimePointer>(&multiple_operations), false);
 
     ASSERT_EQ(specialized_module->size(), 1u);
+
     const auto specialized_apply_multiple_operations_fn = specialized_module->begin();
+    ASSERT_EQ(specialized_apply_multiple_operations_fn->getName().str(), "jit_module_root_function");
 
     // The loop has not been unrolled and there is still control flow (i.e., multiple basic blocks and phi nodes), and
     // function calls in the function.
@@ -211,7 +223,9 @@ TEST_F(JitCodeSpecializerTest, UnrollsLoops) {
         apply_multiple_operations_fn_symbol, std::make_shared<JitConstantRuntimePointer>(&multiple_operations), true);
 
     ASSERT_EQ(specialized_module->size(), 1u);
+
     const auto specialized_apply_multiple_operations_fn = specialized_module->begin();
+    ASSERT_EQ(specialized_apply_multiple_operations_fn->getName().str(), "jit_module_root_function");
 
     // The specialized module contains only on basic block ...
     const auto num_blocks = specialized_apply_multiple_operations_fn->size();

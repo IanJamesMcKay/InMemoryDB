@@ -30,7 +30,7 @@ class JitCodeSpecializer {
   // bitcode repository.
   // The runtime_this parameter is a JitRuntimePointer to the first pointer argument of this function. For member
   // functions this is the implicit "this" parameter.
-  // The function is only specializde and the LLVM module with the specialized function is returned.
+  // The function is only specialized and the LLVM module with the specialized function is returned.
   std::shared_ptr<llvm::Module> specialize_function(
       const std::string& root_function_name,
       const std::shared_ptr<const JitRuntimePointer>& runtime_this = std::make_shared<JitRuntimePointer>(),
@@ -63,7 +63,7 @@ class JitCodeSpecializer {
   void _perform_load_substitution(SpecializationContext& context) const;
 
   // Run the LLVM optimizer on the specialized module.
-  void _optimize(SpecializationContext& context, const bool unroll_loops) const;
+  void _optimize(SpecializationContext& context) const;
 
   // Creates a function declaration (i.e., a function signature without a function body) for the given function.
   llvm::Function* _create_function_declaration(SpecializationContext& context, const llvm::Function& function,

@@ -4,9 +4,9 @@ cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 project(Hyrise)
 
 if(APPLE)
-    set(CMAKE_EXE_LINKER_FLAGS -Wl,-export_dynamic)
+    set(CMAKE_EXE_LINKER_FLAGS -rdynamic)
 else()
-    set(CMAKE_EXE_LINKER_FLAGS -Wl,--export-dynamic)
+    set(CMAKE_EXE_LINKER_FLAGS -rdynamic)
 endif()
 
 option(ENABLE_UNSUPPORTED_COMPILER "Set to ON to build Hyrise even if the compiler is not supported. Default: OFF" OFF)

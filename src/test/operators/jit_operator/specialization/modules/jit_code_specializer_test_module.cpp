@@ -24,7 +24,7 @@ __attribute__((noinline)) int32_t apply_multiple_operations(const MultipleOperat
 }
 
 // Prevent LLVM from optimizing away most of the code during bitcode generation
-void foo(int32_t value) {
+__attribute__((used)) void foo(int32_t value) {
   Increment inc;
   Decrement dec;
 

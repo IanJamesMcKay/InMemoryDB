@@ -2,8 +2,10 @@
 
 #include <llvm/Analysis/GlobalsModRef.h>
 #include <llvm/Analysis/TargetTransformInfo.h>
+#include <llvm/IR/LegacyPassManager.h>
 #include <llvm/Linker/IRMover.h>
 #include <llvm/Support/YAMLTraits.h>
+#include <llvm/Transforms/IPO.h>
 #include <llvm/Transforms/IPO/ForceFunctionAttrs.h>
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include <llvm/Transforms/Scalar.h>
@@ -52,7 +54,7 @@ std::shared_ptr<llvm::Module> JitCodeSpecializer::specialize_function(
   _inline_function_calls(context);
   _perform_load_substitution(context);
   // Unroll loops only if two passes are selected
-  _optimize(context, two_passes);
+  _optimize(context);
 
   // Conditionally run a second pass
   if (two_passes) {
@@ -60,7 +62,7 @@ std::shared_ptr<llvm::Module> JitCodeSpecializer::specialize_function(
     context.runtime_value_map[context.root_function->arg_begin()] = runtime_this;
     _inline_function_calls(context);
     _perform_load_substitution(context);
-    _optimize(context, false);
+    _optimize(context);
   }
 
   return context.module;
@@ -253,36 +255,35 @@ void JitCodeSpecializer::_perform_load_substitution(SpecializationContext& conte
   });
 }
 
-void JitCodeSpecializer::_optimize(SpecializationContext& context, const bool unroll_loops) const {
+void JitCodeSpecializer::_optimize(SpecializationContext& context) const {
   // Create a pass manager that handles dependencies between the optimization passes.
-  // The selection of optimization passes is a manual trail-and-error-based selection and provides a "good" balance
-  // between the result and runtime of the optimization.
-  llvm::legacy::PassManager pass_manager;
+  llvm::legacy::PassManager module_pass_manager;
+  llvm::legacy::FunctionPassManager function_pass_manager(context.module.get());
 
-  // Removes common subexpressions
-  pass_manager.add(llvm::createEarlyCSEPass(true));
-  // Attempts to remove as much code from the body of a loop to either before or after the loop
-  pass_manager.add(llvm::createLICMPass());
+  // trying to do -O3, based on opt.cpp
+  llvm::PassManagerBuilder builder;
+  builder.OptLevel = 3;
+  builder.SizeLevel = 0;
+  builder.Inliner = llvm::createFunctionInliningPass(builder.OptLevel, builder.SizeLevel, false);
+  builder.LoopVectorize = true;
+  builder.SLPVectorize = true;
+  builder.PerformThinLTO = true;
+  builder.MergeFunctions = true;
+  builder.DisableUnitAtATime = true;
 
-  if (unroll_loops) {
-    _visit<llvm::BranchInst>(*context.root_function, [&](llvm::BranchInst& branch_inst) {
-      // Remove metadata that prevents loop unrolling
-      branch_inst.setMetadata(llvm::LLVMContext::MD_loop, nullptr);
-    });
-    // Add a loop unroll pass. The maximum threshold is necessary to force LLVM to unroll loops even if it judges the
-    // unrolling operation as disadvantageous. Loop unrolling (in most cases for the current jit operators) allows
-    // further specialization of the code that leads to much shorter and more efficient code in the end.
-    // But LLVM cannot know that and thus the internal cost model for loop unrolling is disabled.
-    pass_manager.add(llvm::createLoopUnrollPass(3, std::numeric_limits<int>::max(), -1, 0));
+  // auto target_machine = llvm::Enginebuilder().selectTarget(); // TODO set march=native
+  // target_machine->adjustPassManager(builder);
+
+  builder.populateModulePassManager(module_pass_manager);
+  builder.populateFunctionPassManager(function_pass_manager);
+
+  function_pass_manager.doInitialization();
+  for (auto& function : (*context.module).functions()) {
+    function_pass_manager.run(function);
   }
+  function_pass_manager.doFinalization();
 
-  // Removes dead code (e.g., unreachable instructions or instructions whose result is unused)
-  pass_manager.add(llvm::createAggressiveDCEPass());
-  // Simplifies the control flow by combining basic blocks, removing unreachable blocks, etc.
-  pass_manager.add(llvm::createCFGSimplificationPass());
-  // Combines instructions to fold computation of expressions with many constants
-  pass_manager.add(llvm::createInstructionCombiningPass(false));
-  pass_manager.run(*context.module);
+  module_pass_manager.run(*context.module);
 }
 
 llvm::Function* JitCodeSpecializer::_create_function_declaration(SpecializationContext& context,
