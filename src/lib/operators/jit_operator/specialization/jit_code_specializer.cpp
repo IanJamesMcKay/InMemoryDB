@@ -38,7 +38,7 @@ std::shared_ptr<llvm::Module> JitCodeSpecializer::specialize_function(
   // Locate and clone the root function from the bitcode repository
   const auto root_function = _repository.get_function(root_function_name);
   Assert(root_function, "Root function not found in repository.");
-  context.root_function = _clone_root_function(context, *root_function);
+  context.root_function = _clone_function(context, *root_function, _specialized_root_function_name);
 
   // The code specialization can run one or two specialization passes depending on its configuration.
   // For most simple operator pipelines, a single specialization pass should be sufficient. However, more complex
@@ -155,7 +155,7 @@ void JitCodeSpecializer::_inline_function_calls(SpecializationContext& context) 
                                           boost::starts_with(function.getName().str(), "_ZN7opossum");
 
     // A note about "__clang_call_terminate":
-    // __clang_call_terminate is generated / used internally by clang to call the std::terminate function when expection
+    // __clang_call_terminate is generated / used internally by clang to call the std::terminate function when exception
     // handling fails. For some unknown reason this function cannot be resolved in the Hyrise binary when jit-compiling
     // bitcode that uses the function. The function is, however, present in the bitcode repository.
     // We thus always inline this function from the repository.
@@ -192,7 +192,7 @@ void JitCodeSpecializer::_inline_function_calls(SpecializationContext& context) 
     // Map called functions
     _visit<const llvm::Function>(function, [&](const auto& fn) {
       if (fn.isDeclaration() && !context.llvm_value_map.count(&fn)) {
-        context.llvm_value_map[&fn] = _create_function_declaration(context, fn, fn.getName());
+        context.llvm_value_map[&fn] = _clone_function(context, fn, fn.getName());
       }
     });
 
@@ -271,6 +271,12 @@ void JitCodeSpecializer::_optimize(SpecializationContext& context) const {
   builder.MergeFunctions = true;
   builder.DisableUnitAtATime = true;
 
+  // Add a loop unroll pass. The maximum threshold is necessary to force LLVM to unroll loops even if it judges the
+  // unrolling operation as disadvantageous. Loop unrolling (in most cases for the current jit operators) allows
+  // further specialization of the code that leads to much shorter and more efficient code in the end.
+  // But LLVM cannot know that and thus the internal cost model for loop unrolling is disabled.
+  module_pass_manager.add(llvm::createLoopUnrollPass(3, std::numeric_limits<int>::max(), -1, 0));
+
   // auto target_machine = llvm::Enginebuilder().selectTarget(); // TODO set march=native
   // target_machine->adjustPassManager(builder);
 
@@ -301,10 +307,10 @@ llvm::Function* JitCodeSpecializer::_create_function_declaration(SpecializationC
   return declaration;
 }
 
-llvm::Function* JitCodeSpecializer::_clone_root_function(SpecializationContext& context,
-                                                         const llvm::Function& function) const {
+llvm::Function* JitCodeSpecializer::_clone_function(SpecializationContext& context,
+                                                         const llvm::Function& function, const std::string& cloned_function_name) const {
   // First create an appropriate function declaration that we can later clone the function body into
-  const auto cloned_function = _create_function_declaration(context, function, _specialized_root_function_name);
+  const auto cloned_function = _create_function_declaration(context, function, cloned_function_name);
 
   // We create a mapping from values in the source module to values in the target module.
   // This mapping is passed to LLVM's cloning function and ensures that all references to other functions, global
@@ -314,7 +320,11 @@ llvm::Function* JitCodeSpecializer::_clone_root_function(SpecializationContext& 
   // Map functions called
   _visit<const llvm::Function>(function, [&](const auto& fn) {
     if (!context.llvm_value_map.count(&fn)) {
-      context.llvm_value_map[&fn] = _create_function_declaration(context, fn, fn.getName());
+      if (_repository.get_function(fn.getName())) {
+	    context.llvm_value_map[&fn] = _clone_function(context, fn, fn.getName());
+	  } else {
+	    context.llvm_value_map[&fn] = _create_function_declaration(context, fn, fn.getName());
+	  }
     }
   });
 

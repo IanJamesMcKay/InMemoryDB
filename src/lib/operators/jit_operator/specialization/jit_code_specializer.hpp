@@ -69,8 +69,8 @@ class JitCodeSpecializer {
   llvm::Function* _create_function_declaration(SpecializationContext& context, const llvm::Function& function,
                                                const std::string& cloned_function_name) const;
 
-  // Clones the root function function from the JitRepository to the current module.
-  llvm::Function* _clone_root_function(SpecializationContext& context, const llvm::Function& function) const;
+  // Clones a function from the JitRepository to the current module.
+  llvm::Function* _clone_function(SpecializationContext& context, const llvm::Function& function, const std::string& cloned_function_name) const;
 
   // Clones a global variable from the JitRepository to the current module.
   llvm::GlobalVariable* _clone_global_variable(SpecializationContext& context,
