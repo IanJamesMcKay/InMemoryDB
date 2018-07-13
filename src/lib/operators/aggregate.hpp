@@ -34,7 +34,7 @@ struct AggregateColumnDefinitionTemplate {
                                     const std::optional<std::string>& alias = std::nullopt)
       : column(column), function(function), alias(alias) {}
 
-  std::optional<ColumnReferenceType> column;
+  std::optional<ColumnReferenceType> column{std::nullopt};
   AggregateFunction function;
   std::optional<std::string> alias;
 };
@@ -56,12 +56,13 @@ struct AggregateResult {
   std::optional<AggregateType> current_aggregate;
   size_t aggregate_count = 0;
   std::set<ColumnDataType> distinct_values;
+  RowID row_id;
 };
 
 /*
 The key type that is used for the aggregation map.
 */
-using AggregateKey = std::vector<AllTypeVariant>;
+using AggregateKey = std::vector<uint64_t>;
 
 using AggregateColumnDefinition = AggregateColumnDefinitionTemplate<ColumnID>;
 
@@ -98,6 +99,8 @@ class Aggregate : public AbstractReadOnlyOperator {
       const std::vector<AllParameterVariant>& args, const std::shared_ptr<AbstractOperator>& recreated_input_left,
       const std::shared_ptr<AbstractOperator>& recreated_input_right) const override;
 
+  void _on_cleanup() override;
+
   template <typename ColumnType>
   static void _create_aggregate_context(boost::hana::basic_type<ColumnType> type,
                                         std::shared_ptr<ColumnVisitableContext>& aggregate_context,
@@ -113,6 +116,8 @@ class Aggregate : public AbstractReadOnlyOperator {
   void _write_aggregate_output(boost::hana::basic_type<ColumnType> type, ColumnID column_index,
                                AggregateFunction function);
 
+  void _write_groupby_output(PosList& pos_list);
+
   template <typename ColumnDataType, AggregateFunction function>
   void _aggregate_column(ChunkID chunk_id, ColumnID column_index, const BaseColumn& base_column);
 
@@ -125,7 +130,6 @@ class Aggregate : public AbstractReadOnlyOperator {
   const std::vector<AggregateColumnDefinition> _aggregates;
   const std::vector<ColumnID> _groupby_column_ids;
 
-  std::shared_ptr<Table> _output;
   TableColumnDefinitions _output_column_definitions;
   ChunkColumns _output_columns;
 

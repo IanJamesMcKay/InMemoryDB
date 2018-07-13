@@ -260,6 +260,7 @@ enum class HistogramType { EqualWidth, EqualHeight, EqualNumElements };
 enum class DescriptionMode { SingleLine, MultiLine };
 
 enum class UseMvcc : bool { Yes = true, No = false };
+enum class CleanupTemporaries : bool { Yes = true, No = false };
 
 class Noncopyable {
  protected:

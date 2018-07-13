@@ -41,8 +41,8 @@ static std::shared_ptr<ChunkColumnStatistics> build_statistics_from_dictionary(c
   return statistics;
 }
 
-std::shared_ptr<ChunkColumnStatistics> ChunkColumnStatistics::build_statistics(DataType data_type,
-                                                                               std::shared_ptr<BaseColumn> column) {
+std::shared_ptr<ChunkColumnStatistics> ChunkColumnStatistics::build_statistics(
+        DataType data_type, std::shared_ptr<const BaseColumn> column) {
   // std::shared_ptr<ChunkColumnStatistics> statistics;
   // resolve_data_and_column_type(*column, [&statistics](auto type, auto& typed_column) {
   //   using ColumnType = typename std::decay<decltype(typed_column)>::type;
@@ -54,22 +54,18 @@ std::shared_ptr<ChunkColumnStatistics> ChunkColumnStatistics::build_statistics(D
   //       const auto& dictionary = *typed_column.dictionary();
   //       statistics = build_statistics_from_dictionary(dictionary);
   //   } else {
-  //     if constexpr(std::is_base_of_v<BaseEncodedColumn, ColumnType>) {
-  //       // if we have a generic encoded column we create the dictionary ourselves
-  //       auto iterable = create_iterable_from_column(typed_column);
-  //       std::unordered_set<DataTypeT> values;
-  //       iterable.for_each([&](const auto& value) {
-  //         // we are only interested in non-null values
-  //         if (!value.is_null()) {
-  //           values.insert(value.value());
-  //         }
-  //       });
-  //       pmr_vector<DataTypeT> dictionary{values.cbegin(), values.cend()};
-  //       std::sort(dictionary.begin(), dictionary.end());
-  //       statistics = build_statistics_from_dictionary(dictionary);
-  //     } else {
-  //      Fail("ChunkColumnStatistics should only be built for encoded columns.");
-  //     }
+  //     // if we have a generic column we create the dictionary ourselves
+  //     auto iterable = create_iterable_from_column<DataTypeT>(typed_column);
+  //     std::unordered_set<DataTypeT> values;
+  //     iterable.for_each([&](const auto& value) {
+  //       // we are only interested in non-null values
+  //       if (!value.is_null()) {
+  //         values.insert(value.value());
+  //       }
+  //     });
+  //     pmr_vector<DataTypeT> dictionary{values.cbegin(), values.cend()};
+  //     std::sort(dictionary.begin(), dictionary.end());
+  //     statistics = build_statistics_from_dictionary(dictionary);
   //   }
   //   // clang-format on
   // });
@@ -80,7 +76,8 @@ std::shared_ptr<ChunkColumnStatistics> ChunkColumnStatistics::build_statistics(D
   TableColumnDefinitions column_definitions;
   column_definitions.emplace_back("col_1", data_type);
   auto table = std::make_shared<Table>(column_definitions, TableType::Data);
-  table->append_chunk({column});
+  // TODO(tim): change such that no pointer casts are required
+  table->append_chunk({std::const_pointer_cast<BaseColumn>(column)});
 
   resolve_data_and_column_type(*column, [&statistics, &table](auto type, auto& typed_column) {
     using ColumnType = typename std::decay<decltype(typed_column)>::type;
