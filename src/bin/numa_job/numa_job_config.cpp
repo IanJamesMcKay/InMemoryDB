@@ -27,7 +27,8 @@ void NumaJobConfig::add_options(cxxopts::Options& cli_options_description) {
   ("isolate-queries", "Reset all cached data for each query", cxxopts::value(isolate_queries)->default_value("true"))  // NOLINT
   ("queries", "Specify queries to run, default is all of the workload that are supported", cxxopts::value<std::vector<std::string>>()) // NOLINT
   ("use-scheduler", "Use the NodeQueueScheduler", cxxopts::value(use_scheduler)->default_value("true")) // NOLINT
-  ("numa-cores", "Specify number of cores used by the scheduler", cxxopts::value(numa_cores)->default_value("0")); // NOLINT
+  ("numa-cores", "Specify number of cores used by the scheduler", cxxopts::value(numa_cores)->default_value("0")) // NOLINT
+  ("iteration", "Specify the current iteration for this benchmark run. Default: 0", cxxopts::value(current_iteration)->default_value("0")); // NOLINT
   ;
   // clang-format on
 }
@@ -77,9 +78,10 @@ void NumaJobConfig::parse(const cxxopts::ParseResult& cli_parse_result) {
   }
 
   // Process "use-scheduler" and "numa-cores" parameters
-  if (use_scheduler) {
+  if (use_scheduler && numa_cores > 0) {
     out() << "-- Using Hyrise's NodeQueueScheduler with a NUMA topology using " << numa_cores << " cores" << std::endl;
   } else {
+    use_scheduler = false;
     out() << "-- Scheduler NOT active" << std::endl;
   }
 
@@ -106,10 +108,10 @@ void NumaJobConfig::setup() {
   /**
   * Create evaluation dir
   */
-  evaluation_dir = "numa_job/" + evaluation_name;
+  evaluation_dir = "results/" + evaluation_name;
   out() << "-- Writing results to '" << evaluation_dir << "'" << std::endl;
   std::experimental::filesystem::create_directories(evaluation_dir);
-  evaluation_prefix = evaluation_dir + "/" + "TODO" + "-" + std::string(IS_DEBUG ? "d" : "r") + "-";
+  evaluation_prefix = evaluation_dir + "/" + std::to_string(numa_cores) + "cores" + "-" + std::string(IS_DEBUG ? "d" : "r") + "-" + std::to_string(current_iteration);
 
   /**
    * Init Scheduler

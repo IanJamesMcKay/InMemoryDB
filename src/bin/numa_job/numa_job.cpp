@@ -17,7 +17,7 @@ void NumaJob::run() {
     query.run();
     // if (config->isolate_queries) config->cardinality_estimation_cache->clear();
 
-    write_csv(queries, "Name,ExecutionDurationPerIteration", config->evaluation_prefix + "Queries.csv");
+    write_csv(queries, "Name,ExecutionDurationPerIteration", config->evaluation_prefix + ".csv");
   }
 }
 

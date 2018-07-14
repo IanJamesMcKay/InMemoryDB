@@ -23,6 +23,7 @@ struct NumaJobConfig final {
   std::string evaluation_name;
   bool use_scheduler = true;
   size_t numa_cores{0};
+  size_t current_iteration{0};
 
   /**
    * Objects intitialised from CLI options
