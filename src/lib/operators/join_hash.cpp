@@ -394,6 +394,11 @@ void probe(const RadixContainer<RightType>& radix_container,
       if (hashtables[current_partition_id]) {
         auto& hashtable = hashtables.at(current_partition_id);
 
+        auto probe_results = std::vector<std::pair<RowID, std::shared_ptr<PosList>>>();
+        probe_results.reserve(partition_end - partition_begin);
+        auto local_size = uint64_t{0};
+        auto null_value_pos_list = std::make_shared<PosList>(1, NULL_ROW_ID);
+
         for (size_t partition_offset = partition_begin; partition_offset < partition_end; ++partition_offset) {
           auto& row = partition[partition_offset];
 
@@ -406,17 +411,24 @@ void probe(const RadixContainer<RightType>& radix_container,
           auto row_ids = hashtable->get(row.value);
 
           if (row_ids) {
-            for (const auto& row_id : *row_ids) {
-              if (row_id.chunk_offset != INVALID_CHUNK_OFFSET) {
-                pos_list_left_local.emplace_back(row_id);
-                pos_list_right_local.emplace_back(row.row_id);
-              }
-            }
+            probe_results.emplace_back(std::make_pair(row.row_id, row_ids));
+            local_size += row_ids->size();
+
             // We assume that the relations have been swapped previously,
             // so that the outer relation is the probing relation.
           } else if (mode == JoinMode::Left || mode == JoinMode::Right) {
-            pos_list_left_local.emplace_back(NULL_ROW_ID);
-            pos_list_right_local.emplace_back(row.row_id);
+            probe_results.emplace_back(std::make_pair(row.row_id, null_value_pos_list));
+            local_size += 1;
+          }
+        }
+
+        pos_list_left_local.reserve(local_size);
+        pos_list_right_local.reserve(local_size);
+
+        for (const auto& result : probe_results) {
+          for (const auto& row_id : *result.second) {
+            pos_list_left_local.emplace_back(row_id);
+            pos_list_right_local.emplace_back(result.first);
           }
         }
       } else if (mode == JoinMode::Left || mode == JoinMode::Right) {
@@ -428,6 +440,9 @@ void probe(const RadixContainer<RightType>& radix_container,
           we know that there is no match in Left for this partition.
           Hence we are going to write NULL values for each row.
           */
+
+        pos_list_left_local.reserve(partition_end - partition_begin);
+        pos_list_right_local.reserve(partition_end - partition_begin);
 
         for (size_t partition_offset = partition_begin; partition_offset < partition_end; ++partition_offset) {
           auto& row = partition[partition_offset];
