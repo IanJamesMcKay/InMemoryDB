@@ -69,6 +69,8 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_node_t
 
   bool use_validate = false;
 
+  bool input_has_ref_columns = false;
+
   // Traverse query tree until a non-jittable nodes is found in each branch
   _visit(node, [&](auto& current_node) {
     const auto is_root_node = current_node == node;
@@ -77,6 +79,16 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_node_t
       ++num_jittable_nodes;
       return true;
     } else {
+      switch (current_node->type()) {
+        case LQPNodeType::Validate:
+        case LQPNodeType::Predicate:
+        case LQPNodeType::Aggregate:
+        case LQPNodeType::Join:
+        case LQPNodeType::Limit:
+        case LQPNodeType::Sort:
+          input_has_ref_columns = true;
+        default: {}
+      }
       input_nodes.insert(current_node);
       return false;
     }
@@ -116,7 +128,7 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_node_t
     jit_operator->add_jit_operator(std::make_shared<JitFilter>(expression->result()));
   }
 
-  if (use_validate) jit_operator->add_jit_operator(std::make_shared<JitValidate>());
+  if (use_validate) jit_operator->add_jit_operator(std::make_shared<JitValidate>(input_has_ref_columns));
 
   if (node->type() == LQPNodeType::Aggregate) {
     // Since aggregate nodes cause materialization, there is at most one JitAggregate operator in each operator chain

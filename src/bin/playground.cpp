@@ -31,12 +31,10 @@ int main() {
   auto table_c = opossum::load_table("src/test/tables/int3.tbl", 1000);
   opossum::StorageManager::get().add_table("tmp2", table_c);
 
-  bool &jit = const_cast<bool&>(opossum::Global::get().jit);
-  bool &lazy_load = const_cast<bool&>(opossum::Global::get().lazy_load);
-  bool &jit_validate = const_cast<bool&>(opossum::Global::get().jit_validate);
-  jit = true;
-  lazy_load = false;
-  jit_validate = true;
+  auto &global = opossum::Global::get();
+  global.jit = true;
+  global.lazy_load = false;
+  global.jit_validate = true;
 
   auto context = opossum::TransactionManager::get().new_transaction_context();
   auto get_table = std::make_shared<opossum::GetTable>("tmp");
@@ -79,7 +77,7 @@ int main() {
   // validate->set_transaction_context(context);
   auto jit_operator = std::make_shared<opossum::JitOperatorWrapper>(
           get_table, opossum::JitExecutionMode::Compile);  // Interpret validate
-  auto read_tuple = std::make_shared<opossum::JitReadTuples>(lazy_load);
+  auto read_tuple = std::make_shared<opossum::JitReadTuples>(global.lazy_load);
   opossum::JitTupleValue tuple_val = read_tuple->add_input_column(opossum::DataType::Int, false, opossum::ColumnID(0));
   jit_operator->add_jit_operator(read_tuple);
   jit_operator->add_jit_operator(std::make_shared<opossum::JitValidate>());

@@ -32,8 +32,8 @@ void JitValidate::_consume(JitRuntimeContext& context) const {
   bool row_is_visible;
   if (_use_ref_pos_list) {
     const auto row_id = *context.pos_list_itr;
-    const auto referenced_chunk = context.referenced_table->get_chunk(row_id.chunk_id);
-    const auto mvcc_columns = referenced_chunk->mvcc_columns();
+    const auto &referenced_chunk = context.referenced_table->get_chunk(row_id.chunk_id);
+    const auto &mvcc_columns = referenced_chunk->mvcc_columns();
     row_is_visible = is_row_visible(context.transaction_id, context.snapshot_commit_id, row_id.chunk_offset, *mvcc_columns);
   } else {
     row_is_visible = is_row_visible(context.transaction_id, context.snapshot_commit_id, context.chunk_offset, *context.columns);

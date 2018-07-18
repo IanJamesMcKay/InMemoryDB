@@ -115,13 +115,6 @@ std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
 
   _source()->set_has_validate(has_validate);
   _source()->set_use_ref_pos_list(in_table.type() == TableType::References);
-  if (has_validate && in_table.type() == TableType::References) {
-    for (auto jit_op : _jit_operators) {
-      if (auto validate = std::dynamic_pointer_cast<JitValidate>(jit_op)) {
-        validate->set_use_ref_pos_list(true);
-      }
-    }
-  }
 
   std::function<void(const JitReadTuples*, JitRuntimeContext&)> execute_func;
   // We want to perform two specialization passes if the operator chain contains a JitAggregate operator, since the

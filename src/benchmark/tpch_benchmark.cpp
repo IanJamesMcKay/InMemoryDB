@@ -50,9 +50,9 @@ int main(int argc, char* argv[]) {
   std::unique_ptr<opossum::BenchmarkConfig> config;
   std::vector<opossum::QueryID> query_ids;
   float scale_factor;
-  bool &jit = const_cast<bool&>(opossum::Global::get().jit);
-  bool &lazy_load = const_cast<bool&>(opossum::Global::get().lazy_load);
-  bool &jit_validate = const_cast<bool&>(opossum::Global::get().jit_validate);
+  bool &jit = opossum::Global::get().jit;
+  bool &lazy_load = opossum::Global::get().lazy_load;
+  bool &jit_validate = opossum::Global::get().jit_validate;
 
   if (opossum::CLIConfigParser::cli_has_json_config(argc, argv)) {
     // JSON config file was passed in

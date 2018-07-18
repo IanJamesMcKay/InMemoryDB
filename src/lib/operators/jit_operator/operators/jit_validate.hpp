@@ -15,8 +15,6 @@ class JitValidate : public AbstractJittable {
 
   std::string description() const final;
 
-  void set_use_ref_pos_list(const bool use_ref_pos_list) { const_cast<bool&>(_use_ref_pos_list) = use_ref_pos_list; };
-
  protected:
   void _consume(JitRuntimeContext& context) const final;
 
