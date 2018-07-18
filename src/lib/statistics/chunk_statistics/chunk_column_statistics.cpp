@@ -42,7 +42,7 @@ static std::shared_ptr<ChunkColumnStatistics> build_statistics_from_dictionary(c
 }
 
 std::shared_ptr<ChunkColumnStatistics> ChunkColumnStatistics::build_statistics(
-        DataType data_type, std::shared_ptr<const BaseColumn> column) {
+    DataType data_type, std::shared_ptr<const BaseColumn> column) {
   // std::shared_ptr<ChunkColumnStatistics> statistics;
   // resolve_data_and_column_type(*column, [&statistics](auto type, auto& typed_column) {
   //   using ColumnType = typename std::decay<decltype(typed_column)>::type;
@@ -90,12 +90,12 @@ std::shared_ptr<ChunkColumnStatistics> ChunkColumnStatistics::build_statistics(
      * Otherwise, take the default of 100 buckets.
      */
     size_t num_buckets = 100u;
-    if constexpr(std::is_same_v<ColumnType, DictionaryColumn<DataTypeT>>) {
+    if constexpr (std::is_same_v<ColumnType, DictionaryColumn<DataTypeT>>) {
       const size_t proposed_buckets = typed_column.dictionary()->size() / 25;
       num_buckets = std::max(num_buckets, proposed_buckets);
     }
 
-    auto hist = std::make_shared<EqualNumElementsHistogram<DataTypeT>>(table);
+    auto hist = std::make_shared<EqualNumElementsHistogram<DataTypeT>>(table, 8u);
     hist->generate(ColumnID{0}, num_buckets);
 
     statistics->add_filter(hist);

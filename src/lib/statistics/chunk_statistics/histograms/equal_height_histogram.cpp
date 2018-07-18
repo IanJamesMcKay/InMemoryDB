@@ -63,18 +63,7 @@ T EqualHeightHistogram<T>::bucket_min(const BucketID index) const {
     return _min;
   }
 
-  // Otherwise it is the value just after the maximum of the previous bucket.
-  if constexpr (std::is_integral_v<T>) {
-    return this->bucket_max(index - 1) + 1;
-  }
-
-  if constexpr (std::is_floating_point_v<T>) {
-    const auto previous_max = this->bucket_max(index - 1);
-    return std::nextafter(previous_max, previous_max + 1);
-  }
-
-  // TODO(tim): support strings
-  Fail("Histogram type not yet supported.");
+  return this->next_value(this->bucket_max(index - 1));
 }
 
 template <typename T>
@@ -97,7 +86,7 @@ uint64_t EqualHeightHistogram<T>::bucket_count_distinct(const BucketID index) co
 
 template <typename T>
 uint64_t EqualHeightHistogram<T>::total_count() const {
-  return num_buckets() * _count_per_bucket;
+  return this->num_buckets() * _count_per_bucket;
 }
 
 template <typename T>

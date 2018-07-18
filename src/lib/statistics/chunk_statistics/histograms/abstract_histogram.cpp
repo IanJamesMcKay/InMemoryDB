@@ -12,7 +12,8 @@
 namespace opossum {
 
 template <typename T>
-AbstractHistogram<T>::AbstractHistogram(const std::shared_ptr<Table> table) : _table(table) {}
+AbstractHistogram<T>::AbstractHistogram(const std::shared_ptr<Table> table, const uint8_t string_prefix_length)
+    : _table(table), _string_prefix_length(string_prefix_length) {}
 
 template <typename T>
 const std::shared_ptr<const Table> AbstractHistogram<T>::_get_value_counts(const ColumnID column_id) const {
@@ -63,6 +64,74 @@ T AbstractHistogram<T>::bucket_width([[maybe_unused]] const BucketID index) cons
   }
 
   Fail("Histogram type not yet supported.");
+}
+
+template <typename T>
+const T AbstractHistogram<T>::previous_value(const T value) const {
+  if constexpr (std::is_integral_v<T>) {
+    return value - 1;
+  }
+
+  if constexpr (std::is_floating_point_v<T>) {
+    return std::nextafter(value, value - 1);
+  }
+
+  if constexpr (std::is_same_v<T, std::string>) {
+    if (value.empty()) {
+      return value;
+    }
+
+    if (value.find_first_not_of(_supported_characters) != std::string::npos) {
+      Fail("Unsupported characters.");
+    }
+
+    const auto sub_string = value.substr(0, value.length() - 1);
+    const auto last_char = value.back();
+
+    if (last_char == 'a') {
+      return sub_string;
+    }
+
+    return sub_string + static_cast<char>(last_char - 1);
+  }
+
+  Fail("Unsupported data type.");
+}
+
+template <typename T>
+const T AbstractHistogram<T>::next_value(const T value, const bool overflow) const {
+  if constexpr (std::is_integral_v<T>) {
+    return value + 1;
+  }
+
+  if constexpr (std::is_floating_point_v<T>) {
+    return std::nextafter(value, value + 1);
+  }
+
+  if constexpr (std::is_same_v<T, std::string>) {
+    if (value.empty()) {
+      return "a";
+    }
+
+    if (value.find_first_not_of(_supported_characters) != std::string::npos) {
+      Fail("Unsupported characters.");
+    }
+
+    if ((overflow && value.length() < _string_prefix_length) || (value == std::string(_string_prefix_length, 'z'))) {
+      return value + 'a';
+    }
+
+    const auto last_char = value.back();
+    const auto sub_string = value.substr(0, value.length() - 1);
+
+    if (last_char != 'z') {
+      return sub_string + static_cast<char>(last_char + 1);
+    }
+
+    return next_value(sub_string, false) + 'a';
+  }
+
+  Fail("Unsupported data type.");
 }
 
 template <typename T>

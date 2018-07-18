@@ -13,7 +13,7 @@ class Table;
 template <typename T>
 class AbstractHistogram : public AbstractFilter {
  public:
-  explicit AbstractHistogram(const std::shared_ptr<Table> table);
+  AbstractHistogram(const std::shared_ptr<Table> table, const uint8_t string_prefix_length);
   virtual ~AbstractHistogram() = default;
 
   void generate(const ColumnID column_id, const size_t max_num_buckets);
@@ -22,6 +22,9 @@ class AbstractHistogram : public AbstractFilter {
 
   T lower_end() const;
   T upper_end() const;
+
+  const T previous_value(const T value) const;
+  const T next_value(const T value, const bool overflow = true) const;
 
   virtual T bucket_width(const BucketID index) const;
 
@@ -43,6 +46,8 @@ class AbstractHistogram : public AbstractFilter {
   virtual void _generate(const ColumnID column_id, const size_t max_num_buckets) = 0;
 
   const std::weak_ptr<Table> _table;
+  const uint8_t _string_prefix_length;
+  const std::string _supported_characters = "abcdefghijklmnopqrstuvwxyz";
 };
 
 }  // namespace opossum

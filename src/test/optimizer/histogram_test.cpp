@@ -10,10 +10,14 @@ namespace opossum {
 
 template <typename T>
 class BasicHistogramTest : public BaseTest {
-  void SetUp() override { _int_float4 = load_table("src/test/tables/int_float4.tbl"); }
+  void SetUp() override {
+    _int_float4 = load_table("src/test/tables/int_float4.tbl");
+    _string2 = load_table("src/test/tables/string2.tbl");
+  }
 
  protected:
   std::shared_ptr<Table> _int_float4;
+  std::shared_ptr<Table> _string2;
 };
 
 // TODO(tim): basic tests for float/double/int64
@@ -22,21 +26,21 @@ using HistogramTypes =
 TYPED_TEST_CASE(BasicHistogramTest, HistogramTypes);
 
 TYPED_TEST(BasicHistogramTest, CanPruneLowerBound) {
-  TypeParam hist(this->_int_float4);
+  TypeParam hist(this->_int_float4, 8u);
   hist.generate(ColumnID{0}, 2u);
-  ASSERT_TRUE(hist.can_prune(AllTypeVariant{0}, PredicateCondition::Equals));
+  EXPECT_TRUE(hist.can_prune(AllTypeVariant{0}, PredicateCondition::Equals));
 }
 
 TYPED_TEST(BasicHistogramTest, CanPruneUpperBound) {
-  TypeParam hist(this->_int_float4);
+  TypeParam hist(this->_int_float4, 8u);
   hist.generate(ColumnID{0}, 2u);
-  ASSERT_TRUE(hist.can_prune(AllTypeVariant{1'000'000}, PredicateCondition::Equals));
+  EXPECT_TRUE(hist.can_prune(AllTypeVariant{1'000'000}, PredicateCondition::Equals));
 }
 
 TYPED_TEST(BasicHistogramTest, CannotPruneExistingValue) {
-  TypeParam hist(this->_int_float4);
+  TypeParam hist(this->_int_float4, 8u);
   hist.generate(ColumnID{0}, 2u);
-  ASSERT_FALSE(hist.can_prune(AllTypeVariant{12}, PredicateCondition::Equals));
+  EXPECT_FALSE(hist.can_prune(AllTypeVariant{12}, PredicateCondition::Equals));
 }
 
 class HistogramTest : public ::testing::Test {
@@ -57,7 +61,7 @@ class HistogramTest : public ::testing::Test {
 };
 
 TEST_F(HistogramTest, EqualNumElementsBasic) {
-  auto hist = EqualNumElementsHistogram<int32_t>(_int_float4);
+  auto hist = EqualNumElementsHistogram<int32_t>(_int_float4, 8u);
   hist.generate(ColumnID{0}, 2u);
   EXPECT_EQ(hist.num_buckets(), 2u);
 
@@ -75,7 +79,7 @@ TEST_F(HistogramTest, EqualNumElementsBasic) {
 }
 
 TEST_F(HistogramTest, EqualNumElementsUnevenBuckets) {
-  auto hist = EqualNumElementsHistogram<int32_t>(_int_float4);
+  auto hist = EqualNumElementsHistogram<int32_t>(_int_float4, 8u);
   hist.generate(ColumnID{0}, 3u);
   EXPECT_EQ(hist.num_buckets(), 3u);
 
@@ -93,7 +97,7 @@ TEST_F(HistogramTest, EqualNumElementsUnevenBuckets) {
 }
 
 TEST_F(HistogramTest, EqualNumElementsFloat) {
-  auto hist = EqualNumElementsHistogram<float>(_float2);
+  auto hist = EqualNumElementsHistogram<float>(_float2, 8u);
   hist.generate(ColumnID{0}, 3u);
   EXPECT_EQ(hist.num_buckets(), 3u);
   EXPECT_FLOAT_EQ(hist.estimate_cardinality(0.4f, PredicateCondition::Equals), 0.f);
@@ -113,7 +117,7 @@ TEST_F(HistogramTest, EqualNumElementsFloat) {
 }
 
 TEST_F(HistogramTest, EqualNumElementsString) {
-  auto hist = EqualNumElementsHistogram<std::string>(_string2);
+  auto hist = EqualNumElementsHistogram<std::string>(_string2, 8u);
   hist.generate(ColumnID{0}, 4u);
   EXPECT_EQ(hist.num_buckets(), 4u);
   EXPECT_FLOAT_EQ(hist.estimate_cardinality("1", PredicateCondition::Equals), 0.f);
@@ -137,7 +141,7 @@ TEST_F(HistogramTest, EqualNumElementsString) {
 }
 
 TEST_F(HistogramTest, EqualNumElementsLessThan) {
-  auto hist = EqualNumElementsHistogram<int32_t>(_int_float4);
+  auto hist = EqualNumElementsHistogram<int32_t>(_int_float4, 8u);
   hist.generate(ColumnID{0}, 3u);
   EXPECT_EQ(hist.num_buckets(), 3u);
 
@@ -159,7 +163,7 @@ TEST_F(HistogramTest, EqualNumElementsLessThan) {
 }
 
 TEST_F(HistogramTest, EqualNumElementsFloatLessThan) {
-  auto hist = EqualNumElementsHistogram<float>(_float2);
+  auto hist = EqualNumElementsHistogram<float>(_float2, 8u);
   hist.generate(ColumnID{0}, 3u);
   EXPECT_EQ(hist.num_buckets(), 3u);
 
@@ -198,7 +202,7 @@ TEST_F(HistogramTest, EqualNumElementsFloatLessThan) {
 }
 
 TEST_F(HistogramTest, EqualWidthHistogramBasic) {
-  auto hist = EqualWidthHistogram<int32_t>(_int_int4);
+  auto hist = EqualWidthHistogram<int32_t>(_int_int4, 8u);
   hist.generate(ColumnID{1}, 6u);
   EXPECT_EQ(hist.num_buckets(), 6u);
   EXPECT_FLOAT_EQ(hist.estimate_cardinality(0, PredicateCondition::Equals), 5 / 3.f);
@@ -218,7 +222,7 @@ TEST_F(HistogramTest, EqualWidthHistogramBasic) {
 }
 
 TEST_F(HistogramTest, EqualWidthHistogramUnevenBuckets) {
-  auto hist = EqualWidthHistogram<int32_t>(_int_int4);
+  auto hist = EqualWidthHistogram<int32_t>(_int_int4, 8u);
   hist.generate(ColumnID{1}, 4u);
   EXPECT_EQ(hist.num_buckets(), 4u);
   EXPECT_FLOAT_EQ(hist.estimate_cardinality(0, PredicateCondition::Equals), 6 / 4.f);
@@ -241,7 +245,7 @@ TEST_F(HistogramTest, EqualWidthHistogramUnevenBuckets) {
 }
 
 TEST_F(HistogramTest, EqualWidthFloat) {
-  auto hist = EqualWidthHistogram<float>(_float2);
+  auto hist = EqualWidthHistogram<float>(_float2, 8u);
   hist.generate(ColumnID{0}, 4u);
   EXPECT_EQ(hist.num_buckets(), 4u);
   EXPECT_FLOAT_EQ(hist.estimate_cardinality(0.4f, PredicateCondition::Equals), 0.f);
@@ -267,7 +271,7 @@ TEST_F(HistogramTest, EqualWidthFloat) {
 }
 
 TEST_F(HistogramTest, EqualWidthLessThan) {
-  auto hist = EqualWidthHistogram<int32_t>(_int_float4);
+  auto hist = EqualWidthHistogram<int32_t>(_int_float4, 8u);
   hist.generate(ColumnID{0}, 3u);
   EXPECT_EQ(hist.num_buckets(), 3u);
 
@@ -296,7 +300,7 @@ TEST_F(HistogramTest, EqualWidthLessThan) {
 }
 
 TEST_F(HistogramTest, EqualWidthFloatLessThan) {
-  auto hist = EqualWidthHistogram<float>(_float2);
+  auto hist = EqualWidthHistogram<float>(_float2, 8u);
   hist.generate(ColumnID{0}, 3u);
   EXPECT_EQ(hist.num_buckets(), 3u);
 
@@ -346,7 +350,7 @@ TEST_F(HistogramTest, EqualWidthFloatLessThan) {
 }
 
 TEST_F(HistogramTest, EqualHeightHistogramBasic) {
-  auto hist = EqualHeightHistogram<int32_t>(_expected_join_result_1);
+  auto hist = EqualHeightHistogram<int32_t>(_expected_join_result_1, 8u);
   hist.generate(ColumnID{1}, 4u);
   EXPECT_EQ(hist.num_buckets(), 4u);
   EXPECT_FLOAT_EQ(hist.estimate_cardinality(0, PredicateCondition::Equals), 0.f);
@@ -364,7 +368,7 @@ TEST_F(HistogramTest, EqualHeightHistogramBasic) {
 }
 
 TEST_F(HistogramTest, EqualHeightHistogramUnevenBuckets) {
-  auto hist = EqualHeightHistogram<int32_t>(_expected_join_result_1);
+  auto hist = EqualHeightHistogram<int32_t>(_expected_join_result_1, 8u);
   hist.generate(ColumnID{1}, 5u);
   // For EqualHeightHistograms we cannot guarantee that we will have the expected number of buckets.
   EXPECT_LE(hist.num_buckets(), 5u);
@@ -386,7 +390,7 @@ TEST_F(HistogramTest, EqualHeightHistogramUnevenBuckets) {
 }
 
 TEST_F(HistogramTest, EqualHeightFloat) {
-  auto hist = EqualHeightHistogram<float>(_float2);
+  auto hist = EqualHeightHistogram<float>(_float2, 8u);
   hist.generate(ColumnID{0}, 4u);
   // For EqualHeightHistograms we cannot guarantee that we will have the expected number of buckets.
   EXPECT_LE(hist.num_buckets(), 4u);
@@ -411,7 +415,7 @@ TEST_F(HistogramTest, EqualHeightFloat) {
 }
 
 TEST_F(HistogramTest, EqualHeightLessThan) {
-  auto hist = EqualHeightHistogram<int32_t>(_int_float4);
+  auto hist = EqualHeightHistogram<int32_t>(_int_float4, 8u);
   hist.generate(ColumnID{0}, 3u);
   // For EqualHeightHistograms we cannot guarantee that we will have the expected number of buckets.
   EXPECT_LE(hist.num_buckets(), 3u);
@@ -438,7 +442,7 @@ TEST_F(HistogramTest, EqualHeightLessThan) {
 }
 
 TEST_F(HistogramTest, EqualHeightFloatLessThan) {
-  auto hist = EqualHeightHistogram<float>(_float2);
+  auto hist = EqualHeightHistogram<float>(_float2, 8u);
   hist.generate(ColumnID{0}, 3u);
   // For EqualHeightHistograms we cannot guarantee that we will have the expected number of buckets.
   EXPECT_LE(hist.num_buckets(), 3u);
@@ -475,6 +479,54 @@ TEST_F(HistogramTest, EqualHeightFloatLessThan) {
                   5.f + 5.f + (5.9f - (std::nextafter(4.4f, 4.4f + 1))) / (6.1f - std::nextafter(4.4f, 4.4f + 1)) * 5);
   EXPECT_FLOAT_EQ(hist.estimate_cardinality(std::nextafter(6.1f, 6.1f + 1), PredicateCondition::LessThan),
                   5.f + 5.f + 5.f);
+}
+
+TEST_F(HistogramTest, PreviousValueString) {
+  auto hist = EqualNumElementsHistogram<std::string>(_string2, 8u);
+  hist.generate(ColumnID{0}, 2u);
+  EXPECT_EQ(hist.previous_value(""), "");
+  EXPECT_EQ(hist.previous_value("a"), "");
+  EXPECT_EQ(hist.previous_value("aaa"), "aa");
+  EXPECT_EQ(hist.previous_value("abcd"), "abcc");
+  EXPECT_EQ(hist.previous_value("abzz"), "abzy");
+  EXPECT_EQ(hist.previous_value("abca"), "abc");
+  EXPECT_EQ(hist.previous_value("abaa"), "aba");
+  EXPECT_EQ(hist.previous_value("aba"), "ab");
+}
+
+TEST_F(HistogramTest, NextValueString) {
+  auto hist = EqualNumElementsHistogram<std::string>(_string2, 4u);
+  hist.generate(ColumnID{0}, 2u);
+  EXPECT_EQ(hist.next_value(""), "a");
+  EXPECT_EQ(hist.next_value("abcd"), "abce");
+  EXPECT_EQ(hist.next_value("abaz"), "abba");
+  EXPECT_EQ(hist.next_value("abzz"), "acaa");
+  EXPECT_EQ(hist.next_value("abca"), "abcb");
+  EXPECT_EQ(hist.next_value("abaa"), "abab");
+  EXPECT_EQ(hist.next_value("zzzz"), "zzzza");
+}
+
+TEST_F(HistogramTest, NextPreviousValueUnsupportedCharacters) {
+  auto hist = EqualNumElementsHistogram<std::string>(_string2, 4u);
+  hist.generate(ColumnID{0}, 2u);
+  EXPECT_NO_THROW(hist.next_value("abcd"));
+  EXPECT_NO_THROW(hist.previous_value("abcd"));
+  EXPECT_THROW(hist.next_value("abc1"), std::exception);
+  EXPECT_THROW(hist.previous_value("abc1"), std::exception);
+  EXPECT_THROW(hist.next_value("Abc"), std::exception);
+  EXPECT_THROW(hist.previous_value("Abc"), std::exception);
+  EXPECT_THROW(hist.next_value("@"), std::exception);
+  EXPECT_THROW(hist.previous_value("@"), std::exception);
+}
+
+// TODO(tim): remove
+TEST_F(HistogramTest, StringComparisonTest) {
+  EXPECT_TRUE(std::string("abcd") < std::string("abce"));
+  EXPECT_TRUE(std::string("abc") < std::string("abca"));
+
+  EXPECT_TRUE(std::string("Z") < std::string("a"));
+  EXPECT_FALSE(std::string("azaaaaaaa") < std::string("aza"));
+  EXPECT_TRUE(std::string("aZaaaaaaa") < std::string("aza"));
 }
 
 }  // namespace opossum
