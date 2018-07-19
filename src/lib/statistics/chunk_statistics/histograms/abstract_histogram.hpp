@@ -15,7 +15,7 @@ class AbstractHistogram : public AbstractFilter {
  friend class HistogramPrivateTest;
 
  public:
-  AbstractHistogram(const std::shared_ptr<Table> table, const uint8_t string_prefix_length);
+  AbstractHistogram(const std::shared_ptr<Table> table);
   virtual ~AbstractHistogram() = default;
 
   virtual HistogramType histogram_type() const = 0;
@@ -33,7 +33,6 @@ class AbstractHistogram : public AbstractFilter {
 
   T _previous_value(const T value) const;
   T _next_value(const T value, const bool overflow = true) const;
-  uint64_t _convert_string_to_number_representation(const T value) const;
 
   virtual T _bucket_width(const BucketID index) const;
 
@@ -49,8 +48,6 @@ class AbstractHistogram : public AbstractFilter {
   virtual uint64_t _total_count() const = 0;
 
   const std::weak_ptr<Table> _table;
-  const uint8_t _string_prefix_length;
-  const std::string _supported_characters = "abcdefghijklmnopqrstuvwxyz";
 };
 
 }  // namespace opossum

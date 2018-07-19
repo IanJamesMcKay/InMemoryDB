@@ -184,6 +184,8 @@ set(
     statistics/chunk_statistics/range_filter.hpp
     statistics/chunk_statistics/histograms/abstract_histogram.cpp
     statistics/chunk_statistics/histograms/abstract_histogram.hpp
+    statistics/chunk_statistics/histograms/abstract_string_histogram.cpp
+    statistics/chunk_statistics/histograms/abstract_string_histogram.hpp
     statistics/chunk_statistics/histograms/equal_height_histogram.cpp
     statistics/chunk_statistics/histograms/equal_height_histogram.hpp
     statistics/chunk_statistics/histograms/equal_num_elements_histogram.cpp

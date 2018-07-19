@@ -12,10 +12,7 @@
 namespace opossum {
 
 template <typename T>
-AbstractHistogram<T>::AbstractHistogram(const std::shared_ptr<Table> table, const uint8_t string_prefix_length)
-    : _table(table), _string_prefix_length(string_prefix_length) {
-  Assert(std::pow(_supported_characters.length(), string_prefix_length) <= std::pow(2, 64), "Prefix too long.");
-}
+AbstractHistogram<T>::AbstractHistogram(const std::shared_ptr<Table> table): _table(table) {}
 
 template <typename T>
 const std::shared_ptr<const Table> AbstractHistogram<T>::_get_value_counts(const ColumnID column_id) const {
@@ -78,20 +75,20 @@ T AbstractHistogram<T>::_previous_value(const T value) const {
     return std::nextafter(value, value - 1);
   }
 
-  if constexpr (std::is_same_v<T, std::string>) {
-    if (value.empty()) {
-      return value;
-    }
-
-    const auto sub_string = value.substr(0, value.length() - 1);
-    const auto last_char = value.back();
-
-    if (last_char == 'a') {
-      return sub_string;
-    }
-
-    return sub_string + static_cast<char>(last_char - 1);
-  }
+  // if constexpr (std::is_same_v<T, std::string>) {
+  //   if (value.empty()) {
+  //     return value;
+  //   }
+  //
+  //   const auto sub_string = value.substr(0, value.length() - 1);
+  //   const auto last_char = value.back();
+  //
+  //   if (last_char == 'a') {
+  //     return sub_string;
+  //   }
+  //
+  //   return sub_string + static_cast<char>(last_char - 1);
+  // }
 
   Fail("Unsupported data type.");
 }
@@ -106,58 +103,37 @@ T AbstractHistogram<T>::_next_value(const T value, const bool overflow) const {
     return std::nextafter(value, value + 1);
   }
 
-  if constexpr (std::is_same_v<T, std::string>) {
-    if (value.empty()) {
-      return "a";
-    }
-
-    if (value.find_first_not_of(_supported_characters) != std::string::npos) {
-      Fail("Unsupported characters.");
-    }
-
-    if ((overflow && value.length() < _string_prefix_length) || (value == std::string(_string_prefix_length, 'z'))) {
-      return value + 'a';
-    }
-
-    const auto last_char = value.back();
-    const auto sub_string = value.substr(0, value.length() - 1);
-
-    if (last_char != 'z') {
-      return sub_string + static_cast<char>(last_char + 1);
-    }
-
-    return _next_value(sub_string, false) + 'a';
-  }
+  // if constexpr (std::is_same_v<T, std::string>) {
+  //   if (value.empty()) {
+  //     return "a";
+  //   }
+  //
+  //   if ((overflow && value.length() < _string_prefix_length) || (value == std::string(_string_prefix_length, 'z'))) {
+  //     return value + 'a';
+  //   }
+  //
+  //   const auto last_char = value.back();
+  //   const auto sub_string = value.substr(0, value.length() - 1);
+  //
+  //   if (last_char != 'z') {
+  //     return sub_string + static_cast<char>(last_char + 1);
+  //   }
+  //
+  //   return _next_value(sub_string, false) + 'a';
+  // }
 
   Fail("Unsupported data type.");
-}
-
-template <typename T>
-uint64_t AbstractHistogram<T>::_convert_string_to_number_representation(const T value) const {
-  if constexpr (std::is_same_v<T, std::string>) {
-    const auto trimmed = value.substr(0, _string_prefix_length);
-
-    uint64_t result = 0;
-    for (auto it = trimmed.cbegin(); it < trimmed.cend(); it++) {
-      const auto power = _string_prefix_length - std::distance(trimmed.cbegin(), it) - 1;
-      result += (*it - _supported_characters.front()) * std::pow(_supported_characters.length(), power);
-    }
-
-    return result;
-  }
-
-  Fail("Must not be called outside string histograms.");
 }
 
 template <typename T>
 float AbstractHistogram<T>::estimate_cardinality(const T value, const PredicateCondition predicate_condition) const {
   DebugAssert(_num_buckets() > 0u, "Called method on histogram before initialization.");
 
-  if constexpr (std::is_same_v<T, std::string>) {
-    if (value.find_first_not_of(_supported_characters) != std::string::npos) {
-      Fail("Unsupported characters.");
-    }
-  }
+  // if constexpr (std::is_same_v<T, std::string>) {
+  //   if (value.find_first_not_of(_supported_characters) != std::string::npos) {
+  //     Fail("Unsupported characters.");
+  //   }
+  // }
 
   switch (predicate_condition) {
     case PredicateCondition::Equals: {
@@ -197,48 +173,50 @@ float AbstractHistogram<T>::estimate_cardinality(const T value, const PredicateC
       } else {
         float bucket_share;
 
-        if constexpr (!std::is_same_v<T, std::string>) {
-          bucket_share = static_cast<float>(value - _bucket_min(index)) / _bucket_width(index);
-        } else {
-          /**
-           * Calculate range between two strings.
-           * This is based on the following assumptions:
-           *    - a consecutive byte range, e.g. lower case letters in ASCII
-           *    - fixed-length strings
-           *
-           * Treat the string range similar to the decimal system (base 26 for lower case letters).
-           * Characters in the beginning of the string have a higher value than ones at the end.
-           * Assign each letter the value of the index in the alphabet (zero-based).
-           * Then convert it to a number.
-           *
-           * Example with fixed-length 4 (possible range: [aaaa, zzzz]):
-           *
-           *  Number of possible strings: 26**4 = 456,976
-           *
-           * 1. aaaa - zzzz
-           *
-           *  repr(aaaa) = 0 * 26**3 + 0 * 26**2 + 0 * 26**1 + 0 * 26**0 = 0
-           *  repr(zzzz) = 25 * 26**3 + 25 * 26**2 + 25 * 26**1 + 25 * 26**0 = 456,975
-           *  Size of range: repr(zzzz) - repr(aaaa) + 1 = 456,976
-           *  Share of the range: 456,976 / 456,976 = 1
-           *
-           * 2. bhja - mmmm
-           *
-           *  repr(bhja): 1 * 26**3 + 7 * 26**2 + 9 * 26**1 + 0 * 26**0 = 22,542
-           *  repr(mmmm): 12 * 26**3 + 12 * 26**2 + 12 * 26**1 + 12 * 26**0 = 219,348
-           *  Size of range: repr(mmmm) - repr(bhja) + 1 = 196,807
-           *  Share of the range: 196,807 / 456,976 ~= 0.43
-           *
-           *  Note that strings shorter than the fixed-length will induce a small error,
-           *  because the missing characters will be treated as 'a'.
-           *  Since we are dealing with approximations this is acceptable.
-           */
-          const auto value_repr = _convert_string_to_number_representation(value);
-          const auto min_repr = _convert_string_to_number_representation(_bucket_min(index));
-          const auto max_repr = _convert_string_to_number_representation(_bucket_max(index));
-          // TODO(tim): work with bucket width
-          bucket_share = static_cast<float>(value_repr - min_repr) / (max_repr - min_repr + 1);
-        }
+        bucket_share = static_cast<float>(value - _bucket_min(index)) / _bucket_width(index);
+
+        // if constexpr (!std::is_same_v<T, std::string>) {
+        //   bucket_share = static_cast<float>(value - _bucket_min(index)) / _bucket_width(index);
+        // } else {
+        //   /**
+        //    * Calculate range between two strings.
+        //    * This is based on the following assumptions:
+        //    *    - a consecutive byte range, e.g. lower case letters in ASCII
+        //    *    - fixed-length strings
+        //    *
+        //    * Treat the string range similar to the decimal system (base 26 for lower case letters).
+        //    * Characters in the beginning of the string have a higher value than ones at the end.
+        //    * Assign each letter the value of the index in the alphabet (zero-based).
+        //    * Then convert it to a number.
+        //    *
+        //    * Example with fixed-length 4 (possible range: [aaaa, zzzz]):
+        //    *
+        //    *  Number of possible strings: 26**4 = 456,976
+        //    *
+        //    * 1. aaaa - zzzz
+        //    *
+        //    *  repr(aaaa) = 0 * 26**3 + 0 * 26**2 + 0 * 26**1 + 0 * 26**0 = 0
+        //    *  repr(zzzz) = 25 * 26**3 + 25 * 26**2 + 25 * 26**1 + 25 * 26**0 = 456,975
+        //    *  Size of range: repr(zzzz) - repr(aaaa) + 1 = 456,976
+        //    *  Share of the range: 456,976 / 456,976 = 1
+        //    *
+        //    * 2. bhja - mmmm
+        //    *
+        //    *  repr(bhja): 1 * 26**3 + 7 * 26**2 + 9 * 26**1 + 0 * 26**0 = 22,542
+        //    *  repr(mmmm): 12 * 26**3 + 12 * 26**2 + 12 * 26**1 + 12 * 26**0 = 219,348
+        //    *  Size of range: repr(mmmm) - repr(bhja) + 1 = 196,807
+        //    *  Share of the range: 196,807 / 456,976 ~= 0.43
+        //    *
+        //    *  Note that strings shorter than the fixed-length will induce a small error,
+        //    *  because the missing characters will be treated as 'a'.
+        //    *  Since we are dealing with approximations this is acceptable.
+        //    */
+        //   const auto value_repr = _convert_string_to_number_representation(value);
+        //   const auto min_repr = _convert_string_to_number_representation(_bucket_min(index));
+        //   const auto max_repr = _convert_string_to_number_representation(_bucket_max(index));
+        //   // TODO(tim): work with bucket width
+        //   bucket_share = static_cast<float>(value_repr - min_repr) / (max_repr - min_repr + 1);
+        // }
 
         cardinality += bucket_share * _bucket_count(index);
       }
@@ -333,6 +311,12 @@ bool AbstractHistogram<T>::can_prune(const AllTypeVariant& value, const Predicat
   }
 }
 
-EXPLICITLY_INSTANTIATE_DATA_TYPES(AbstractHistogram);
+// EXPLICITLY_INSTANTIATE_DATA_TYPES(AbstractHistogram);
+template class AbstractHistogram<int32_t>;
+template class AbstractHistogram<int64_t>;
+template class AbstractHistogram<float>;
+template class AbstractHistogram<double>;
+// Used for strings.
+template class AbstractHistogram<uint64_t>;
 
 }  // namespace opossum
