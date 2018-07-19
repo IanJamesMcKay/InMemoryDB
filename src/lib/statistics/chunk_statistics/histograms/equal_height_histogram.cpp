@@ -14,12 +14,12 @@ HistogramType EqualHeightHistogram<T>::histogram_type() const {
 }
 
 template <typename T>
-size_t EqualHeightHistogram<T>::num_buckets() const {
+size_t EqualHeightHistogram<T>::_num_buckets() const {
   return _maxs.size();
 }
 
 template <typename T>
-BucketID EqualHeightHistogram<T>::bucket_for_value(const T value) const {
+BucketID EqualHeightHistogram<T>::_bucket_for_value(const T value) const {
   const auto it = std::lower_bound(_maxs.begin(), _maxs.end(), value);
   const auto index = static_cast<BucketID>(std::distance(_maxs.begin(), it));
 
@@ -31,7 +31,7 @@ BucketID EqualHeightHistogram<T>::bucket_for_value(const T value) const {
 }
 
 template <typename T>
-BucketID EqualHeightHistogram<T>::lower_bound_for_value(const T value) const {
+BucketID EqualHeightHistogram<T>::_lower_bound_for_value(const T value) const {
   const auto it = std::lower_bound(_maxs.begin(), _maxs.end(), value);
   const auto index = static_cast<BucketID>(std::distance(_maxs.begin(), it));
 
@@ -43,7 +43,7 @@ BucketID EqualHeightHistogram<T>::lower_bound_for_value(const T value) const {
 }
 
 template <typename T>
-BucketID EqualHeightHistogram<T>::upper_bound_for_value(const T value) const {
+BucketID EqualHeightHistogram<T>::_upper_bound_for_value(const T value) const {
   const auto it = std::upper_bound(_maxs.begin(), _maxs.end(), value);
   const auto index = static_cast<BucketID>(std::distance(_maxs.begin(), it));
 
@@ -55,7 +55,7 @@ BucketID EqualHeightHistogram<T>::upper_bound_for_value(const T value) const {
 }
 
 template <typename T>
-T EqualHeightHistogram<T>::bucket_min(const BucketID index) const {
+T EqualHeightHistogram<T>::_bucket_min(const BucketID index) const {
   DebugAssert(index < _maxs.size(), "Index is not a valid bucket.");
 
   // If it's the first bucket, return _min.
@@ -63,30 +63,30 @@ T EqualHeightHistogram<T>::bucket_min(const BucketID index) const {
     return _min;
   }
 
-  return this->next_value(this->bucket_max(index - 1));
+  return this->_next_value(this->_bucket_max(index - 1));
 }
 
 template <typename T>
-T EqualHeightHistogram<T>::bucket_max(const BucketID index) const {
+T EqualHeightHistogram<T>::_bucket_max(const BucketID index) const {
   DebugAssert(index < _maxs.size(), "Index is not a valid bucket.");
   return _maxs[index];
 }
 
 template <typename T>
-uint64_t EqualHeightHistogram<T>::bucket_count(const BucketID index) const {
-  DebugAssert(index < this->num_buckets(), "Index is not a valid bucket.");
+uint64_t EqualHeightHistogram<T>::_bucket_count(const BucketID index) const {
+  DebugAssert(index < this->_num_buckets(), "Index is not a valid bucket.");
   return _count_per_bucket;
 }
 
 template <typename T>
-uint64_t EqualHeightHistogram<T>::bucket_count_distinct(const BucketID index) const {
+uint64_t EqualHeightHistogram<T>::_bucket_count_distinct(const BucketID index) const {
   DebugAssert(index < _distinct_counts.size(), "Index is not a valid bucket.");
   return _distinct_counts[index];
 }
 
 template <typename T>
-uint64_t EqualHeightHistogram<T>::total_count() const {
-  return this->num_buckets() * _count_per_bucket;
+uint64_t EqualHeightHistogram<T>::_total_count() const {
+  return this->_num_buckets() * _count_per_bucket;
 }
 
 template <typename T>
