@@ -463,6 +463,8 @@ if (${ENABLE_JIT_SUPPORT})
         # Files listed here will be embedded into the binary as LLVM-IR
         abstract_expression.cpp
         abstract_expression.hpp
+        operators/validate.cpp
+        operators/validate.hpp
         operators/jit_operator/jit_types.cpp
         operators/jit_operator/jit_types.hpp
         operators/jit_operator/jit_operations.cpp

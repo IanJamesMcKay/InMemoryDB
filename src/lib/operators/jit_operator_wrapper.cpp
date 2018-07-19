@@ -10,7 +10,7 @@ namespace opossum {
 
 JitOperatorWrapper::JitOperatorWrapper(const std::shared_ptr<const AbstractOperator> left,
                                        const JitExecutionMode execution_mode,
-                                       const std::vector<std::shared_ptr<AbstractJittable>>& jit_operators)
+                                       const std::list<std::shared_ptr<AbstractJittable>>& jit_operators)
     : AbstractReadOnlyOperator{OperatorType::JitOperatorWrapper, left},
       _execution_mode{execution_mode},
       _jit_operators{jit_operators} {}
@@ -29,7 +29,7 @@ const std::string JitOperatorWrapper::description(DescriptionMode description_mo
 
 void JitOperatorWrapper::add_jit_operator(const std::shared_ptr<AbstractJittable>& op) { _jit_operators.push_back(op); }
 
-const std::vector<std::shared_ptr<AbstractJittable>>& JitOperatorWrapper::jit_operators() const {
+const std::list<std::shared_ptr<AbstractJittable>>& JitOperatorWrapper::jit_operators() const {
   return _jit_operators;
 }
 
@@ -41,14 +41,21 @@ const std::shared_ptr<AbstractJittableSink> JitOperatorWrapper::_sink() const {
   return std::dynamic_pointer_cast<AbstractJittableSink>(_jit_operators.back());
 }
 
-void JitOperatorWrapper::make_loads_lazy() {
+void JitOperatorWrapper::insert_loads(const bool lazy) {
+  if (!lazy) {
+    auto itr = ++_jit_operators.begin();
+    for (size_t index = 0; index < _source()->input_columns().size(); ++index) {
+      itr = _jit_operators.insert(itr, std::make_shared<JitReadValue>(_source()->input_columns()[index], index));
+    }
+    return;
+  }
   std::map<size_t, size_t> inverted_input_columns;
   auto input_columns = _source()->input_columns();
   for (size_t input_column_index = 0; input_column_index < input_columns.size(); ++input_column_index) {
     inverted_input_columns[input_columns[input_column_index].tuple_value.tuple_index()] = input_column_index;
   }
 
-  std::vector<std::shared_ptr<AbstractJittable>> jit_operators;
+  std::list<std::shared_ptr<AbstractJittable>> jit_operators;
   std::vector<std::map<size_t, bool>> accessed_column_ids;
   accessed_column_ids.reserve(jit_operators.size());
   std::map<size_t, bool> column_id_used_by_one_operator;
@@ -89,7 +96,7 @@ std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
   // const_cast<JitExecutionMode&>(_execution_mode) = JitExecutionMode::Interpret;
 
   // std::cout << "Before make loads lazy:" << std::endl << description(DescriptionMode::MultiLine) << std::endl;
-  if (Global::get().lazy_load) make_loads_lazy();
+  insert_loads(Global::get().lazy_load);
   // std::cout << "Specialising: " << (_execution_mode == JitExecutionMode::Compile ? "true" : "false") << std::endl;
   // std::cout << description(DescriptionMode::MultiLine) << std::endl;
 
@@ -105,16 +112,10 @@ std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
   _source()->before_query(in_table, context);
   _sink()->before_query(*out_table, context);
 
-  bool has_validate = false;
-
   // Connect operators to a chain
-  for (auto it = _jit_operators.begin(); it != _jit_operators.end() && it + 1 != _jit_operators.end(); ++it) {
-    (*it)->set_next_operator(*(it + 1));
-    if (std::dynamic_pointer_cast<JitValidate>(*it)) has_validate = true;
+  for (auto it = _jit_operators.begin(), next = ++_jit_operators.begin(); it != _jit_operators.end() && next != _jit_operators.end(); ++it, ++next) {
+    (*it)->set_next_operator(*(next));
   }
-
-  _source()->set_has_validate(has_validate);
-  _source()->set_use_ref_pos_list(in_table.type() == TableType::References);
 
   std::function<void(const JitReadTuples*, JitRuntimeContext&)> execute_func;
   // We want to perform two specialization passes if the operator chain contains a JitAggregate operator, since the

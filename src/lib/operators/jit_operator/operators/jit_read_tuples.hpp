@@ -86,8 +86,7 @@ class JitReadTuples : public AbstractJittable {
   };
 
  public:
-  explicit JitReadTuples(const bool lazy_load = false) :
-          _use_ref_pos_list(false), _lazy_load(lazy_load) {}
+  explicit JitReadTuples(const bool has_validate);
 
   std::string description() const final;
 
@@ -106,11 +105,6 @@ class JitReadTuples : public AbstractJittable {
 
   void execute(JitRuntimeContext& context) const;
 
-  void set_has_validate(const bool has_validate) { _has_validate = has_validate; };
-  void set_use_ref_pos_list(const bool use_ref_pos_list) {
-    const_cast<bool&>(_use_ref_pos_list) = use_ref_pos_list;
-  };
-
  protected:
   uint32_t _num_tuple_values{0};
   std::vector<JitInputColumn> _input_columns;
@@ -118,9 +112,7 @@ class JitReadTuples : public AbstractJittable {
 
  private:
   void _consume(JitRuntimeContext& context) const final {}
-  const bool _use_ref_pos_list;
-  bool _has_validate;
-  const bool _lazy_load;
+  const bool _has_validate;
 };
 
 }  // namespace opossum

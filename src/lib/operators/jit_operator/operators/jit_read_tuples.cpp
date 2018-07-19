@@ -6,6 +6,8 @@
 
 namespace opossum {
 
+JitReadTuples::JitReadTuples(const bool has_validate) : _has_validate(has_validate) {};
+
 std::string JitReadTuples::description() const {
   std::stringstream desc;
   desc << "[ReadTuple] ";
@@ -40,16 +42,12 @@ void JitReadTuples::before_chunk(const Table& in_table, const Chunk& in_chunk, J
     if (in_chunk.has_mvcc_columns()) {
       auto mvcc_columns = in_chunk.mvcc_columns();
       context.columns = &(*mvcc_columns);
-      DebugAssert(!_use_ref_pos_list, "use ref pos list flag must not be set.");
     } else {
+      DebugAssert(in_chunk.references_exactly_one_table(),
+                  "Input to Validate contains a Chunk referencing more than one table.");
       const auto& ref_col_in = std::dynamic_pointer_cast<const ReferenceColumn>(in_chunk.get_column(ColumnID{0}));
-      if (ref_col_in) {
-        DebugAssert(in_chunk.references_exactly_one_table(),
-                    "Input to Validate contains a Chunk referencing more than one table.");
-        DebugAssert(_use_ref_pos_list, "use ref pos list flag must be set.");
-        context.referenced_table = ref_col_in->referenced_table();
-        context.pos_list_itr = ref_col_in->pos_list()->cbegin();
-      }
+      context.referenced_table = ref_col_in->referenced_table();
+      context.pos_list = ref_col_in->pos_list();
     }
   }
 
@@ -76,17 +74,10 @@ void JitReadTuples::before_chunk(const Table& in_table, const Chunk& in_chunk, J
 
 void JitReadTuples::execute(JitRuntimeContext& context) const {
   for (; context.chunk_offset < context.chunk_size; ++context.chunk_offset) {
-    // We read from and advance all column iterators, before passing the tuple on to the next operator.
-    if (!_lazy_load) {
-      for (const auto& input : context.inputs) {
-        input->read_value(context);
-      }
-    }
     _emit(context);
     for (const auto& input : context.inputs) {
       input->increment();
     }
-    if (_use_ref_pos_list) ++(context.pos_list_itr);
   }
 }
 

@@ -33,7 +33,7 @@ int main() {
 
   auto &global = opossum::Global::get();
   global.jit = true;
-  global.lazy_load = false;
+  global.lazy_load = true;
   global.jit_validate = true;
 
   auto context = opossum::TransactionManager::get().new_transaction_context();
@@ -73,16 +73,20 @@ int main() {
   get_table->set_transaction_context(context);
   get_table->execute(); */
 
+  auto filter =
+          std::make_shared<opossum::TableScan>(get_table, opossum::ColumnID{0}, opossum::PredicateCondition::GreaterThanEquals, 0);
+  filter->execute();
+
   // auto validate = std::make_shared<opossum::Validate>(get_table);
   // validate->set_transaction_context(context);
   auto jit_operator = std::make_shared<opossum::JitOperatorWrapper>(
-          get_table, opossum::JitExecutionMode::Compile);  // Interpret validate
-  auto read_tuple = std::make_shared<opossum::JitReadTuples>(global.lazy_load);
+          filter, opossum::JitExecutionMode::Compile);  // Interpret validate
+  auto read_tuple = std::make_shared<opossum::JitReadTuples>(true);
   opossum::JitTupleValue tuple_val = read_tuple->add_input_column(opossum::DataType::Int, false, opossum::ColumnID(0));
   jit_operator->add_jit_operator(read_tuple);
-  jit_operator->add_jit_operator(std::make_shared<opossum::JitValidate>());
+  jit_operator->add_jit_operator(std::make_shared<opossum::JitValidate<true>>());
 
-  /*
+
   auto id = read_tuple->add_temporary_value();
 
   auto expression = std::make_shared<opossum::JitExpression>(std::make_shared<opossum::JitExpression>(tuple_val),
@@ -94,11 +98,10 @@ int main() {
   jit_operator->add_jit_operator(compute);
 
   auto tuple_value = expression->result();
-  */
 
 
   auto write_table = std::make_shared<opossum::JitWriteTuples>();
-  write_table->add_output_column("a", tuple_val);  // tuple_value
+  write_table->add_output_column("a", tuple_value);  // tuple_value
   jit_operator->add_jit_operator(write_table);
 
   jit_operator->set_transaction_context(context);

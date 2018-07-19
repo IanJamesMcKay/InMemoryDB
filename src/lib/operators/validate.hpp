@@ -28,6 +28,10 @@ class Validate : public AbstractReadOnlyOperator {
   std::shared_ptr<AbstractOperator> _on_recreate(
       const std::vector<AllParameterVariant>& args, const std::shared_ptr<AbstractOperator>& recreated_input_left,
       const std::shared_ptr<AbstractOperator>& recreated_input_right) const override;
+
+ public:
+  static bool is_row_visible(CommitID our_tid, CommitID snapshot_commit_id,
+                             const TransactionID row_tid, const CommitID begin_cid, const CommitID end_cid);
 };
 
 }  // namespace opossum

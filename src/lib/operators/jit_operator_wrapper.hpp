@@ -22,7 +22,7 @@ class JitOperatorWrapper : public AbstractReadOnlyOperator {
  public:
   explicit JitOperatorWrapper(const std::shared_ptr<const AbstractOperator> left,
                               const JitExecutionMode execution_mode = JitExecutionMode::Compile,
-                              const std::vector<std::shared_ptr<AbstractJittable>>& jit_operators = {});
+                              const std::list<std::shared_ptr<AbstractJittable>>& jit_operators = {});
 
   const std::string name() const final;
   const std::string description(DescriptionMode description_mode) const final;
@@ -31,7 +31,7 @@ class JitOperatorWrapper : public AbstractReadOnlyOperator {
   // The operators will later be chained by the JitOperatorWrapper.
   void add_jit_operator(const std::shared_ptr<AbstractJittable>& op);
 
-  const std::vector<std::shared_ptr<AbstractJittable>>& jit_operators() const;
+  const std::list<std::shared_ptr<AbstractJittable>>& jit_operators() const;
 
  protected:
   std::shared_ptr<const Table> _on_execute() override;
@@ -43,11 +43,11 @@ class JitOperatorWrapper : public AbstractReadOnlyOperator {
  private:
   const std::shared_ptr<JitReadTuples> _source() const;
   const std::shared_ptr<AbstractJittableSink> _sink() const;
-  void make_loads_lazy();
+  void insert_loads(const bool lazy);
 
   const JitExecutionMode _execution_mode;
   JitCodeSpecializer _module;
-  std::vector<std::shared_ptr<AbstractJittable>> _jit_operators;
+  std::list<std::shared_ptr<AbstractJittable>> _jit_operators;
 };
 
 }  // namespace opossum

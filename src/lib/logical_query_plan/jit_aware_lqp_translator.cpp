@@ -107,7 +107,7 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_node_t
   const auto input_node = *input_nodes.begin();
 
   auto jit_operator = std::make_shared<JitOperatorWrapper>(translate_node(input_node));
-  auto read_tuple = std::make_shared<JitReadTuples>(Global::get().lazy_load);
+  auto read_tuple = std::make_shared<JitReadTuples>(use_validate);
   jit_operator->add_jit_operator(read_tuple);
 
   auto filter_node = node;
@@ -128,7 +128,13 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_node_t
     jit_operator->add_jit_operator(std::make_shared<JitFilter>(expression->result()));
   }
 
-  if (use_validate) jit_operator->add_jit_operator(std::make_shared<JitValidate>(input_has_ref_columns));
+  if (use_validate) {
+    if (input_has_ref_columns) {
+      jit_operator->add_jit_operator(std::make_shared<JitValidate<true>>());
+    } else {
+      jit_operator->add_jit_operator(std::make_shared<JitValidate<false>>());
+    }
+  }
 
   if (node->type() == LQPNodeType::Aggregate) {
     // Since aggregate nodes cause materialization, there is at most one JitAggregate operator in each operator chain

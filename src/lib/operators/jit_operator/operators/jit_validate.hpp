@@ -9,16 +9,15 @@ namespace opossum {
 /* The JitFilter operator filters on a single boolean value and only passes on
  * tuple, for which that value is non-null and true.
  */
+template<bool use_ref_pos_list = false>
 class JitValidate : public AbstractJittable {
  public:
-  explicit JitValidate(const bool use_ref_pos_list = false);
+  JitValidate();
 
   std::string description() const final;
 
  protected:
   void _consume(JitRuntimeContext& context) const final;
-
-  const bool _use_ref_pos_list;
 };
 
 }  // namespace opossum

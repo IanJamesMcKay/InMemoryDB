@@ -126,7 +126,7 @@ struct JitRuntimeContext {
   ChunkColumns out_chunk;
   const MvccColumns* columns;
   std::shared_ptr<const Table> referenced_table;
-  PosList::const_iterator pos_list_itr;
+  std::shared_ptr<const PosList> pos_list;
   TransactionID transaction_id;
   CommitID snapshot_commit_id;
 };
