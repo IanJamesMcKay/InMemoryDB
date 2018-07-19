@@ -9,86 +9,6 @@
 namespace opossum {
 
 template <typename T>
-HistogramType EqualNumElementsHistogram<T>::histogram_type() const {
-  return HistogramType::EqualNumElements;
-}
-
-template <typename T>
-size_t EqualNumElementsHistogram<T>::_num_buckets() const {
-  return _counts.size();
-}
-
-template <typename T>
-BucketID EqualNumElementsHistogram<T>::_bucket_for_value(const T value) const {
-  T cleaned_value = value;
-
-  if constexpr (std::is_same_v<T, std::string>) {
-    cleaned_value = value.substr(0, this->_string_prefix_length);
-  }
-
-  const auto it = std::lower_bound(_maxs.begin(), _maxs.end(), cleaned_value);
-  const auto index = static_cast<BucketID>(std::distance(_maxs.begin(), it));
-
-  if (it == _maxs.end() || cleaned_value < _bucket_min(index) || cleaned_value > _bucket_max(index)) {
-    return INVALID_BUCKET_ID;
-  }
-
-  return index;
-}
-
-template <typename T>
-BucketID EqualNumElementsHistogram<T>::_lower_bound_for_value(const T value) const {
-  const auto it = std::lower_bound(_maxs.begin(), _maxs.end(), value);
-  const auto index = static_cast<BucketID>(std::distance(_maxs.begin(), it));
-
-  if (it == _maxs.end()) {
-    return INVALID_BUCKET_ID;
-  }
-
-  return index;
-}
-
-template <typename T>
-BucketID EqualNumElementsHistogram<T>::_upper_bound_for_value(const T value) const {
-  const auto it = std::upper_bound(_maxs.begin(), _maxs.end(), value);
-  const auto index = static_cast<BucketID>(std::distance(_maxs.begin(), it));
-
-  if (it == _maxs.end()) {
-    return INVALID_BUCKET_ID;
-  }
-
-  return index;
-}
-
-template <typename T>
-T EqualNumElementsHistogram<T>::_bucket_min(const BucketID index) const {
-  DebugAssert(index < _mins.size(), "Index is not a valid bucket.");
-  return _mins[index];
-}
-
-template <typename T>
-T EqualNumElementsHistogram<T>::_bucket_max(const BucketID index) const {
-  DebugAssert(index < _maxs.size(), "Index is not a valid bucket.");
-  return _maxs[index];
-}
-
-template <typename T>
-uint64_t EqualNumElementsHistogram<T>::_bucket_count(const BucketID index) const {
-  DebugAssert(index < _counts.size(), "Index is not a valid bucket.");
-  return _counts[index];
-}
-
-template <typename T>
-uint64_t EqualNumElementsHistogram<T>::_bucket_count_distinct(const BucketID index) const {
-  return _distinct_count_per_bucket + (index < _num_buckets_with_extra_value ? 1 : 0);
-}
-
-template <typename T>
-uint64_t EqualNumElementsHistogram<T>::_total_count() const {
-  return std::accumulate(_counts.begin(), _counts.end(), 0ul);
-}
-
-template <typename T>
 void EqualNumElementsHistogram<T>::_generate(const ColumnID column_id, const size_t max_num_buckets) {
   const auto result = this->_get_value_counts(column_id);
 
@@ -108,10 +28,10 @@ void EqualNumElementsHistogram<T>::_generate(const ColumnID column_id, const siz
   _num_buckets_with_extra_value = distinct_count % num_buckets;
 
   const auto distinct_column =
-      std::static_pointer_cast<const ValueColumn<T>>(result->get_chunk(ChunkID{0})->get_column(ColumnID{0}))->values();
+          std::static_pointer_cast<const ValueColumn<T>>(result->get_chunk(ChunkID{0})->get_column(ColumnID{0}))->values();
   const auto count_column =
-      std::static_pointer_cast<const ValueColumn<int64_t>>(result->get_chunk(ChunkID{0})->get_column(ColumnID{1}))
-          ->values();
+          std::static_pointer_cast<const ValueColumn<int64_t>>(result->get_chunk(ChunkID{0})->get_column(ColumnID{1}))
+                  ->values();
 
   auto begin_index = 0ul;
   for (BucketID bucket_index = 0; bucket_index < num_buckets; bucket_index++) {
@@ -123,10 +43,14 @@ void EqualNumElementsHistogram<T>::_generate(const ColumnID column_id, const siz
     _mins.emplace_back(*(distinct_column.begin() + begin_index));
     _maxs.emplace_back(*(distinct_column.begin() + end_index));
     _counts.emplace_back(
-        std::accumulate(count_column.begin() + begin_index, count_column.begin() + end_index + 1, uint64_t{0}));
+            std::accumulate(count_column.begin() + begin_index, count_column.begin() + end_index + 1, uint64_t{0}));
 
     begin_index = end_index + 1;
   }
+}
+
+template <>
+void EqualNumElementsHistogram<std::string>::_generate(const ColumnID column_id, const size_t max_num_buckets) {
 }
 
 EXPLICITLY_INSTANTIATE_DATA_TYPES(EqualNumElementsHistogram);

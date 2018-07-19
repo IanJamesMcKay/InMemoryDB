@@ -1,4 +1,4 @@
-#include "abstract_string_histogram.hpp"
+#include "abstract_string_histogram_mixin.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -11,12 +11,12 @@
 
 namespace opossum {
 
-AbstractStringHistogram::AbstractStringHistogram(const std::shared_ptr<Table> table, const uint8_t string_prefix_length)
-    : AbstractHistogram(table), _string_prefix_length(string_prefix_length) {
-  Assert(std::pow(_supported_characters.length(), string_prefix_length) <= std::pow(2, 64), "Prefix too long.");
-}
+// AbstractStringHistogramMixin::AbstractStringHistogramMixin(const uint8_t string_prefix_length)
+//     : _string_prefix_length(string_prefix_length) {
+//   Assert(std::pow(_supported_characters.length(), string_prefix_length) <= std::pow(2, 64), "Prefix too long.");
+// }
 
-uint64_t AbstractStringHistogram::_convert_string_to_number_representation(const std::string& value) const {
+uint64_t AbstractStringHistogramMixin::_convert_string_to_number_representation(const std::string& value) const {
   const auto trimmed = value.substr(0, _string_prefix_length);
 
   uint64_t result = 0;

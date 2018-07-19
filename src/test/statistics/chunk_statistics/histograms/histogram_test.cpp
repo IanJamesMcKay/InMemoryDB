@@ -2,7 +2,7 @@
 #include "gtest/gtest.h"
 
 #include "statistics/chunk_statistics/histograms/equal_height_histogram.hpp"
-#include "statistics/chunk_statistics/histograms/equal_num_elements_histogram.hpp"
+#include "statistics/chunk_statistics/histograms/abstract_equal_num_elements_histogram.hpp"
 #include "statistics/chunk_statistics/histograms/equal_width_histogram.hpp"
 #include "utils/load_table.hpp"
 
