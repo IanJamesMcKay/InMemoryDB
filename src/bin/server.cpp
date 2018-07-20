@@ -39,8 +39,7 @@ int main(int argc, char* argv[]) {
     opossum::StorageManager::get().add_table("lineitem", lineitem);
 
     // Set scheduler so that the server can execute the tasks on separate threads.
-    opossum::CurrentScheduler::set(
-        std::make_shared<opossum::NodeQueueScheduler>(opossum::Topology::create_numa_topology()));
+    opossum::CurrentScheduler::set(std::make_shared<opossum::NodeQueueScheduler>());
 
     boost::asio::io_service io_service;
 

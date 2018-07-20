@@ -34,7 +34,7 @@ struct AggregateColumnDefinitionTemplate {
                                     const std::optional<std::string>& alias = std::nullopt)
       : column(column), function(function), alias(alias) {}
 
-  std::optional<ColumnReferenceType> column;
+  std::optional<ColumnReferenceType> column{std::nullopt};
   AggregateFunction function;
   std::optional<std::string> alias;
 };
@@ -56,12 +56,13 @@ struct AggregateResult {
   std::optional<AggregateType> current_aggregate;
   size_t aggregate_count = 0;
   std::set<ColumnDataType> distinct_values;
+  RowID row_id;
 };
 
 /*
 The key type that is used for the aggregation map.
 */
-using AggregateKey = std::vector<AllTypeVariant>;
+using AggregateKey = std::vector<uint64_t>;
 
 using AggregateColumnDefinition = AggregateColumnDefinitionTemplate<ColumnID>;
 
@@ -114,6 +115,8 @@ class Aggregate : public AbstractReadOnlyOperator {
   template <typename ColumnType>
   void _write_aggregate_output(boost::hana::basic_type<ColumnType> type, ColumnID column_index,
                                AggregateFunction function);
+
+  void _write_groupby_output(PosList& pos_list);
 
   template <typename ColumnDataType, AggregateFunction function>
   void _aggregate_column(ChunkID chunk_id, ColumnID column_index, const BaseColumn& base_column);
