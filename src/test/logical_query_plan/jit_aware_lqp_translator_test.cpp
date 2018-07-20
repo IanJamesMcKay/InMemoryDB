@@ -122,7 +122,7 @@ TEST_F(JitAwareLQPTranslatorTest, InputColumnsAreAddedToJitReadTupleAdapter) {
   ASSERT_EQ(jit_operators.size(), 4u);
 
   // Check that the first operator is in fact a JitReadTuples instance
-  const auto jit_read_tuples = std::dynamic_pointer_cast<JitReadTuples>(jit_operators[0]);
+  const auto jit_read_tuples = std::dynamic_pointer_cast<JitReadTuples>(jit_operators.front());
   ASSERT_NE(jit_read_tuples, nullptr);
 
   // There should be two input columns
@@ -146,7 +146,7 @@ TEST_F(JitAwareLQPTranslatorTest, LiteralValuesAreAddedToJitReadTupleAdapter) {
   ASSERT_EQ(jit_operators.size(), 4u);
 
   // Check that the first operator is in fact a JitReadTuples instance
-  const auto jit_read_tuples = std::dynamic_pointer_cast<JitReadTuples>(jit_operators[0]);
+  const auto jit_read_tuples = std::dynamic_pointer_cast<JitReadTuples>(jit_operators.front());
   ASSERT_NE(jit_read_tuples, nullptr);
 
   // There should be two literals read from the query
@@ -168,9 +168,9 @@ TEST_F(JitAwareLQPTranslatorTest, ColumnSubsetIsOutputCorrectly) {
   const auto jit_operators = jit_operator_wrapper->jit_operators();
   ASSERT_EQ(jit_operators.size(), 4u);
 
-  const auto jit_read_tuples = std::dynamic_pointer_cast<JitReadTuples>(jit_operators[0]);
+  const auto jit_read_tuples = std::dynamic_pointer_cast<JitReadTuples>(jit_operators.front());
   ASSERT_NE(jit_read_tuples, nullptr);
-  const auto jit_write_tuples = std::dynamic_pointer_cast<JitWriteTuples>(jit_operators[3]);
+  const auto jit_write_tuples = std::dynamic_pointer_cast<JitWriteTuples>(jit_operators.back());
   ASSERT_NE(jit_write_tuples, nullptr);
 
   const auto output_columns = jit_write_tuples->output_columns();
@@ -186,9 +186,9 @@ TEST_F(JitAwareLQPTranslatorTest, AllColumnsAreOutputCorrectly) {
   const auto jit_operators = jit_operator_wrapper->jit_operators();
   ASSERT_EQ(jit_operators.size(), 4u);
 
-  const auto jit_read_tuples = std::dynamic_pointer_cast<JitReadTuples>(jit_operators[0]);
+  const auto jit_read_tuples = std::dynamic_pointer_cast<JitReadTuples>(jit_operators.front());
   ASSERT_NE(jit_read_tuples, nullptr);
-  const auto jit_write_tuples = std::dynamic_pointer_cast<JitWriteTuples>(jit_operators[3]);
+  const auto jit_write_tuples = std::dynamic_pointer_cast<JitWriteTuples>(jit_operators.back());
   ASSERT_NE(jit_write_tuples, nullptr);
 
   const auto output_columns = jit_write_tuples->output_columns();
@@ -204,9 +204,9 @@ TEST_F(JitAwareLQPTranslatorTest, ReorderedColumnsAreOutputCorrectly) {
   const auto jit_operators = jit_operator_wrapper->jit_operators();
   ASSERT_EQ(jit_operators.size(), 4u);
 
-  const auto jit_read_tuples = std::dynamic_pointer_cast<JitReadTuples>(jit_operators[0]);
+  const auto jit_read_tuples = std::dynamic_pointer_cast<JitReadTuples>(jit_operators.front());
   ASSERT_NE(jit_read_tuples, nullptr);
-  const auto jit_write_tuples = std::dynamic_pointer_cast<JitWriteTuples>(jit_operators[3]);
+  const auto jit_write_tuples = std::dynamic_pointer_cast<JitWriteTuples>(jit_operators.back());
   ASSERT_NE(jit_write_tuples, nullptr);
 
   const auto output_columns = jit_write_tuples->output_columns();
@@ -220,7 +220,7 @@ TEST_F(JitAwareLQPTranslatorTest, OutputColumnNamesAndAlias) {
   const auto jit_operators = jit_operator_wrapper->jit_operators();
   ASSERT_EQ(jit_operators.size(), 4u);
 
-  const auto jit_write_tuples = std::dynamic_pointer_cast<JitWriteTuples>(jit_operators[3]);
+  const auto jit_write_tuples = std::dynamic_pointer_cast<JitWriteTuples>(jit_operators.back());
   ASSERT_NE(jit_write_tuples, nullptr);
 
   const auto output_columns = jit_write_tuples->output_columns();
@@ -235,12 +235,13 @@ TEST_F(JitAwareLQPTranslatorTest, ConsecutivePredicatesGetTransformedToConjuncti
 
   // Check the type of jit operators in the operator pipeline
   const auto jit_operators = jit_operator_wrapper->jit_operators();
-  ASSERT_EQ(jit_operator_wrapper->jit_operators().size(), 4u);
+  ASSERT_EQ(jit_operators.size(), 4u);
 
-  const auto jit_read_tuples = std::dynamic_pointer_cast<JitReadTuples>(jit_operators[0]);
-  const auto jit_compute = std::dynamic_pointer_cast<JitCompute>(jit_operators[1]);
-  const auto jit_filter = std::dynamic_pointer_cast<JitFilter>(jit_operators[2]);
-  const auto jit_write_tuples = std::dynamic_pointer_cast<JitWriteTuples>(jit_operators[3]);
+  auto jit_operator_itr = jit_operators.begin();
+  const auto jit_read_tuples = std::dynamic_pointer_cast<JitReadTuples>(*jit_operator_itr);
+  const auto jit_compute = std::dynamic_pointer_cast<JitCompute>(*++jit_operator_itr);
+  const auto jit_filter = std::dynamic_pointer_cast<JitFilter>(*++jit_operator_itr);
+  const auto jit_write_tuples = std::dynamic_pointer_cast<JitWriteTuples>(*++jit_operator_itr);
   ASSERT_NE(jit_read_tuples, nullptr);
   ASSERT_NE(jit_compute, nullptr);
   ASSERT_NE(jit_filter, nullptr);
@@ -283,12 +284,13 @@ TEST_F(JitAwareLQPTranslatorTest, UnionsGetTransformedToDisjunction) {
 
   // Check the type of jit operators in the operator pipeline
   const auto jit_operators = jit_operator_wrapper->jit_operators();
-  ASSERT_EQ(jit_operator_wrapper->jit_operators().size(), 4u);
+  ASSERT_EQ(jit_operators.size(), 4u);
 
-  const auto jit_read_tuples = std::dynamic_pointer_cast<JitReadTuples>(jit_operators[0]);
-  const auto jit_compute = std::dynamic_pointer_cast<JitCompute>(jit_operators[1]);
-  const auto jit_filter = std::dynamic_pointer_cast<JitFilter>(jit_operators[2]);
-  const auto jit_write_tuples = std::dynamic_pointer_cast<JitWriteTuples>(jit_operators[3]);
+  auto jit_operator_itr = jit_operators.begin();
+  const auto jit_read_tuples = std::dynamic_pointer_cast<JitReadTuples>(*jit_operator_itr);
+  const auto jit_compute = std::dynamic_pointer_cast<JitCompute>(*++jit_operator_itr);
+  const auto jit_filter = std::dynamic_pointer_cast<JitFilter>(*++jit_operator_itr);
+  const auto jit_write_tuples = std::dynamic_pointer_cast<JitWriteTuples>(*++jit_operator_itr);
   ASSERT_NE(jit_read_tuples, nullptr);
   ASSERT_NE(jit_compute, nullptr);
   ASSERT_NE(jit_filter, nullptr);
@@ -331,13 +333,14 @@ TEST_F(JitAwareLQPTranslatorTest, AMoreComplexQuery) {
 
   // Check the type of jit operators in the operator pipeline
   const auto jit_operators = jit_operator_wrapper->jit_operators();
-  ASSERT_EQ(jit_operator_wrapper->jit_operators().size(), 5u);
+  ASSERT_EQ(jit_operators.size(), 5u);
 
-  const auto jit_read_tuples = std::dynamic_pointer_cast<JitReadTuples>(jit_operators[0]);
-  const auto jit_compute_1 = std::dynamic_pointer_cast<JitCompute>(jit_operators[1]);
-  const auto jit_filter = std::dynamic_pointer_cast<JitFilter>(jit_operators[2]);
-  const auto jit_compute_2 = std::dynamic_pointer_cast<JitCompute>(jit_operators[3]);
-  const auto jit_write_tuples = std::dynamic_pointer_cast<JitWriteTuples>(jit_operators[4]);
+  auto jit_operator_itr = jit_operators.begin();
+  const auto jit_read_tuples = std::dynamic_pointer_cast<JitReadTuples>(*jit_operator_itr);
+  const auto jit_compute_1 = std::dynamic_pointer_cast<JitCompute>(*++jit_operator_itr);
+  const auto jit_filter = std::dynamic_pointer_cast<JitFilter>(*++jit_operator_itr);
+  const auto jit_compute_2 = std::dynamic_pointer_cast<JitCompute>(*++jit_operator_itr);
+  const auto jit_write_tuples = std::dynamic_pointer_cast<JitWriteTuples>(*++jit_operator_itr);
   ASSERT_NE(jit_read_tuples, nullptr);
   ASSERT_NE(jit_compute_1, nullptr);
   ASSERT_NE(jit_filter, nullptr);
@@ -396,11 +399,12 @@ TEST_F(JitAwareLQPTranslatorTest, AggregateOperator) {
 
   // Check the type of jit operators in the operator pipeline
   const auto jit_operators = jit_operator_wrapper->jit_operators();
-  ASSERT_EQ(jit_operator_wrapper->jit_operators().size(), 3u);
+  ASSERT_EQ(jit_operators.size(), 3u);
 
-  const auto jit_read_tuples = std::dynamic_pointer_cast<JitReadTuples>(jit_operators[0]);
-  const auto jit_compute = std::dynamic_pointer_cast<JitCompute>(jit_operators[1]);
-  const auto jit_aggregate = std::dynamic_pointer_cast<JitAggregate>(jit_operators[2]);
+  auto jit_operator_itr = jit_operators.begin();
+  const auto jit_read_tuples = std::dynamic_pointer_cast<JitReadTuples>(*jit_operator_itr);
+  const auto jit_compute = std::dynamic_pointer_cast<JitCompute>(*++jit_operator_itr);
+  const auto jit_aggregate = std::dynamic_pointer_cast<JitAggregate>(*++jit_operator_itr);
   ASSERT_NE(jit_read_tuples, nullptr);
   ASSERT_NE(jit_compute, nullptr);
   ASSERT_NE(jit_aggregate, nullptr);

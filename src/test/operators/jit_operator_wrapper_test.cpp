@@ -56,9 +56,10 @@ TEST_F(JitOperatorWrapperTest, JitOperatorsAreAdded) {
   jit_operator_wrapper.add_jit_operator(_operator_3);
 
   ASSERT_EQ(jit_operator_wrapper.jit_operators().size(), 3u);
-  ASSERT_EQ(jit_operator_wrapper.jit_operators()[0], _operator_1);
-  ASSERT_EQ(jit_operator_wrapper.jit_operators()[1], _operator_2);
-  ASSERT_EQ(jit_operator_wrapper.jit_operators()[2], _operator_3);
+  auto itr = jit_operator_wrapper.jit_operators().begin();
+  ASSERT_EQ(*itr, _operator_1);
+  ASSERT_EQ(*++itr, _operator_2);
+  ASSERT_EQ(*++itr, _operator_3);
 }
 
 TEST_F(JitOperatorWrapperTest, JitOperatorsAreConnectedToAChain) {

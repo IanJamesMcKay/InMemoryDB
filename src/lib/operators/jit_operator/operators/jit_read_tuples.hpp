@@ -86,7 +86,7 @@ class JitReadTuples : public AbstractJittable {
   };
 
  public:
-  explicit JitReadTuples(const bool has_validate);
+  explicit JitReadTuples(const bool has_validate = false);
 
   std::string description() const final;
 
