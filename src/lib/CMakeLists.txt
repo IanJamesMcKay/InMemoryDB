@@ -419,6 +419,7 @@ set(
     type_comparison.hpp
     types.hpp
     uid_allocator.hpp
+    utils/aligned_size.hpp
     utils/arithmetic_operator_expression.hpp
     utils/arithmetic_operator_expression_impl.hpp
     utils/assert.hpp
@@ -453,6 +454,7 @@ set(
     LIBRARIES
     pthread
     sqlparser
+    boost_container
     ${TBB_LIBRARY}
 )
 
