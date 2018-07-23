@@ -13,11 +13,15 @@ HistogramType EqualWidthHistogram<T>::histogram_type() const {
   return HistogramType::EqualWidth;
 }
 
+template <>
+std::string EqualWidthHistogram<std::string>::_bucket_width([[maybe_unused]] const BucketID index) const {
+  Fail("Not supported for string histograms. Use _string_bucket_width instead.");
+}
+
 template <typename T>
 T EqualWidthHistogram<T>::_bucket_width([[maybe_unused]] const BucketID index) const {
   DebugAssert(index < _num_buckets(), "Index is not a valid bucket.");
 
-  // TODO(tim): support strings
   const auto base_width = this->_next_value(_max - _min) / this->_num_buckets();
 
   if constexpr (std::is_integral_v<T>) {
@@ -25,6 +29,16 @@ T EqualWidthHistogram<T>::_bucket_width([[maybe_unused]] const BucketID index) c
   }
 
   return base_width;
+}
+
+template <>
+uint64_t EqualWidthHistogram<std::string>::_string_bucket_width(const BucketID index) const {
+  DebugAssert(index < _num_buckets(), "Index is not a valid bucket.");
+
+  const auto num_min = this->_convert_string_to_number_representation(_min);
+  const auto num_max = this->_convert_string_to_number_representation(_max);
+  const auto base_width = (num_max - num_min + 1) / this->_num_buckets();
+  return base_width + (index < _num_buckets_with_larger_range ? 1 : 0);
 }
 
 template <typename T>
@@ -39,13 +53,29 @@ BucketID EqualWidthHistogram<T>::_bucket_for_value(const T value) const {
   }
 
   if (_num_buckets_with_larger_range == 0u || value <= _bucket_max(_num_buckets_with_larger_range - 1u)) {
-    // All buckets up to that point have the exact same width, so we can use index 0.
-    return (value - _min) / _bucket_width(0u);
+    if constexpr (!std::is_same_v<T, std::string>) {
+      // All buckets up to that point have the exact same width, so we can use index 0.
+      return (value - _min) / _bucket_width(0u);
+    } else {
+      // Get the numerical representation for strings first.
+      const auto num_value = this->_convert_string_to_number_representation(value);
+      const auto num_min = this->_convert_string_to_number_representation(_min);
+      return (num_value - num_min) / _string_bucket_width(0u);
+    }
   }
 
-  // All buckets after that point have the exact same width as well, so we use that as the new base and add it up.
-  return _num_buckets_with_larger_range +
-         (value - _bucket_min(_num_buckets_with_larger_range)) / _bucket_width(_num_buckets_with_larger_range);
+  if constexpr (!std::is_same_v<T, std::string>) {
+    // All buckets after that point have the exact same width as well, so we use that as the new base and add it up.
+    return _num_buckets_with_larger_range +
+           (value - _bucket_min(_num_buckets_with_larger_range)) / _bucket_width(_num_buckets_with_larger_range);
+  } else {
+    // Get the numerical representation for strings first.
+    const auto num_value = this->_convert_string_to_number_representation(value);
+    const auto num_base_min =
+        this->_convert_string_to_number_representation(_bucket_min(_num_buckets_with_larger_range));
+    return _num_buckets_with_larger_range +
+           (num_value - num_base_min) / _string_bucket_width(_num_buckets_with_larger_range);
+  }
 }
 
 template <typename T>
@@ -71,18 +101,21 @@ template <typename T>
 T EqualWidthHistogram<T>::_bucket_min(const BucketID index) const {
   DebugAssert(index < _num_buckets(), "Index is not a valid bucket.");
 
-  const auto base_min = _min + index * _bucket_width(index);
+  if constexpr (!std::is_same_v<T, std::string>) {
+    const auto base_min = _min + index * _bucket_width(index);
 
-  if constexpr (std::is_integral_v<T>) {
-    return base_min + std::min(index, _num_buckets_with_larger_range);
+    if constexpr (std::is_integral_v<T>) {
+      return base_min + std::min(index, _num_buckets_with_larger_range);
+    }
+
+    if constexpr (std::is_floating_point_v<T>) {
+      return base_min;
+    }
+  } else {
+    const auto num_min = this->_convert_string_to_number_representation(_min);
+    const auto base_min = num_min + index * _string_bucket_width(index);
+    return this->_convert_number_representation_to_string(base_min + std::min(index, _num_buckets_with_larger_range));
   }
-
-  if constexpr (std::is_floating_point_v<T>) {
-    return base_min;
-  }
-
-  // TODO(tim): support strings
-  Fail("Histogram type not yet supported.");
 }
 
 template <typename T>
@@ -135,50 +168,82 @@ void EqualWidthHistogram<T>::_generate(const ColumnID column_id, const size_t ma
   _min = distinct_column->get(0);
   _max = distinct_column->get(distinct_column->size() - 1u);
 
-  const T base_width = _max - _min;
-  // TODO(tim): this only works for numerical types, support strings
-  const T bucket_width = this->_next_value(base_width) / max_num_buckets;
-
-  if constexpr (std::is_integral_v<T>) {
-    _num_buckets_with_larger_range = (base_width + 1) % max_num_buckets;
-  } else {
-    _num_buckets_with_larger_range = 0u;
-  }
-
-  T current_begin_value = _min;
-  auto current_begin_it = distinct_column->values().begin();
-  auto current_begin_index = 0l;
-  for (auto current_bucket_id = 0u; current_bucket_id < max_num_buckets; current_bucket_id++) {
-    T next_begin_value = current_begin_value + bucket_width;
-    T current_end_value = this->_previous_value(next_begin_value);
+  if constexpr (!std::is_same_v<T, std::string>) {
+    const T base_width = _max - _min;
+    const T bucket_width = this->_next_value(base_width) / max_num_buckets;
 
     if constexpr (std::is_integral_v<T>) {
-      if (current_bucket_id < _num_buckets_with_larger_range) {
-        current_end_value++;
-        next_begin_value++;
+      _num_buckets_with_larger_range = (base_width + 1) % max_num_buckets;
+    } else {
+      _num_buckets_with_larger_range = 0u;
+    }
+
+    T current_begin_value = _min;
+    auto current_begin_it = distinct_column->values().begin();
+    auto current_begin_index = 0l;
+    for (auto current_bucket_id = 0u; current_bucket_id < max_num_buckets; current_bucket_id++) {
+      T next_begin_value = current_begin_value + bucket_width;
+      T current_end_value = this->_previous_value(next_begin_value);
+
+      if constexpr (std::is_integral_v<T>) {
+        if (current_bucket_id < _num_buckets_with_larger_range) {
+          current_end_value++;
+          next_begin_value++;
+        }
       }
+
+      // TODO(tim): think about replacing with binary search (same for other hists)
+      auto next_begin_it = current_begin_it;
+      while (next_begin_it != distinct_column->values().end() && *next_begin_it <= current_end_value) {
+        next_begin_it++;
+      }
+
+      const auto next_begin_index = std::distance(distinct_column->values().begin(), next_begin_it);
+      _counts.emplace_back(std::accumulate(count_column->values().begin() + current_begin_index,
+                                           count_column->values().begin() + next_begin_index, uint64_t{0}));
+      _distinct_counts.emplace_back(next_begin_index - current_begin_index);
+
+      current_begin_value = next_begin_value;
+      current_begin_index = next_begin_index;
     }
+  } else {
+    const auto num_min = this->_convert_string_to_number_representation(_min);
+    const auto num_max = this->_convert_string_to_number_representation(_max);
+    const auto base_width = num_max - num_min + 1;
+    const auto bucket_width = base_width / max_num_buckets;
 
-    // TODO(tim): think about replacing with binary search (same for other hists)
-    auto next_begin_it = current_begin_it;
-    while (next_begin_it != distinct_column->values().end() && *next_begin_it <= current_end_value) {
-      next_begin_it++;
+    _num_buckets_with_larger_range = base_width % max_num_buckets;
+
+    T current_begin_value = _min;
+    auto current_begin_it = distinct_column->values().begin();
+    auto current_begin_index = 0l;
+    for (auto current_bucket_id = 0u; current_bucket_id < max_num_buckets; current_bucket_id++) {
+      auto num_current_begin_value = this->_convert_string_to_number_representation(current_begin_value);
+      T next_begin_value = this->_convert_number_representation_to_string(num_current_begin_value + bucket_width);
+      T current_end_value = this->_previous_value(next_begin_value);
+
+      if (current_bucket_id < _num_buckets_with_larger_range) {
+        current_end_value = next_begin_value;
+        next_begin_value = this->_next_value(next_begin_value);
+      }
+
+      // TODO(tim): think about replacing with binary search (same for other hists)
+      auto next_begin_it = current_begin_it;
+      while (next_begin_it != distinct_column->values().end() && *next_begin_it <= current_end_value) {
+        next_begin_it++;
+      }
+
+      const auto next_begin_index = std::distance(distinct_column->values().begin(), next_begin_it);
+      _counts.emplace_back(std::accumulate(count_column->values().begin() + current_begin_index,
+                                           count_column->values().begin() + next_begin_index, uint64_t{0}));
+      _distinct_counts.emplace_back(next_begin_index - current_begin_index);
+
+      current_begin_value = next_begin_value;
+      current_begin_index = next_begin_index;
     }
-
-    const auto next_begin_index = std::distance(distinct_column->values().begin(), next_begin_it);
-    _counts.emplace_back(std::accumulate(count_column->values().begin() + current_begin_index,
-                                         count_column->values().begin() + next_begin_index, uint64_t{0}));
-    _distinct_counts.emplace_back(next_begin_index - current_begin_index);
-
-    current_begin_value = next_begin_value;
-    current_begin_index = next_begin_index;
   }
 }
 
-// These histograms only make sense for data types for which there is a discreet number of elements in a range.
-template class EqualWidthHistogram<int32_t>;
-template class EqualWidthHistogram<int64_t>;
-template class EqualWidthHistogram<float>;
-template class EqualWidthHistogram<double>;
+EXPLICITLY_INSTANTIATE_DATA_TYPES(EqualWidthHistogram);
 
 }  // namespace opossum

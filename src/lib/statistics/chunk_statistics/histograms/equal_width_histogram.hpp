@@ -33,6 +33,8 @@ class EqualWidthHistogram : public AbstractHistogram<T> {
   // Overriding because it would otherwise recursively call itself.
   T _bucket_width(const BucketID index) const override;
 
+  uint64_t _string_bucket_width(const BucketID index) const;
+
  private:
   T _min;
   T _max;

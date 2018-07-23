@@ -33,7 +33,8 @@ class AbstractHistogram : public AbstractFilter {
 
   T _previous_value(const T value) const;
   T _next_value(const T value, const bool overflow = true) const;
-  uint64_t _convert_string_to_number_representation(const T value) const;
+  uint64_t _convert_string_to_number_representation(const std::string& value) const;
+  std::string _convert_number_representation_to_string(const uint64_t) const;
 
   virtual T _bucket_width(const BucketID index) const;
 

@@ -132,21 +132,34 @@ T AbstractHistogram<T>::_next_value(const T value, [[maybe_unused]] const bool o
   Fail("Unsupported data type.");
 }
 
-template <typename T>
-uint64_t AbstractHistogram<T>::_convert_string_to_number_representation([[maybe_unused]] const T value) const {
-  if constexpr (std::is_same_v<T, std::string>) {
-    const auto trimmed = value.substr(0, _string_prefix_length);
+template <>
+uint64_t AbstractHistogram<std::string>::_convert_string_to_number_representation([
+    [maybe_unused]] const std::string& value) const {
+  const auto trimmed = value.substr(0, _string_prefix_length);
 
-    uint64_t result = 0;
-    for (auto it = trimmed.cbegin(); it < trimmed.cend(); it++) {
-      const auto power = _string_prefix_length - std::distance(trimmed.cbegin(), it) - 1;
-      result += (*it - _supported_characters.front()) * std::pow(_supported_characters.length(), power);
-    }
-
-    return result;
+  uint64_t result = 0;
+  for (auto it = trimmed.cbegin(); it < trimmed.cend(); it++) {
+    const auto power = _string_prefix_length - std::distance(trimmed.cbegin(), it) - 1;
+    result += (*it - _supported_characters.front()) * std::pow(_supported_characters.length(), power);
   }
 
-  Fail("Must not be called outside string histograms.");
+  return result;
+}
+
+template <>
+std::string AbstractHistogram<std::string>::_convert_number_representation_to_string([
+    [maybe_unused]] const uint64_t value) const {
+  std::string result_string = "";
+
+  auto remainder = value;
+  for (auto power = _string_prefix_length - 1; power >= 0; power--) {
+    auto pow_result = static_cast<uint64_t>(std::pow(_supported_characters.length(), power));
+    auto div = remainder / pow_result;
+    remainder -= div * pow_result;
+    result_string += _supported_characters.at(div);
+  }
+
+  return result_string;
 }
 
 template <typename T>

@@ -558,6 +558,121 @@ TEST_F(HistogramTest, EqualWidthFloatLessThan) {
                   4.f + 7.f + 3.f);
 }
 
+TEST_F(HistogramTest, EqualWidthStringLessThan) {
+  auto hist = EqualWidthHistogram<std::string>(_string3, 4u);
+  hist.generate(ColumnID{0}, 4u);
+
+  // "abcd"
+  constexpr auto bucket_1_lower = 26 * 26 + 2 * 26 + 3;
+  // "ghbp"
+  constexpr auto bucket_1_upper = 6 * 26 * 26 * 26 + 7 * 26 * 26 + 1 * 26 + 15;
+  // "ghbq"
+  constexpr auto bucket_2_lower = bucket_1_upper + 1;
+  // "mnbb"
+  constexpr auto bucket_2_upper = 12 * 26 * 26 * 26 + 13 * 26 * 26 + 1 * 26 + 1;
+  // "mnbc"
+  constexpr auto bucket_3_lower = bucket_2_upper + 1;
+  // "stan"
+  constexpr auto bucket_3_upper = 18 * 26 * 26 * 26 + 19 * 26 * 26 + 0 * 26 + 13;
+  // "stao"
+  constexpr auto bucket_4_lower = bucket_3_upper + 1;
+  // "yyzz"
+  constexpr auto bucket_4_upper = 24 * 26 * 26 * 26 + 24 * 26 * 26 + 25 * 26 + 25;
+
+  constexpr auto bucket_1_width = (bucket_1_upper - bucket_1_lower + 1.f);
+  constexpr auto bucket_2_width = (bucket_2_upper - bucket_2_lower + 1.f);
+  constexpr auto bucket_3_width = (bucket_3_upper - bucket_3_lower + 1.f);
+  constexpr auto bucket_4_width = (bucket_4_upper - bucket_4_lower + 1.f);
+
+  constexpr auto bucket_1_count = 4.f;
+  constexpr auto bucket_2_count = 5.f;
+  constexpr auto bucket_3_count = 4.f;
+  constexpr auto bucket_4_count = 3.f;
+  constexpr auto total_count = bucket_1_count + bucket_2_count + bucket_3_count + bucket_4_count;
+
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("aaaa", PredicateCondition::LessThan), 0.f);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("abcd", PredicateCondition::LessThan), 0.f);
+
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("abce", PredicateCondition::LessThan), 1 / bucket_1_width * bucket_1_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("abcf", PredicateCondition::LessThan), 2 / bucket_1_width * bucket_1_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("cccc", PredicateCondition::LessThan),
+                  (2 * 26 * 26 * 26 + 2 * 26 * 26 + 2 * 26 + 2 - bucket_1_lower) / bucket_1_width * bucket_1_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("dddd", PredicateCondition::LessThan),
+                  (3 * 26 * 26 * 26 + 3 * 26 * 26 + 3 * 26 + 3 - bucket_1_lower) / bucket_1_width * bucket_1_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("ghbo", PredicateCondition::LessThan),
+                  (bucket_1_width - 2) / bucket_1_width * bucket_1_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("ghbp", PredicateCondition::LessThan),
+                  (bucket_1_width - 1) / bucket_1_width * bucket_1_count);
+
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("ghbq", PredicateCondition::LessThan), bucket_1_count);
+
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("ghbr", PredicateCondition::LessThan),
+                  1 / bucket_2_width * bucket_2_count + bucket_1_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("ghbs", PredicateCondition::LessThan),
+                  2 / bucket_2_width * bucket_2_count + bucket_1_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("jjjj", PredicateCondition::LessThan),
+                  (9 * 26 * 26 * 26 + 9 * 26 * 26 + 9 * 26 + 9 - bucket_2_lower) / bucket_2_width * bucket_2_count +
+                      bucket_1_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("kkkk", PredicateCondition::LessThan),
+                  (10 * 26 * 26 * 26 + 10 * 26 * 26 + 10 * 26 + 10 - bucket_2_lower) / bucket_2_width * bucket_2_count +
+                      bucket_1_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("lzzz", PredicateCondition::LessThan),
+                  (11 * 26 * 26 * 26 + 25 * 26 * 26 + 25 * 26 + 25 - bucket_2_lower) / bucket_2_width * bucket_2_count +
+                      bucket_1_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("mnaz", PredicateCondition::LessThan),
+                  (bucket_2_width - 3) / bucket_2_width * bucket_2_count + bucket_1_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("mnba", PredicateCondition::LessThan),
+                  (bucket_2_width - 2) / bucket_2_width * bucket_2_count + bucket_1_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("mnbb", PredicateCondition::LessThan),
+                  (bucket_2_width - 1) / bucket_2_width * bucket_2_count + bucket_1_count);
+
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("mnbc", PredicateCondition::LessThan), bucket_1_count + bucket_2_count);
+
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("mnbd", PredicateCondition::LessThan),
+                  1 / bucket_3_width * bucket_3_count + bucket_1_count + bucket_2_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("mnbe", PredicateCondition::LessThan),
+                  2 / bucket_3_width * bucket_3_count + bucket_1_count + bucket_2_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("pppp", PredicateCondition::LessThan),
+                  (15 * 26 * 26 * 26 + 15 * 26 * 26 + 15 * 26 + 15 - bucket_3_lower) / bucket_3_width * bucket_3_count +
+                      bucket_1_count + bucket_2_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("qqqq", PredicateCondition::LessThan),
+                  (16 * 26 * 26 * 26 + 16 * 26 * 26 + 16 * 26 + 16 - bucket_3_lower) / bucket_3_width * bucket_3_count +
+                      bucket_1_count + bucket_2_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("qllo", PredicateCondition::LessThan),
+                  (16 * 26 * 26 * 26 + 11 * 26 * 26 + 11 * 26 + 14 - bucket_3_lower) / bucket_3_width * bucket_3_count +
+                      bucket_1_count + bucket_2_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("stam", PredicateCondition::LessThan),
+                  (bucket_3_width - 2) / bucket_3_width * bucket_3_count + bucket_1_count + bucket_2_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("stan", PredicateCondition::LessThan),
+                  (bucket_3_width - 1) / bucket_3_width * bucket_3_count + bucket_1_count + bucket_2_count);
+
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("stao", PredicateCondition::LessThan),
+                  bucket_1_count + bucket_2_count + bucket_3_count);
+
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("stap", PredicateCondition::LessThan),
+                  1 / bucket_4_width * bucket_4_count + bucket_1_count + bucket_2_count + bucket_3_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("staq", PredicateCondition::LessThan),
+                  2 / bucket_4_width * bucket_4_count + bucket_1_count + bucket_2_count + bucket_3_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("vvvv", PredicateCondition::LessThan),
+                  (21 * 26 * 26 * 26 + 21 * 26 * 26 + 21 * 26 + 21 - bucket_4_lower) / bucket_4_width * bucket_4_count +
+                      bucket_1_count + bucket_2_count + bucket_3_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("xxxx", PredicateCondition::LessThan),
+                  (23 * 26 * 26 * 26 + 23 * 26 * 26 + 23 * 26 + 23 - bucket_4_lower) / bucket_4_width * bucket_4_count +
+                      bucket_1_count + bucket_2_count + bucket_3_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("ycip", PredicateCondition::LessThan),
+                  (24 * 26 * 26 * 26 + 2 * 26 * 26 + 8 * 26 + 15 - bucket_4_lower) / bucket_4_width * bucket_4_count +
+                      bucket_1_count + bucket_2_count + bucket_3_count);
+  EXPECT_FLOAT_EQ(
+      hist.estimate_cardinality("yyzy", PredicateCondition::LessThan),
+      (bucket_4_width - 2) / bucket_4_width * bucket_4_count + bucket_1_count + bucket_2_count + bucket_3_count);
+  EXPECT_FLOAT_EQ(
+      hist.estimate_cardinality("yyzz", PredicateCondition::LessThan),
+      (bucket_4_width - 1) / bucket_4_width * bucket_4_count + bucket_1_count + bucket_2_count + bucket_3_count);
+
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("yzaa", PredicateCondition::LessThan), total_count);
+  EXPECT_FLOAT_EQ(hist.estimate_cardinality("zzzz", PredicateCondition::LessThan), total_count);
+}
+
 TEST_F(HistogramTest, EqualHeightHistogramBasic) {
   auto hist = EqualHeightHistogram<int32_t>(_expected_join_result_1, 8u);
   hist.generate(ColumnID{1}, 4u);
@@ -830,6 +945,10 @@ class HistogramPrivateTest : public BaseTest {
     return _hist->_convert_string_to_number_representation(value);
   }
 
+  std::string convert_number_representation_to_string(const uint64_t value) {
+    return _hist->_convert_number_representation_to_string(value);
+  }
+
  protected:
   std::shared_ptr<EqualNumElementsHistogram<std::string>> _hist;
 };
@@ -864,6 +983,13 @@ TEST_F(HistogramPrivateTest, StringToNumber) {
   EXPECT_EQ(convert_string_to_number_representation("aaaa"), convert_string_to_number_representation("a"));
   EXPECT_EQ(convert_string_to_number_representation("dcba"), convert_string_to_number_representation("dcb"));
   EXPECT_NE(convert_string_to_number_representation("abcd"), convert_string_to_number_representation("bcd"));
+}
+
+TEST_F(HistogramPrivateTest, NumberToString) {
+  EXPECT_EQ(convert_number_representation_to_string(0ul), "aaaa");
+  EXPECT_EQ(convert_number_representation_to_string(1ul), "aaab");
+  EXPECT_EQ(convert_number_representation_to_string(26ul * 26ul * 26ul + 7ul * 26ul * 26ul + 9ul * 26ul), "bhja");
+  EXPECT_EQ(convert_number_representation_to_string(26ul * 26ul * 26ul * 26ul - 1ul), "zzzz");
 }
 
 // TODO(tim): remove
