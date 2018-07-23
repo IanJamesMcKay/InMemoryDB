@@ -137,10 +137,6 @@ void EqualHeightHistogram<T>::_generate(const ColumnID column_id, const size_t m
   }
 }
 
-// These histograms only make sense for data types for which there is a discreet number of elements in a range.
-template class EqualHeightHistogram<int32_t>;
-template class EqualHeightHistogram<int64_t>;
-template class EqualHeightHistogram<float>;
-template class EqualHeightHistogram<double>;
+EXPLICITLY_INSTANTIATE_DATA_TYPES(EqualHeightHistogram);
 
 }  // namespace opossum
