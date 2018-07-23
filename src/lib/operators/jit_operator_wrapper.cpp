@@ -1,10 +1,10 @@
 #include "jit_operator_wrapper.hpp"
 
+#include "global.hpp"
 #include "operators/jit_operator/operators/jit_aggregate.hpp"
 #include "operators/jit_operator/operators/jit_compute.hpp"
 #include "operators/jit_operator/operators/jit_read_value.hpp"
 #include "operators/jit_operator/operators/jit_validate.hpp"
-#include "global.hpp"
 
 namespace opossum {
 
@@ -29,9 +29,7 @@ const std::string JitOperatorWrapper::description(DescriptionMode description_mo
 
 void JitOperatorWrapper::add_jit_operator(const std::shared_ptr<AbstractJittable>& op) { _jit_operators.push_back(op); }
 
-const std::list<std::shared_ptr<AbstractJittable>>& JitOperatorWrapper::jit_operators() const {
-  return _jit_operators;
-}
+const std::list<std::shared_ptr<AbstractJittable>>& JitOperatorWrapper::jit_operators() const { return _jit_operators; }
 
 const std::shared_ptr<JitReadTuples> JitOperatorWrapper::_source() const {
   return std::dynamic_pointer_cast<JitReadTuples>(_jit_operators.front());
@@ -113,7 +111,8 @@ std::shared_ptr<const Table> JitOperatorWrapper::_on_execute() {
   _sink()->before_query(*out_table, context);
 
   // Connect operators to a chain
-  for (auto it = _jit_operators.begin(), next = ++_jit_operators.begin(); it != _jit_operators.end() && next != _jit_operators.end(); ++it, ++next) {
+  for (auto it = _jit_operators.begin(), next = ++_jit_operators.begin();
+       it != _jit_operators.end() && next != _jit_operators.end(); ++it, ++next) {
     (*it)->set_next_operator(*(next));
   }
 

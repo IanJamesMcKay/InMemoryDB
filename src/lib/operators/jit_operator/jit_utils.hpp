@@ -1,9 +1,9 @@
 #pragma once
 
-#include "types.hpp"
-#include "operators/jit_operator/jit_types.hpp"
 #include "all_type_variant.hpp"
+#include "operators/jit_operator/jit_types.hpp"
 #include "storage/mvcc_columns.hpp"
+#include "types.hpp"
 
 namespace opossum {
 
@@ -17,13 +17,11 @@ using StringFunction = std::function<void(const std::string& a, const std::strin
 
 namespace no_inline {
 
-__attribute__((noinline))
-Mvcc unpack_mvcc(const MvccColumns& columns, ChunkOffset chunk_offset);
+__attribute__((noinline)) Mvcc unpack_mvcc(const MvccColumns& columns, ChunkOffset chunk_offset);
 
-__attribute__((noinline))
-void compute_binary(const JitTupleValue& lhs, const ExpressionType expression_type,
-                    const JitTupleValue& rhs,  const JitTupleValue& result,
-                    JitRuntimeContext& context);
+__attribute__((noinline)) void compute_binary(const JitTupleValue& lhs, const ExpressionType expression_type,
+                                              const JitTupleValue& rhs, const JitTupleValue& result,
+                                              JitRuntimeContext& context);
 
 }  // namespace no_inline
 

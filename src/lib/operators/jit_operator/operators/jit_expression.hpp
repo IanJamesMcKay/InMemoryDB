@@ -56,8 +56,7 @@ class JitExpression {
   const size_t _input_column_index;
 };
 
-void compute_binary(const JitTupleValue& lhs, const ExpressionType expression_type,
-                    const JitTupleValue& rhs,  const JitTupleValue& result,
-                    JitRuntimeContext& context);
+void compute_binary(const JitTupleValue& lhs, const ExpressionType expression_type, const JitTupleValue& rhs,
+                    const JitTupleValue& result, JitRuntimeContext& context);
 
 }  // namespace opossum

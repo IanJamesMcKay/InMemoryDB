@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "concurrency/transaction_manager.hpp"
+#include "global.hpp"
 #include "operators/delete.hpp"
 #include "operators/get_table.hpp"
 #include "operators/insert.hpp"
@@ -17,7 +18,6 @@
 #include "storage/storage_manager.hpp"
 #include "types.hpp"
 #include "utils/load_table.hpp"
-#include "global.hpp"
 
 using namespace opossum;  // NOLINT
 
@@ -31,7 +31,7 @@ int main() {
   auto table_c = opossum::load_table("src/test/tables/int3.tbl", 1000);
   opossum::StorageManager::get().add_table("tmp2", table_c);
 
-  auto &global = opossum::Global::get();
+  auto& global = opossum::Global::get();
   global.jit = true;
   global.lazy_load = true;
   global.jit_validate = true;
@@ -73,19 +73,18 @@ int main() {
   get_table->set_transaction_context(context);
   get_table->execute(); */
 
-  auto filter =
-          std::make_shared<opossum::TableScan>(get_table, opossum::ColumnID{0}, opossum::PredicateCondition::GreaterThanEquals, 0);
+  auto filter = std::make_shared<opossum::TableScan>(get_table, opossum::ColumnID{0},
+                                                     opossum::PredicateCondition::GreaterThanEquals, 0);
   filter->execute();
 
   // auto validate = std::make_shared<opossum::Validate>(get_table);
   // validate->set_transaction_context(context);
-  auto jit_operator = std::make_shared<opossum::JitOperatorWrapper>(
-          filter, opossum::JitExecutionMode::Compile);  // Interpret validate
+  auto jit_operator =
+      std::make_shared<opossum::JitOperatorWrapper>(filter, opossum::JitExecutionMode::Compile);  // Interpret validate
   auto read_tuple = std::make_shared<opossum::JitReadTuples>(true);
   opossum::JitTupleValue tuple_val = read_tuple->add_input_column(opossum::DataType::Int, false, opossum::ColumnID(0));
   jit_operator->add_jit_operator(read_tuple);
   jit_operator->add_jit_operator(std::make_shared<opossum::JitValidate<true>>());
-
 
   auto id = read_tuple->add_temporary_value();
 
@@ -98,7 +97,6 @@ int main() {
   jit_operator->add_jit_operator(compute);
 
   auto tuple_value = expression->result();
-
 
   auto write_table = std::make_shared<opossum::JitWriteTuples>();
   write_table->add_output_column("a", tuple_value);  // tuple_value

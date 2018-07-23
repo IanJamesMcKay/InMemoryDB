@@ -9,6 +9,7 @@
 #include <unordered_set>
 
 #include "constant_mappings.hpp"
+#include "global.hpp"
 #include "logical_query_plan/aggregate_node.hpp"
 #include "logical_query_plan/projection_node.hpp"
 #include "logical_query_plan/stored_table_node.hpp"
@@ -19,7 +20,6 @@
 #include "operators/jit_operator/operators/jit_validate.hpp"
 #include "operators/jit_operator/operators/jit_write_tuples.hpp"
 #include "storage/storage_manager.hpp"
-#include "global.hpp"
 
 namespace opossum {
 
@@ -32,7 +32,8 @@ void column_name_for_aggregate_rec(const std::shared_ptr<opossum::LQPExpression>
     stream << expression->value();
   } else {
     if (brackets) stream << "(";
-    DebugAssert(expression->is_arithmetic_operator(), "Unsupported expression type: " + expression_type_to_string.at(expression->type()));
+    DebugAssert(expression->is_arithmetic_operator(),
+                "Unsupported expression type: " + expression_type_to_string.at(expression->type()));
     column_name_for_aggregate_rec(expression->left_child(), stream);
     stream << " " << expression_type_to_operator_string.at(expression->type()) << " ";
     column_name_for_aggregate_rec(expression->right_child(), stream);
@@ -98,7 +99,6 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_node_t
       return false;
     }
   });
-
 
   // We use a really simple heuristic to decide when to introduce jittable operators:
   // For aggregate operations replacing a single AggregateNode with a JitAggregate operator already yields significant

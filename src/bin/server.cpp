@@ -3,13 +3,13 @@
 #include <cstdlib>
 #include <iostream>
 
+#include "global.hpp"
 #include "scheduler/current_scheduler.hpp"
 #include "scheduler/node_queue_scheduler.hpp"
 #include "scheduler/topology.hpp"
 #include "server/server.hpp"
 #include "storage/storage_manager.hpp"
 #include "utils/load_table.hpp"
-#include "global.hpp"
 
 int main(int argc, char* argv[]) {
   try {
@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
       port = static_cast<uint16_t>(std::atoi(argv[1]));
     }
 
-    auto &global = opossum::Global::get();
+    auto& global = opossum::Global::get();
     global.jit = true;
     global.lazy_load = false;
     global.jit_validate = true;

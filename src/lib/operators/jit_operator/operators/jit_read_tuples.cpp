@@ -6,7 +6,7 @@
 
 namespace opossum {
 
-JitReadTuples::JitReadTuples(const bool has_validate) : _has_validate(has_validate) {};
+JitReadTuples::JitReadTuples(const bool has_validate) : _has_validate(has_validate) {}
 
 std::string JitReadTuples::description() const {
   std::stringstream desc;

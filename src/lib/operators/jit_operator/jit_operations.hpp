@@ -6,9 +6,9 @@
 #include <cmath>
 
 #include "jit_types.hpp"
+#include "jit_utils.hpp"
 #include "operators/table_scan/like_table_scan_impl.hpp"
 #include "resolve_type.hpp"
-#include "jit_utils.hpp"
 
 namespace opossum {
 

@@ -82,17 +82,16 @@ void JitExpression::compute(JitRuntimeContext& context) const {
   _right_child->compute(context);
 
   // Hack as strings cannot be currently specialised
-  if (_result_value.data_type() == DataType::Bool && _left_child->result().data_type() == DataType::String
-          && _right_child->result().data_type() == DataType::String) {
+  if (_result_value.data_type() == DataType::Bool && _left_child->result().data_type() == DataType::String &&
+      _right_child->result().data_type() == DataType::String) {
     no_inline::compute_binary(_left_child->result(), _expression_type, _right_child->result(), _result_value, context);
   } else {
     compute_binary(_left_child->result(), _expression_type, _right_child->result(), _result_value, context);
   }
 }
 
-void compute_binary(const JitTupleValue& lhs, const ExpressionType expression_type,
-                    const JitTupleValue& rhs,  const JitTupleValue& result,
-                    JitRuntimeContext& context) {
+void compute_binary(const JitTupleValue& lhs, const ExpressionType expression_type, const JitTupleValue& rhs,
+                    const JitTupleValue& result, JitRuntimeContext& context) {
   switch (expression_type) {
     case ExpressionType::Addition:
       jit_compute(jit_addition, lhs, rhs, result, context);

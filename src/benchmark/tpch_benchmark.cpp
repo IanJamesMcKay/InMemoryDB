@@ -8,6 +8,7 @@
 #include "SQLParserResult.h"
 #include "benchmark_runner.hpp"
 #include "cxxopts.hpp"
+#include "global.hpp"
 #include "json.hpp"
 #include "planviz/lqp_visualizer.hpp"
 #include "planviz/sql_query_plan_visualizer.hpp"
@@ -20,7 +21,6 @@
 #include "storage/storage_manager.hpp"
 #include "tpch/tpch_db_generator.hpp"
 #include "tpch/tpch_queries.hpp"
-#include "global.hpp"
 
 /**
  * This benchmark measures Hyrise's performance executing the TPC-H *queries*, it doesn't (yet) support running the
@@ -50,9 +50,9 @@ int main(int argc, char* argv[]) {
   std::unique_ptr<opossum::BenchmarkConfig> config;
   std::vector<opossum::QueryID> query_ids;
   float scale_factor;
-  bool &jit = opossum::Global::get().jit;
-  bool &lazy_load = opossum::Global::get().lazy_load;
-  bool &jit_validate = opossum::Global::get().jit_validate;
+  bool& jit = opossum::Global::get().jit;
+  bool& lazy_load = opossum::Global::get().lazy_load;
+  bool& jit_validate = opossum::Global::get().jit_validate;
 
   if (opossum::CLIConfigParser::cli_has_json_config(argc, argv)) {
     // JSON config file was passed in
@@ -62,7 +62,6 @@ int main(int argc, char* argv[]) {
     jit = json_config.value("jit", false);
     lazy_load = json_config.value("lazy_load", false);
     jit_validate = json_config.value("jit_validate", false);
-
 
     config = std::make_unique<opossum::BenchmarkConfig>(
         opossum::CLIConfigParser::parse_basic_options_json_config(json_config));

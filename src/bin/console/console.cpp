@@ -22,6 +22,7 @@
 #include "benchmark_utils.hpp"
 #include "concurrency/transaction_context.hpp"
 #include "concurrency/transaction_manager.hpp"
+#include "global.hpp"
 #include "operators/get_table.hpp"
 #include "operators/import_csv.hpp"
 #include "operators/print.hpp"
@@ -37,10 +38,9 @@
 #include "sql/sql_translator.hpp"
 #include "storage/storage_manager.hpp"
 #include "tpcc/tpcc_table_generator.hpp"
-#include "utils/invalid_input_exception.hpp"
 #include "utils/filesystem.hpp"
+#include "utils/invalid_input_exception.hpp"
 #include "utils/load_table.hpp"
-#include "global.hpp"
 
 #define ANSI_COLOR_RED "\x1B[31m"
 #define ANSI_COLOR_GREEN "\x1B[32m"
@@ -822,7 +822,7 @@ bool Console::_handle_rollback() {
 }  // namespace opossum
 
 int main(int argc, char** argv) {
-  auto &global = opossum::Global::get();
+  auto& global = opossum::Global::get();
   global.jit = true;
   global.lazy_load = false;
   global.jit_validate = true;

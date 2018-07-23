@@ -58,7 +58,7 @@ const std::shared_ptr<hsql::SQLParserResult>& SQLPipelineStatement::get_parsed_s
   hsql::SQLParser::parse(_sql_string, _parsed_sql_statement.get());
 
   AssertInput(_parsed_sql_statement->isValid(),
-    SQLPipelineStatement::create_parse_error_message(_sql_string, *_parsed_sql_statement));
+              SQLPipelineStatement::create_parse_error_message(_sql_string, *_parsed_sql_statement));
 
   Assert(_parsed_sql_statement->size() == 1,
          "SQLPipelineStatement must hold exactly one statement. "
@@ -97,7 +97,7 @@ const std::shared_ptr<AbstractLQPNode>& SQLPipelineStatement::get_unoptimized_lo
 
 void print(std::shared_ptr<AbstractLQPNode> node, size_t depth = 0) {
   if (!node) return;
-  for(size_t i = 0; i < depth; ++i) std::cout << " ";
+  for (size_t i = 0; i < depth; ++i) std::cout << " ";
   std::cout << node->description() << std::endl;
   print(node->left_input(), depth + 2);
   print(node->right_input(), depth + 2);
@@ -181,7 +181,7 @@ const std::shared_ptr<SQLQueryPlan>& SQLPipelineStatement::get_query_plan() {
     }
 
     AssertInput(arguments.size() == plan->num_parameters(),
-      "Number of arguments provided does not match expected number of arguments.");
+                "Number of arguments provided does not match expected number of arguments.");
 
     _query_plan->append_plan(plan->recreate(arguments));
     done = std::chrono::high_resolution_clock::now();
