@@ -24,6 +24,8 @@ class AbstractHistogram : public AbstractFilter {
   float estimate_cardinality(const T value, const PredicateCondition predicate_condition) const;
   bool can_prune(const AllTypeVariant& value, const PredicateCondition predicate_type) const override;
 
+  virtual uint64_t total_count() const = 0;
+
  protected:
   const std::shared_ptr<const Table> _get_value_counts(const ColumnID column_id) const;
   virtual void _generate(const ColumnID column_id, const size_t max_num_buckets) = 0;
@@ -46,7 +48,6 @@ class AbstractHistogram : public AbstractFilter {
   virtual T _bucket_max(const BucketID index) const = 0;
   virtual uint64_t _bucket_count(const BucketID index) const = 0;
   virtual uint64_t _bucket_count_distinct(const BucketID index) const = 0;
-  virtual uint64_t _total_count() const = 0;
 
   const std::weak_ptr<Table> _table;
   const uint8_t _string_prefix_length;
