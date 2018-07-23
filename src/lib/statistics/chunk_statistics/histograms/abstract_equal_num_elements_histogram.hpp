@@ -10,7 +10,7 @@ namespace opossum {
 class Table;
 
 template <typename T>
-class AbstractEqualNumElementsHistogram : public AbstractHistogram<T> {
+class AbstractEqualNumElementsHistogram : virtual public AbstractHistogram<T> {
  public:
   using AbstractHistogram<T>::AbstractHistogram;
 

@@ -89,7 +89,5 @@ template class AbstractEqualNumElementsHistogram<int32_t>;
 template class AbstractEqualNumElementsHistogram<int64_t>;
 template class AbstractEqualNumElementsHistogram<float>;
 template class AbstractEqualNumElementsHistogram<double>;
-// Used for strings.
-template class AbstractEqualNumElementsHistogram<uint64_t>;
 
 }  // namespace opossum

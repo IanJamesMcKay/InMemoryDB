@@ -316,7 +316,5 @@ template class AbstractHistogram<int32_t>;
 template class AbstractHistogram<int64_t>;
 template class AbstractHistogram<float>;
 template class AbstractHistogram<double>;
-// Used for strings.
-template class AbstractHistogram<uint64_t>;
 
 }  // namespace opossum

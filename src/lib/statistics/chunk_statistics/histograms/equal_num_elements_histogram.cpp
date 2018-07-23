@@ -24,8 +24,8 @@ void EqualNumElementsHistogram<T>::_generate(const ColumnID column_id, const siz
   const auto num_buckets = distinct_count < max_num_buckets ? static_cast<size_t>(distinct_count) : max_num_buckets;
 
   // Split values evenly among buckets.
-  _distinct_count_per_bucket = distinct_count / num_buckets;
-  _num_buckets_with_extra_value = distinct_count % num_buckets;
+  this->_distinct_count_per_bucket = distinct_count / num_buckets;
+  this->_num_buckets_with_extra_value = distinct_count % num_buckets;
 
   const auto distinct_column =
           std::static_pointer_cast<const ValueColumn<T>>(result->get_chunk(ChunkID{0})->get_column(ColumnID{0}))->values();
@@ -35,24 +35,27 @@ void EqualNumElementsHistogram<T>::_generate(const ColumnID column_id, const siz
 
   auto begin_index = 0ul;
   for (BucketID bucket_index = 0; bucket_index < num_buckets; bucket_index++) {
-    auto end_index = begin_index + _distinct_count_per_bucket - 1;
-    if (bucket_index < _num_buckets_with_extra_value) {
+    auto end_index = begin_index + this->_distinct_count_per_bucket - 1;
+    if (bucket_index < this->_num_buckets_with_extra_value) {
       end_index++;
     }
 
-    _mins.emplace_back(*(distinct_column.begin() + begin_index));
-    _maxs.emplace_back(*(distinct_column.begin() + end_index));
-    _counts.emplace_back(
+    this->_mins.emplace_back(*(distinct_column.begin() + begin_index));
+    this->_maxs.emplace_back(*(distinct_column.begin() + end_index));
+    this->_counts.emplace_back(
             std::accumulate(count_column.begin() + begin_index, count_column.begin() + end_index + 1, uint64_t{0}));
 
     begin_index = end_index + 1;
   }
 }
 
-template <>
 void EqualNumElementsHistogram<std::string>::_generate(const ColumnID column_id, const size_t max_num_buckets) {
 }
 
-EXPLICITLY_INSTANTIATE_DATA_TYPES(EqualNumElementsHistogram);
+// string is explicitly instantiated above
+template class EqualNumElementsHistogram<int32_t>;
+template class EqualNumElementsHistogram<int64_t>;
+template class EqualNumElementsHistogram<float>;
+template class EqualNumElementsHistogram<double>;
 
 }  // namespace opossum

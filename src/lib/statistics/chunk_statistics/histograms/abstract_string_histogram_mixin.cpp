@@ -16,6 +16,11 @@ namespace opossum {
 //   Assert(std::pow(_supported_characters.length(), string_prefix_length) <= std::pow(2, 64), "Prefix too long.");
 // }
 
+float AbstractStringHistogramMixin::estimate_cardinality(
+        const std::string& value, const PredicateCondition predicate_condition) const {
+  return 0.5f;
+}
+
 uint64_t AbstractStringHistogramMixin::_convert_string_to_number_representation(const std::string& value) const {
   const auto trimmed = value.substr(0, _string_prefix_length);
 

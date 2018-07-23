@@ -19,9 +19,9 @@ class EqualNumElementsHistogram : public AbstractEqualNumElementsHistogram<T> {
 
 template <>
 class EqualNumElementsHistogram<std::string> :
-        public AbstractEqualNumElementsHistogram<uint64_t>, public AbstractStringHistogramMixin {
+        public AbstractEqualNumElementsHistogram<int64_t>, public AbstractStringHistogramMixin {
  public:
-  using AbstractEqualNumElementsHistogram<uint64_t>::AbstractEqualNumElementsHistogram;
+  using AbstractStringHistogramMixin::AbstractStringHistogramMixin;
 
  protected:
   void _generate(const ColumnID column_id, const size_t max_num_buckets) override;
