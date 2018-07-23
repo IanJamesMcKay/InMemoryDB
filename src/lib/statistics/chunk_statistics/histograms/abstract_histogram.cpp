@@ -97,7 +97,7 @@ T AbstractHistogram<T>::_previous_value(const T value) const {
 }
 
 template <typename T>
-T AbstractHistogram<T>::_next_value(const T value, const bool overflow) const {
+T AbstractHistogram<T>::_next_value(const T value, [[maybe_unused]] const bool overflow) const {
   if constexpr (std::is_integral_v<T>) {
     return value + 1;
   }
@@ -133,7 +133,7 @@ T AbstractHistogram<T>::_next_value(const T value, const bool overflow) const {
 }
 
 template <typename T>
-uint64_t AbstractHistogram<T>::_convert_string_to_number_representation(const T value) const {
+uint64_t AbstractHistogram<T>::_convert_string_to_number_representation([[maybe_unused]] const T value) const {
   if constexpr (std::is_same_v<T, std::string>) {
     const auto trimmed = value.substr(0, _string_prefix_length);
 
