@@ -12,7 +12,7 @@ class Table;
 
 template <typename T>
 class AbstractHistogram : public AbstractFilter {
- friend class HistogramPrivateTest;
+  friend class HistogramPrivateTest;
 
  public:
   AbstractHistogram(const std::shared_ptr<Table> table, const uint8_t string_prefix_length);

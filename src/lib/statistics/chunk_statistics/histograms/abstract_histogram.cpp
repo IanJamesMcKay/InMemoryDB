@@ -176,7 +176,8 @@ float AbstractHistogram<T>::estimate_cardinality(const T value, const PredicateC
         return _total_count();
       }
 
-      return _total_count() - static_cast<float>(_bucket_count(index)) / static_cast<float>(_bucket_count_distinct(index));
+      return _total_count() -
+             static_cast<float>(_bucket_count(index)) / static_cast<float>(_bucket_count_distinct(index));
     }
     case PredicateCondition::LessThan: {
       if (value > _upper_end()) {
