@@ -34,7 +34,8 @@ bool Validate::is_row_visible(CommitID our_tid, CommitID snapshot_commit_id,
   return snapshot_commit_id < end_cid && ((snapshot_commit_id >= begin_cid) != (row_tid == our_tid));
 }
 
-Validate::Validate(const std::shared_ptr<AbstractOperator> in) : AbstractReadOnlyOperator(OperatorType::Validate, in) {}
+Validate::Validate(const std::shared_ptr<AbstractOperator>& in)
+    : AbstractReadOnlyOperator(OperatorType::Validate, in) {}
 
 const std::string Validate::name() const { return "Validate"; }
 

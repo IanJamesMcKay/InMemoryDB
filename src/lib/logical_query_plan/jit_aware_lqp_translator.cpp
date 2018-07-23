@@ -46,7 +46,12 @@ std::string column_name_for_aggregate(const std::shared_ptr<opossum::LQPExpressi
   return stream.str();
 }
 
-JitAwareLQPTranslator::JitAwareLQPTranslator() : LQPTranslator() {}
+JitAwareLQPTranslator::JitAwareLQPTranslator() {
+#if !HYRISE_JIT_SUPPORT
+  Fail("Query translation with JIT operators requested, but jitting is not available");
+#endif
+  {}  // Stop clang-tidy from complaining about an empty constructor
+}
 
 std::shared_ptr<AbstractOperator> JitAwareLQPTranslator::translate_node(
     const std::shared_ptr<AbstractLQPNode>& node) const {
@@ -378,9 +383,10 @@ bool JitAwareLQPTranslator::_node_is_jittable(const std::shared_ptr<AbstractLQPN
     // We do not support the count distinct function yet and thus need to check all aggregate expressions.
     auto aggregate_node = std::static_pointer_cast<AggregateNode>(node);
     auto aggregate_expressions = aggregate_node->aggregate_expressions();
-    auto has_count_distict = std::count_if(
-        aggregate_expressions.begin(), aggregate_expressions.end(),
-        [](auto& expression) { return expression->aggregate_function() == AggregateFunction::CountDistinct; });
+    auto has_count_distict =
+        std::count_if(aggregate_expressions.begin(), aggregate_expressions.end(), [](auto& expression) {
+          return expression->aggregate_function() == AggregateFunction::CountDistinct;
+        }) > 0;
     return allow_aggregate_node && !has_count_distict;
   }
 
@@ -390,19 +396,15 @@ bool JitAwareLQPTranslator::_node_is_jittable(const std::shared_ptr<AbstractLQPN
            std::dynamic_pointer_cast<PredicateNode>(node)->predicate_condition() != PredicateCondition::Between;
   }
 
-  if (node->type() == LQPNodeType::Projection || node->type() == LQPNodeType::Union) {
-    return true;
-  }
-
   if (Global::get().jit_validate && node->type() == LQPNodeType::Validate) {
     return true;
   }
 
-  return false;
+  return (node->type() == LQPNodeType::Projection || node->type() == LQPNodeType::Union);
 }
 
 void JitAwareLQPTranslator::_visit(const std::shared_ptr<AbstractLQPNode>& node,
-                                   std::function<bool(const std::shared_ptr<AbstractLQPNode>&)> func) const {
+                                   const std::function<bool(const std::shared_ptr<AbstractLQPNode>&)>& func) const {
   std::unordered_set<std::shared_ptr<const AbstractLQPNode>> visited;
   std::queue<std::shared_ptr<AbstractLQPNode>> queue({node});
 
