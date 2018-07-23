@@ -95,6 +95,14 @@ const std::shared_ptr<AbstractLQPNode>& SQLPipelineStatement::get_unoptimized_lo
   return _unoptimized_logical_plan;
 }
 
+void print(std::shared_ptr<AbstractLQPNode> node, size_t depth = 0) {
+  if (!node) return;
+  for(size_t i = 0; i < depth; ++i) std::cout << " ";
+  std::cout << node->description() << std::endl;
+  print(node->left_input(), depth + 2);
+  print(node->right_input(), depth + 2);
+}
+
 const std::shared_ptr<AbstractLQPNode>& SQLPipelineStatement::get_optimized_logical_plan() {
   if (_optimized_logical_plan) {
     return _optimized_logical_plan;
@@ -105,6 +113,8 @@ const std::shared_ptr<AbstractLQPNode>& SQLPipelineStatement::get_optimized_logi
   const auto started = std::chrono::high_resolution_clock::now();
 
   _optimized_logical_plan = _optimizer->optimize(unoptimized_lqp);
+
+  print(_optimized_logical_plan);
 
   const auto done = std::chrono::high_resolution_clock::now();
   _metrics->optimize_time_micros = std::chrono::duration_cast<std::chrono::microseconds>(done - started);

@@ -98,7 +98,7 @@ std::shared_ptr<JitOperatorWrapper> JitAwareLQPTranslator::_try_translate_node_t
   // We use a really simple heuristic to decide when to introduce jittable operators:
   // For aggregate operations replacing a single AggregateNode with a JitAggregate operator already yields significant
   // runtime benefits. Otherwise, it does not make sense to create a JitOperatorWrapper for fewer than 2 LQP nodes.
-  if (num_jittable_nodes < 1 || (num_jittable_nodes < 2 && node->type() != LQPNodeType::Aggregate) ||
+  if (num_jittable_nodes < 1 || (num_jittable_nodes < 1 && node->type() != LQPNodeType::Aggregate) ||
       input_nodes.size() != 1) {
     return nullptr;
   }

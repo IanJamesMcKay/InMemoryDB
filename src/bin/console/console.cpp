@@ -40,6 +40,7 @@
 #include "utils/invalid_input_exception.hpp"
 #include "utils/filesystem.hpp"
 #include "utils/load_table.hpp"
+#include "global.hpp"
 
 #define ANSI_COLOR_RED "\x1B[31m"
 #define ANSI_COLOR_GREEN "\x1B[32m"
@@ -821,6 +822,11 @@ bool Console::_handle_rollback() {
 }  // namespace opossum
 
 int main(int argc, char** argv) {
+  auto &global = opossum::Global::get();
+  global.jit = true;
+  global.lazy_load = false;
+  global.jit_validate = true;
+
   using Return = opossum::Console::ReturnCode;
   auto& console = opossum::Console::get();
 

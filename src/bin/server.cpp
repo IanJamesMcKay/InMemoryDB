@@ -19,12 +19,10 @@ int main(int argc, char* argv[]) {
       port = static_cast<uint16_t>(std::atoi(argv[1]));
     }
 
-    bool &jit = const_cast<bool&>(opossum::Global::get().jit);
-    bool &lazy_load = const_cast<bool&>(opossum::Global::get().lazy_load);
-    bool &jit_validate = const_cast<bool&>(opossum::Global::get().jit_validate);
-    jit = true;
-    lazy_load = false;
-    jit_validate = true;
+    auto &global = opossum::Global::get();
+    global.jit = true;
+    global.lazy_load = false;
+    global.jit_validate = true;
 
     auto table_a = opossum::load_table("src/test/tables/int_float.tbl", 2);
     opossum::StorageManager::get().add_table("table_a", table_a);
