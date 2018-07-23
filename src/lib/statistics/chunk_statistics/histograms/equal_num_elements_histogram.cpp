@@ -84,7 +84,7 @@ uint64_t EqualNumElementsHistogram<T>::_bucket_count_distinct(const BucketID ind
 }
 
 template <typename T>
-uint64_t EqualNumElementsHistogram<T>::total_count() const {
+uint64_t EqualNumElementsHistogram<T>::_total_count() const {
   return std::accumulate(_counts.begin(), _counts.end(), 0ul);
 }
 

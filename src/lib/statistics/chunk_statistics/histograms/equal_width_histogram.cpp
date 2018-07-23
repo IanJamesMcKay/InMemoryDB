@@ -105,7 +105,7 @@ uint64_t EqualWidthHistogram<T>::_bucket_count(const BucketID index) const {
 }
 
 template <typename T>
-uint64_t EqualWidthHistogram<T>::total_count() const {
+uint64_t EqualWidthHistogram<T>::_total_count() const {
   return std::accumulate(_counts.begin(), _counts.end(), 0ul);
 }
 

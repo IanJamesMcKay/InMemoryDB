@@ -226,7 +226,6 @@ TEST_F(HistogramTest, EqualNumElementsStringLessThan) {
   constexpr auto bucket_3_count = 3.f;
   constexpr auto bucket_4_count = 3.f;
   constexpr auto total_count = bucket_1_count + bucket_2_count + bucket_3_count + bucket_4_count;
-  EXPECT_EQ(hist.total_count(), total_count);
 
   EXPECT_FLOAT_EQ(hist.estimate_cardinality("aaaa", PredicateCondition::LessThan), 0.f);
   EXPECT_FLOAT_EQ(hist.estimate_cardinality("abcd", PredicateCondition::LessThan), 0.f);
@@ -344,7 +343,6 @@ TEST_F(HistogramTest, EqualNumElementsStringLessThan) {
 //   constexpr auto bucket_3_count = 3.f;
 //   constexpr auto bucket_4_count = 3.f;
 //   constexpr auto total_count = bucket_1_count + bucket_2_count + bucket_3_count + bucket_4_count;
-//   EXPECT_EQ(hist.total_count(), total_count);
 //
 //   EXPECT_FLOAT_EQ(hist.estimate_cardinality("aaaa", PredicateCondition::GreaterThan), total_count);
 //   EXPECT_FLOAT_EQ(hist.estimate_cardinality("abcc", PredicateCondition::GreaterThan), total_count);

@@ -173,15 +173,15 @@ float AbstractHistogram<T>::estimate_cardinality(const T value, const PredicateC
       const auto index = _bucket_for_value(value);
 
       if (index == INVALID_BUCKET_ID) {
-        return total_count();
+        return _total_count();
       }
 
-      return total_count() -
+      return _total_count() -
              static_cast<float>(_bucket_count(index)) / static_cast<float>(_bucket_count_distinct(index));
     }
     case PredicateCondition::LessThan: {
       if (value > _upper_end()) {
-        return total_count();
+        return _total_count();
       }
 
       if (value <= _lower_end()) {
@@ -261,7 +261,7 @@ float AbstractHistogram<T>::estimate_cardinality(const T value, const PredicateC
     }
     case PredicateCondition::GreaterThan: {
       // if (value < _lower_end()) {
-      //   return total_count();
+      //   return _total_count();
       // }
       //
       // if (value >= _upper_end()) {
@@ -295,7 +295,7 @@ float AbstractHistogram<T>::estimate_cardinality(const T value, const PredicateC
       // }
       //
       // return cardinality;
-      return total_count() - estimate_cardinality(value, PredicateCondition::LessThanEquals);
+      return _total_count() - estimate_cardinality(value, PredicateCondition::LessThanEquals);
     }
     default:
       Fail("Predicate condition not yet supported.");

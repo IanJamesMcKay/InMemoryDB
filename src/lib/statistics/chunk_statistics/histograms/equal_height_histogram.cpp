@@ -85,7 +85,7 @@ uint64_t EqualHeightHistogram<T>::_bucket_count_distinct(const BucketID index) c
 }
 
 template <typename T>
-uint64_t EqualHeightHistogram<T>::total_count() const {
+uint64_t EqualHeightHistogram<T>::_total_count() const {
   return this->_num_buckets() * _count_per_bucket;
 }
 
