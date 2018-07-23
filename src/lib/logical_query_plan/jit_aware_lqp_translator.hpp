@@ -4,9 +4,8 @@
 #include "logical_query_plan/lqp_translator.hpp"
 namespace opossum {
 class JitAwareLQPTranslator final : public LQPTranslator {
-  JitAwareLQPTranslator() : LQPTranslator() {
-    Fail("Query translation with JIT operators requested, but jitting is not available");
-  }
+ public:
+  JitAwareLQPTranslator();
 };
 }  // namespace opossum
 #else
